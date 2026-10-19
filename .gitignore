@@ -1,0 +1,28 @@
+# deps
+node_modules/
+.pnpm-store/
+
+# builds
+dist/
+build/
+.expo/
+.turbo/
+*.tsbuildinfo
+android/
+ios/
+
+# env & secrets
+.env
+.env.*
+!.env.example
+google-services.json
+*.keystore
+
+# supabase local
+supabase/.branches
+supabase/.temp
+
+# misc
+.DS_Store
+*.log
+coverage/

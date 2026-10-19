@@ -1,0 +1,21 @@
+{
+  "expo": {
+    "name": "FreshCut",
+    "slug": "freshcut-customer",
+    "scheme": "freshcut",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "platforms": ["android"],
+    "android": {
+      "package": "com.freshcut.customer",
+      "adaptiveIcon": {
+        "backgroundColor": "#E4461F"
+      }
+    },
+    "plugins": ["expo-router"],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
