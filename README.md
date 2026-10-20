@@ -15,7 +15,7 @@ Monorepo for the FreshCut meat delivery platform (working name).
 
 ## Prerequisites
 
-- Node 20+, pnpm 9 (`corepack enable`)
+- Node 24 (`nvm use` reads .nvmrc), pnpm 9 (`corepack enable`)
 - Supabase CLI (`brew install supabase/tap/supabase`)
 - A Supabase project (region `ap-south-1`), Firebase project (FCM), Expo account
 
