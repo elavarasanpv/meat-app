@@ -29,6 +29,7 @@ export const en = {
   seeAll: "See all",
   perKg: "/kg",
   addToCart: "Add to cart",
+  add: "Add",
   loadError: "Couldn't load products. Pull to retry.",
   // tabs
   tabHome: "Home",

@@ -14,9 +14,12 @@ type Props = {
   width?: number;
 };
 
+const HEIGHT = 280;
+const PAD = 14;
+
 /**
- * Big product card from the design: the ember gradient fills the card and the
- * cut-out sits in the middle band between the title and the button.
+ * Product card: the image is the hero. A short title sits on top, the cut-out
+ * fills the middle edge-to-edge, and price + "Add" share one row at the bottom.
  */
 export function ProductCard({ name, pricePerKg, image, onAdd, onPress, width = 230 }: Props) {
   const { c, productGradient } = useTheme();
@@ -29,7 +32,7 @@ export function ProductCard({ name, pricePerKg, image, onAdd, onPress, width = 2
         locations={[0, 0.35, 0.75, 1]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        style={{ width, height: 270, borderRadius: radius.card, overflow: "hidden", padding: 16 }}
+        style={{ width, height: HEIGHT, borderRadius: radius.card, overflow: "hidden", padding: PAD }}
       >
         {/* Soft highlight so the cut-out looks lit from above */}
         <LinearGradient
@@ -39,40 +42,48 @@ export function ProductCard({ name, pricePerKg, image, onAdd, onPress, width = 2
           style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%" }}
         />
 
-        <View style={{ gap: 2, height: 82 }}>
-          <AppText variant="title" color="#FFFFFF" style={{ fontSize: 21, lineHeight: 27, height: 54 }} numberOfLines={2}>
-            {name}
-          </AppText>
-          <AppText variant="price" color="#FFFFFF" numberOfLines={1} style={{ fontSize: 15 }}>
-            ₹ {pricePerKg}
-            <AppText variant="caption" color="rgba(255,255,255,0.8)"> {t("perKg")}</AppText>
-          </AppText>
-        </View>
+        {/* Title: max 2 lines, compact */}
+        <AppText variant="title" color="#FFFFFF" style={{ fontSize: 18, lineHeight: 23, height: 46 }} numberOfLines={2}>
+          {name}
+        </AppText>
 
-        {/* Image band: whole cut-out, centred, with a shadow pool beneath */}
-        <View style={{ flex: 1, alignItems: "center", justifyContent: "flex-end", marginVertical: 2 }}>
-          <View style={{ position: "absolute", bottom: 2, width: "70%", height: 14, borderRadius: 999, backgroundColor: "rgba(60,10,4,0.35)" }} />
+        {/* Image band: bleeds to the card edges, whole cut-out, shadow pool beneath */}
+        <View style={{ flex: 1, marginHorizontal: -PAD, alignItems: "center", justifyContent: "flex-end" }}>
+          <View style={{ position: "absolute", bottom: 4, width: "68%", height: 16, borderRadius: 999, backgroundColor: "rgba(60,10,4,0.38)" }} />
           {image ? (
             <Image source={image} resizeMode="contain" style={{ width: "100%", height: "100%" }} />
           ) : null}
         </View>
 
-        <Pressable
-          onPress={onAdd}
-          accessibilityRole="button"
-          accessibilityLabel={`${t("addToCart")} ${name}`}
-          style={({ pressed }) => ({
-            height: 46,
-            borderRadius: radius.pill,
-            backgroundColor: pressed ? c.tint : "#FFFFFF",
-            alignItems: "center",
-            justifyContent: "center",
-          })}
-        >
-          <AppText variant="bodyBold" color="#B8361A" numberOfLines={1}>
-            {t("addToCart")}
-          </AppText>
-        </Pressable>
+        {/* Price + Add in one row */}
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", height: 44, marginTop: 4 }}>
+          <View>
+            <AppText variant="price" color="#FFFFFF" numberOfLines={1} style={{ fontSize: 20, lineHeight: 24 }}>
+              ₹ {pricePerKg}
+            </AppText>
+            <AppText variant="caption" color="rgba(255,255,255,0.85)" numberOfLines={1} style={{ fontSize: 11, lineHeight: 14 }}>
+              {t("perKg")}
+            </AppText>
+          </View>
+          <Pressable
+            onPress={onAdd}
+            accessibilityRole="button"
+            accessibilityLabel={`${t("addToCart")} ${name}`}
+            style={({ pressed }) => ({
+              height: 44,
+              minWidth: 92,
+              paddingHorizontal: 18,
+              borderRadius: radius.pill,
+              backgroundColor: pressed ? c.tint : "#FFFFFF",
+              alignItems: "center",
+              justifyContent: "center",
+            })}
+          >
+            <AppText variant="bodyBold" color="#B8361A" numberOfLines={1}>
+              {t("add")}
+            </AppText>
+          </Pressable>
+        </View>
       </LinearGradient>
     </Pressable>
   );
