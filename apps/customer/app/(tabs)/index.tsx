@@ -96,7 +96,9 @@ export default function HomeScreen() {
                 style={{ alignItems: "center", gap: 6, width: 68 }}
               >
                 <View style={{ width: 64, height: 64, borderRadius: 32, borderWidth: 3, borderColor: selected ? c.primary : c.border, padding: 3 }}>
-                  <Image source={chicken} style={{ flex: 1, borderRadius: 29 }} />
+                  <View style={{ width: 52, height: 52, borderRadius: 26, overflow: "hidden", backgroundColor: c.tint }}>
+                    <Image source={chicken} resizeMode="cover" style={{ width: 52, height: 52 }} />
+                  </View>
                 </View>
                 <AppText variant={selected ? "label" : "caption"} color={selected ? c.primary : c.ink} numberOfLines={1}>
                   {cat.name}
