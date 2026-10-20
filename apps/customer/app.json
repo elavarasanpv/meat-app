@@ -6,14 +6,20 @@
     "version": "0.1.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
-    "platforms": ["android", "web"],
+    "platforms": [
+      "android",
+      "web"
+    ],
     "android": {
       "package": "com.freshcut.customer",
       "adaptiveIcon": {
         "backgroundColor": "#E4461F"
       }
     },
-    "plugins": ["expo-router"],
+    "plugins": [
+      "expo-router",
+      "expo-font"
+    ],
     "experiments": {
       "typedRoutes": true
     }
