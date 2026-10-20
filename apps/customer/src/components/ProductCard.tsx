@@ -38,11 +38,11 @@ export function ProductCard({ name, pricePerKg, image, onAdd, onPress, width = 2
           style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
         />
 
-        <View style={{ gap: 4 }}>
-          <AppText variant="title" color="#FFFFFF" style={{ fontSize: 22, lineHeight: 26 }} numberOfLines={2}>
+        <View style={{ gap: 4, height: 82 }}>
+          <AppText variant="title" color="#FFFFFF" style={{ fontSize: 22, lineHeight: 28, height: 56 }} numberOfLines={2}>
             {name}
           </AppText>
-          <AppText variant="price" color="#FFFFFF" style={{ fontSize: 15 }}>
+          <AppText variant="price" color="#FFFFFF" numberOfLines={1} style={{ fontSize: 15 }}>
             ₹ {pricePerKg}
             <AppText variant="caption" color="rgba(255,255,255,0.8)"> {t("perKg")}</AppText>
           </AppText>
@@ -60,7 +60,7 @@ export function ProductCard({ name, pricePerKg, image, onAdd, onPress, width = 2
             justifyContent: "center",
           })}
         >
-          <AppText variant="bodyBold" color="#B8361A">
+          <AppText variant="bodyBold" color="#B8361A" numberOfLines={1}>
             {t("addToCart")}
           </AppText>
         </Pressable>

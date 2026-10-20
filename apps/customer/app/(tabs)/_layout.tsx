@@ -1,7 +1,7 @@
 import { Tabs } from "expo-router";
 import { View } from "react-native";
 import { Icon, type IconName } from "@/components/Icon";
-import { useT } from "@/i18n";
+import { useLang, useT } from "@/i18n";
 import { fonts, useTheme } from "@/theme";
 
 function TabIcon({ name, focused, color }: { name: IconName; focused: boolean; color: string }) {
@@ -25,6 +25,7 @@ function TabIcon({ name, focused, color }: { name: IconName; focused: boolean; c
 export default function TabsLayout() {
   const { c } = useTheme();
   const t = useT();
+  const lang = useLang((s) => s.lang);
 
   return (
     <Tabs
@@ -33,7 +34,8 @@ export default function TabsLayout() {
         tabBarActiveTintColor: c.primary,
         tabBarInactiveTintColor: c.muted,
         tabBarStyle: { backgroundColor: c.surface, borderTopColor: c.border, height: 84, paddingTop: 8, paddingBottom: 14 },
-        tabBarLabelStyle: { fontFamily: fonts.bodyBold, fontSize: 12 },
+        tabBarLabelStyle: { fontFamily: lang === "ta" ? fonts.tamilBold : fonts.bodyBold, fontSize: lang === "ta" ? 11 : 12, lineHeight: 16 },
+        tabBarAllowFontScaling: false,
         sceneStyle: { backgroundColor: c.ground },
       }}
     >

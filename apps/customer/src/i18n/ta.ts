@@ -19,7 +19,7 @@ export const ta: Record<keyof typeof en, string> = {
   greetingEvening: "மாலை வணக்கம்",
   deliverTo: "அரசு பள்ளி அருகில், கள்ளக்குறிச்சி",
   searchPlaceholder: 'தேடுங்கள் அல்லது "1 கிலோ சிக்கன்" என்று சொல்லுங்கள்',
-  all: "அனைத்தும்",
+  all: "எல்லாம்",
   aiLabel: "AI உங்களுக்கு பரிந்துரைக்கிறது",
   aiSuggestion: "ஞாயிறு — வழக்கமான 1.5 கிலோ ஆட்டுக்கறி?",
   aiMeta: "மதியம் 12–2 நேரம் உள்ளது",

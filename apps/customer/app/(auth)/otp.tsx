@@ -70,8 +70,8 @@ export default function OtpScreen() {
         </Pressable>
 
         <View style={{ gap: 8 }}>
-          <AppText variant="display" style={{ fontSize: 28 }}>{t("otpTitle")}</AppText>
-          <AppText muted>{t("otpSubtitle", { phone: pretty })}</AppText>
+          <AppText variant="display" numberOfLines={1} style={{ height: 40 }}>{t("otpTitle")}</AppText>
+          <AppText muted numberOfLines={2} style={{ height: 44 }}>{t("otpSubtitle", { phone: pretty })}</AppText>
         </View>
 
         {/* 6 boxes backed by one hidden input (works with SMS autofill). */}
@@ -118,9 +118,9 @@ export default function OtpScreen() {
           />
         </Pressable>
 
-        {error ? <AppText variant="caption" color={c.danger}>{error}</AppText> : null}
+        <AppText variant="caption" color={c.danger} numberOfLines={1} style={{ height: 18 }}>{error ?? ""}</AppText>
 
-        <View style={{ flexDirection: "row", justifyContent: "center" }}>
+        <View style={{ flexDirection: "row", justifyContent: "center", height: 18 }}>
           {seconds > 0 ? (
             <AppText variant="caption" muted>{t("resendIn", { s: seconds })}</AppText>
           ) : (

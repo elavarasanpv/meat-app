@@ -49,9 +49,9 @@ export default function HomeScreen() {
               <View style={{ width: 40, height: 40, borderRadius: 14, backgroundColor: c.primary, alignItems: "center", justifyContent: "center" }}>
                 <Icon name="logo" color="#FFFFFF" size={22} />
               </View>
-              <View style={{ flex: 1 }}>
-                <AppText variant="subtitle" style={{ fontSize: 17 }} numberOfLines={1}>{t(greetingKey())}</AppText>
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+              <View style={{ flex: 1, height: 42, justifyContent: "center" }}>
+                <AppText variant="subtitle" numberOfLines={1}>{t(greetingKey())}</AppText>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 4, height: 18 }}>
                   <Icon name="pin" color={c.primary} size={13} strokeWidth={2.4} />
                   <AppText variant="caption" muted numberOfLines={1} style={{ flexShrink: 1 }}>{t("deliverTo")}</AppText>
                   <Icon name="chevronDown" color={c.muted} size={13} strokeWidth={2.6} />
@@ -100,7 +100,7 @@ export default function HomeScreen() {
                     <Image source={chicken} resizeMode="cover" style={{ width: 52, height: 52 }} />
                   </View>
                 </View>
-                <AppText variant={selected ? "label" : "caption"} color={selected ? c.primary : c.ink} numberOfLines={1}>
+                <AppText variant="label" color={selected ? c.primary : c.ink} numberOfLines={1} style={{ height: 18 }}>
                   {cat.name}
                 </AppText>
               </Pressable>
@@ -113,24 +113,24 @@ export default function HomeScreen() {
           <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: c.tint, alignItems: "center", justifyContent: "center" }}>
             <Icon name="sparkle" color={c.primary} size={22} />
           </View>
-          <View style={{ flex: 1, gap: 2 }}>
-            <AppText variant="label" color={c.price} style={{ fontSize: 10, letterSpacing: 0.6 }}>{t("aiLabel")}</AppText>
-            <AppText variant="subtitle" style={{ fontSize: 15, lineHeight: 19 }}>{t("aiSuggestion")}</AppText>
-            <AppText variant="caption" muted>₹ 1,260 · {t("aiMeta")}</AppText>
+          <View style={{ flex: 1, gap: 2, height: 84, justifyContent: "center" }}>
+            <AppText variant="label" color={c.price} numberOfLines={1} style={{ fontSize: 10, letterSpacing: 0.6, height: 16 }}>{t("aiLabel")}</AppText>
+            <AppText variant="subtitle" numberOfLines={2} style={{ fontSize: 15, lineHeight: 21, height: 42 }}>{t("aiSuggestion")}</AppText>
+            <AppText variant="caption" muted numberOfLines={1} style={{ height: 18 }}>₹ 1,260 · {t("aiMeta")}</AppText>
           </View>
           <Pressable
             accessibilityRole="button"
-            style={({ pressed }) => ({ height: 40, paddingHorizontal: 14, borderRadius: 20, backgroundColor: pressed ? c.primaryPressed : c.primary, justifyContent: "center" })}
+            style={({ pressed }) => ({ height: 40, minWidth: 72, paddingHorizontal: 14, borderRadius: 20, backgroundColor: pressed ? c.primaryPressed : c.primary, justifyContent: "center", alignItems: "center" })}
           >
-            <AppText variant="label" color="#FFFFFF" style={{ fontSize: 13 }}>{t("order")}</AppText>
+            <AppText variant="label" color="#FFFFFF" numberOfLines={1} style={{ fontSize: 13 }}>{t("order")}</AppText>
           </Pressable>
         </View>
 
         {/* Popular products */}
         <View style={{ gap: 10 }}>
-          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "baseline", paddingHorizontal: 20 }}>
-            <AppText variant="title">{t("popularToday")}</AppText>
-            <AppText variant="label" color={c.price}>{t("seeAll")}</AppText>
+          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 20, height: 28 }}>
+            <AppText variant="title" numberOfLines={1}>{t("popularToday")}</AppText>
+            <AppText variant="label" color={c.price} numberOfLines={1}>{t("seeAll")}</AppText>
           </View>
 
           {products.isError ? (

@@ -59,14 +59,14 @@ export default function LoginScreen() {
             colors={productGradient}
             start={{ x: 0.1, y: 0 }}
             end={{ x: 0.9, y: 1 }}
-            style={{ borderRadius: 28, padding: 24, minHeight: 200, justifyContent: "flex-end" }}
+            style={{ borderRadius: 28, padding: 24, height: 200, justifyContent: "flex-end" }}
           >
-            <AppText variant="display" color="#FFFFFF">{t("loginTitle")}</AppText>
+            <AppText variant="display" color="#FFFFFF" numberOfLines={2} style={{ height: 80 }}>{t("loginTitle")}</AppText>
           </LinearGradient>
 
           {/* Phone input */}
           <View style={{ gap: 10 }}>
-            <AppText variant="subtitle">{t("loginSubtitle")}</AppText>
+            <AppText variant="subtitle" numberOfLines={2} style={{ height: 48 }}>{t("loginSubtitle")}</AppText>
             <View
               style={{
                 flexDirection: "row",
@@ -100,7 +100,7 @@ export default function LoginScreen() {
                 returnKeyType="send"
               />
             </View>
-            {error ? <AppText variant="caption" color={c.danger}>{error}</AppText> : null}
+            <AppText variant="caption" color={c.danger} numberOfLines={1} style={{ height: 18 }}>{error ?? ""}</AppText>
           </View>
 
           <View style={{ flex: 1 }} />
@@ -108,7 +108,7 @@ export default function LoginScreen() {
           <View style={{ gap: 12, paddingBottom: 12 }}>
             <Button label={t("sendOtp")} onPress={sendOtp} loading={loading} disabled={!e164} />
             <Pressable accessibilityRole="text">
-              <AppText variant="caption" muted style={{ textAlign: "center" }}>{t("terms")}</AppText>
+              <AppText variant="caption" muted numberOfLines={2} style={{ textAlign: "center", height: 36 }}>{t("terms")}</AppText>
             </Pressable>
           </View>
         </View>

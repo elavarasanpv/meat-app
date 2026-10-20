@@ -42,6 +42,7 @@ export function Button({ label, variant = "primary", size = "lg", loading, disab
       ) : (
         <AppText
           variant="bodyBold"
+          numberOfLines={1}
           style={{ fontSize: size === "lg" ? 16 : 13 }}
           color={variant === "primary" ? c.onPrimary : variant === "outline" ? c.price : c.ink}
         >
