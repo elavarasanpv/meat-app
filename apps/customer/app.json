@@ -6,7 +6,7 @@
     "version": "0.1.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
-    "platforms": ["android"],
+    "platforms": ["android", "web"],
     "android": {
       "package": "com.freshcut.customer",
       "adaptiveIcon": {
