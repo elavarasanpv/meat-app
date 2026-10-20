@@ -215,23 +215,26 @@ create table tickets (
 );
 
 -- ──────────────────────────── updated_at trigger ───────────────────────
-create or replace function set_updated_at() returns trigger as $$
+create or replace function set_updated_at() returns trigger
+language plpgsql set search_path = public as $$
 begin
   new.updated_at = now();
   return new;
-end $$ language plpgsql;
+end $$;
 
 create trigger orders_updated_at before update on orders
   for each row execute function set_updated_at();
 
 -- ─────────────────────────── helper functions ──────────────────────────
+-- security definer + fixed search_path so RLS policies can look up roles
+-- without recursing into profiles' own RLS, and without search_path hijacking.
 create or replace function current_role_of(uid uuid) returns user_role
-language sql stable security definer as
-$$ select role from profiles where id = uid $$;
+language sql stable security definer set search_path = public as
+$$ select role from public.profiles where id = uid $$;
 
 create or replace function is_admin() returns boolean
-language sql stable security definer as
-$$ select exists (select 1 from profiles where id = auth.uid() and role = 'admin') $$;
+language sql stable security definer set search_path = public as
+$$ select exists (select 1 from public.profiles where id = auth.uid() and role = 'admin') $$;
 
 -- ──────────────────────────────── RLS ──────────────────────────────────
 alter table profiles enable row level security;
@@ -314,3 +317,23 @@ create policy "own tickets" on tickets for select using (
   customer_id = auth.uid() or is_admin()
 );
 create policy "create ticket" on tickets for insert with check (customer_id = auth.uid());
+
+-- ─────────────────────── descriptions (shown in Supabase UI) ───────────────────────
+comment on table profiles is 'One row per signed-in user (linked to auth.users). role decides which app/screens they get: customer, dealer, rider or admin.';
+comment on table zones is 'Service areas (e.g. a town). Dealers, riders and delivery slots belong to a zone.';
+comment on table zone_pincodes is 'Pincodes covered by each zone; used to check if an address is serviceable.';
+comment on table addresses is 'Customer delivery addresses with landmark and map pin (rural addresses are often unclear).';
+comment on table dealers is 'Shops enrolled by admin. Receive orders, pack them, earn order value minus commission_pct.';
+comment on table delivery_partners is 'Riders enrolled by admin. cash_balance = COD cash collected but not yet submitted to admin.';
+comment on table categories is 'Top-level catalog groups: Chicken, Mutton, Fish, Eggs.';
+comment on table products is 'Sellable items (e.g. Country chicken curry cut) with base price per kg and image.';
+comment on table dealer_products is 'Per-dealer availability today and optional price override for each product.';
+comment on table delivery_slots is 'Time windows customers can pick (e.g. Today 5–7 PM) per zone.';
+comment on table orders is 'Customer orders. status follows the state machine in packages/shared; ONLY the API changes it. est_amount at checkout, final_amount after packed weight.';
+comment on table order_items is 'Lines in an order: requested_kg vs actual_kg (packed weight), cut/size/skin options and notes.';
+comment on table order_status_history is 'Audit trail: every status change with who did it, when and where (GPS). Drives delay tracking and disputes.';
+comment on table labels is 'Pre-printed QR sticker codes (LBL-000123). Linked to an order at packing; rider scans it at pickup.';
+comment on table order_proofs is 'Photo evidence: packed parcel (with scale), handover to customer, or failed delivery.';
+comment on table payments is 'Payment records per order: cash, UPI QR or prepaid, with gateway reference.';
+comment on table cash_submissions is 'Rider day-end COD settlement: expected vs submitted cash, verified by an admin.';
+comment on table tickets is 'Customer support queries/complaints, handled by admin or sub-admins.';
