@@ -6,17 +6,9 @@ import { Icon } from "@/components/Icon";
 import { LangToggle } from "@/components/LangToggle";
 import { ProductCard } from "@/components/ProductCard";
 import { useCategories, useProducts } from "@/hooks/useCatalog";
-import { supabase } from "@/lib/supabase";
+import { bundled, categoryImage, productImage } from "@/lib/images";
 import { useT, type TKey } from "@/i18n";
 import { radius, useTheme } from "@/theme";
-
-const chicken = require("../../assets/images/chicken.jpg");
-
-/** Storage path → public URL; falls back to the bundled sample photo until real images are uploaded. */
-function productImage(path: string | null) {
-  if (!path) return chicken;
-  return { uri: supabase.storage.from("product-images").getPublicUrl(path).data.publicUrl };
-}
 
 function greetingKey(): TKey {
   const h = new Date().getHours();
@@ -87,6 +79,7 @@ export default function HomeScreen() {
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, gap: 14 }}>
           {[{ id: null as string | null, name: t("all") }, ...(categories.data ?? [])].map((cat) => {
             const selected = categoryId === cat.id;
+            const img = cat.id === null ? bundled.countryChicken : categoryImage(cat.name);
             return (
               <Pressable
                 key={cat.id ?? "all"}
@@ -96,8 +89,12 @@ export default function HomeScreen() {
                 style={{ alignItems: "center", gap: 6, width: 68 }}
               >
                 <View style={{ width: 64, height: 64, borderRadius: 32, borderWidth: 3, borderColor: selected ? c.primary : c.border, padding: 3 }}>
-                  <View style={{ width: 52, height: 52, borderRadius: 26, overflow: "hidden", backgroundColor: c.tint }}>
-                    <Image source={chicken} resizeMode="cover" style={{ width: 52, height: 52 }} />
+                  <View style={{ width: 52, height: 52, borderRadius: 26, overflow: "hidden", backgroundColor: c.tint, alignItems: "center", justifyContent: "center" }}>
+                    {img ? (
+                      <Image source={img} resizeMode="contain" style={{ width: 44, height: 44 }} />
+                    ) : (
+                      <AppText variant="title" color={c.price} style={{ fontSize: 20 }}>{cat.name.charAt(0)}</AppText>
+                    )}
                   </View>
                 </View>
                 <AppText variant="label" color={selected ? c.primary : c.ink} numberOfLines={1} style={{ height: 18 }}>
@@ -143,7 +140,7 @@ export default function HomeScreen() {
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={{ paddingHorizontal: 20, gap: 12 }}
               renderItem={({ item }) => (
-                <ProductCard name={item.name} pricePerKg={Number(item.base_price_per_kg)} image={productImage(item.image_path)} />
+                <ProductCard name={item.name} pricePerKg={Number(item.base_price_per_kg)} image={productImage(item.name, item.image_path)} />
               )}
             />
           )}

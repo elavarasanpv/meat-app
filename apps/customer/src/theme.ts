@@ -55,9 +55,9 @@ export const palette = {
 export type Colors = { [K in keyof typeof palette.light]: string };
 
 export const gradients = {
-  /** Card background behind product images (shows through transparent PNGs). */
-  productCard: ["#F6764F", "#E4461F", "#B8361A"] as const,
-  productCardDark: ["#F0522A", "#B8361A", "#6E2112"] as const,
+  /** Card background behind product cut-outs: warm glow top-left → ember → deep red bottom-right. */
+  productCard: ["#FF9A6B", "#EE5A2E", "#C4391A", "#8E2611"] as const,
+  productCardDark: ["#F5673F", "#C9391C", "#7C2010", "#4A140A"] as const,
   /** Overlay on full-bleed photos so white text stays readable. */
   photoScrim: ["rgba(60,14,6,0.55)", "rgba(60,14,6,0)", "rgba(60,14,6,0.45)"] as const,
 };
