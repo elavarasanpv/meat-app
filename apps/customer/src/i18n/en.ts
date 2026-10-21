@@ -28,6 +28,7 @@ export const en = {
   popularToday: "Popular today",
   seeAll: "See all",
   perKg: "/kg",
+  perPiece: "/piece",
   addToCart: "Add to cart",
   add: "Add",
   loadError: "Couldn't load products. Tap to retry.",

@@ -145,7 +145,7 @@ export default function HomeScreen() {
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={{ paddingHorizontal: 20, gap: 12 }}
                 renderItem={({ item }) => (
-                  <ProductCard name={item.name} pricePerKg={Number(item.base_price_per_kg)} image={productImage(item.name, item.image_path)} />
+                  <ProductCard name={item.name} pricePerKg={Number(item.base_price_per_kg)} unit={item.unit} image={productImage(item.name, item.image_path)} />
                 )}
               />
             </View>

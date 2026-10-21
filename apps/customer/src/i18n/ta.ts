@@ -27,6 +27,7 @@ export const ta: Record<keyof typeof en, string> = {
   popularToday: "இன்று பிரபலமானவை",
   seeAll: "அனைத்தும்",
   perKg: "/கிலோ",
+  perPiece: "/ஒன்று",
   addToCart: "கூடையில் சேர்",
   add: "சேர்",
   loadError: "பொருட்களை ஏற்ற முடியவில்லை. மீண்டும் முயல தட்டவும்.",

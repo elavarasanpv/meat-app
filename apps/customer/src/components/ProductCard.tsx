@@ -7,6 +7,8 @@ import { useT } from "@/i18n";
 type Props = {
   name: string;
   pricePerKg: number;
+  /** "kg" (default) or "piece" — changes the unit label under the price. */
+  unit?: "kg" | "piece";
   /** Transparent PNG cut-out; shown whole (never cropped) on the gradient. */
   image?: ImageSourcePropType;
   onAdd?: () => void;
@@ -21,7 +23,7 @@ const PAD = 14;
  * Product card: the image is the hero. A short title sits on top, the cut-out
  * fills the middle edge-to-edge, and price + "Add" share one row at the bottom.
  */
-export function ProductCard({ name, pricePerKg, image, onAdd, onPress, width = 230 }: Props) {
+export function ProductCard({ name, pricePerKg, unit = "kg", image, onAdd, onPress, width = 230 }: Props) {
   const { c, productGradient } = useTheme();
   const t = useT();
 
@@ -62,7 +64,7 @@ export function ProductCard({ name, pricePerKg, image, onAdd, onPress, width = 2
               ₹ {pricePerKg}
             </AppText>
             <AppText variant="caption" color="rgba(255,255,255,0.85)" numberOfLines={1} style={{ fontSize: 11, lineHeight: 14 }}>
-              {t("perKg")}
+              {t(unit === "piece" ? "perPiece" : "perKg")}
             </AppText>
           </View>
           <Pressable
