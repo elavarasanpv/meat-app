@@ -55,9 +55,12 @@ export const palette = {
 export type Colors = { [K in keyof typeof palette.light]: string };
 
 export const gradients = {
-  /** Card background behind product cut-outs: warm glow top-left → ember → deep red bottom-right. */
-  productCard: ["#FF9A6B", "#EE5A2E", "#C4391A", "#8E2611"] as const,
-  productCardDark: ["#F5673F", "#C9391C", "#7C2010", "#4A140A"] as const,
+  /** Product card: white at the top melting into a soft ember glow at the bottom (top→bottom). */
+  productCard: ["#FFFFFF", "#FFF4EE", "#FFD6C2", "#FFB08E"] as const,
+  productCardDark: ["#211B19", "#2A1F1B", "#3F2217", "#5A2A18"] as const,
+  /** Product card border */
+  productCardBorder: "#F6DCCF",
+  productCardBorderDark: "#3F332E",
   /** Overlay on full-bleed photos so white text stays readable. */
   photoScrim: ["rgba(60,14,6,0.55)", "rgba(60,14,6,0)", "rgba(60,14,6,0.45)"] as const,
 };
@@ -83,5 +86,6 @@ export function useTheme() {
     scheme,
     c: palette[scheme] as Colors,
     productGradient: scheme === "dark" ? gradients.productCardDark : gradients.productCard,
+    productBorder: scheme === "dark" ? gradients.productCardBorderDark : gradients.productCardBorder,
   };
 }

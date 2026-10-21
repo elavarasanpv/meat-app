@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { FlatList, Image, Pressable, ScrollView, View } from "react-native";
+import { Image, Pressable, ScrollView, View, useWindowDimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AppText } from "@/components/AppText";
 import { Icon } from "@/components/Icon";
@@ -15,8 +15,12 @@ function greetingKey(): TKey {
   return h < 12 ? "greetingMorning" : h < 17 ? "greetingAfternoon" : "greetingEvening";
 }
 
+const GAP = 12;
+
 export default function HomeScreen() {
   const { c } = useTheme();
+  const { width: screenWidth } = useWindowDimensions();
+  const cardWidth = Math.floor((screenWidth - 40 - GAP) / 2);
   const t = useT();
   const [categoryId, setCategoryId] = useState<string | null>(null);
   const categories = useCategories();
@@ -85,16 +89,27 @@ export default function HomeScreen() {
                 onPress={() => setCategoryId(cat.id)}
                 accessibilityRole="button"
                 accessibilityState={{ selected }}
-                style={{ alignItems: "center", gap: 6, width: 68 }}
+                style={{ alignItems: "center", gap: 6, width: 78 }}
               >
-                <View style={{ width: 64, height: 64, borderRadius: 32, borderWidth: 3, borderColor: selected ? c.primary : c.border, padding: 3 }}>
-                  <View style={{ width: 52, height: 52, borderRadius: 26, overflow: "hidden", backgroundColor: c.tint, alignItems: "center", justifyContent: "center" }}>
-                    {img ? (
-                      <Image source={img} resizeMode="contain" style={{ width: 44, height: 44 }} />
-                    ) : (
-                      <AppText variant="title" color={c.price} style={{ fontSize: 20 }}>{cat.name.charAt(0)}</AppText>
-                    )}
-                  </View>
+                {/* Rounded rectangle: landscape cut-outs fit better than in a circle */}
+                <View
+                  style={{
+                    width: 78,
+                    height: 62,
+                    borderRadius: 18,
+                    borderWidth: 2,
+                    borderColor: selected ? c.primary : c.border,
+                    backgroundColor: selected ? c.tint : c.surface,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    overflow: "hidden",
+                  }}
+                >
+                  {img ? (
+                    <Image source={img} resizeMode="contain" style={{ width: 66, height: 48 }} />
+                  ) : (
+                    <AppText variant="title" color={c.price} style={{ fontSize: 20 }}>{cat.name.charAt(0)}</AppText>
+                  )}
                 </View>
                 <AppText variant="label" color={selected ? c.primary : c.ink} numberOfLines={1} style={{ height: 18 }}>
                   {cat.name}
@@ -138,16 +153,19 @@ export default function HomeScreen() {
                   <AppText variant="label" color={c.price} numberOfLines={1}>{t("seeAll")}</AppText>
                 </Pressable>
               </View>
-              <FlatList
-                horizontal
-                data={section.items}
-                keyExtractor={(p) => p.id}
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{ paddingHorizontal: 20, gap: 12 }}
-                renderItem={({ item }) => (
-                  <ProductCard name={item.name} pricePerKg={Number(item.base_price_per_kg)} unit={item.unit} image={productImage(item.name, item.image_path)} />
-                )}
-              />
+              {/* 2-up grid: both cards fully visible, page scrolls vertically */}
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: GAP, paddingHorizontal: 20 }}>
+                {section.items.map((item) => (
+                  <ProductCard
+                    key={item.id}
+                    width={cardWidth}
+                    name={item.name}
+                    pricePerKg={Number(item.base_price_per_kg)}
+                    unit={item.unit}
+                    image={productImage(item.name, item.image_path)}
+                  />
+                ))}
+              </View>
             </View>
           ))
         )}
