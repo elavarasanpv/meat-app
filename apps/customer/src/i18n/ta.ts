@@ -30,6 +30,7 @@ export const ta: Record<keyof typeof en, string> = {
   addToCart: "கூடையில் சேர்",
   add: "சேர்",
   loadError: "பொருட்களை ஏற்ற முடியவில்லை. மீண்டும் முயல தட்டவும்.",
+  noItems: "இந்த வகையில் இன்னும் பொருட்கள் இல்லை.",
   tabHome: "முகப்பு",
   tabOrders: "ஆர்டர்கள்",
   tabCart: "கூடை",

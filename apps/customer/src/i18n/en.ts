@@ -31,6 +31,7 @@ export const en = {
   addToCart: "Add to cart",
   add: "Add",
   loadError: "Couldn't load products. Tap to retry.",
+  noItems: "No items in this category yet.",
   // tabs
   tabHome: "Home",
   tabOrders: "My orders",

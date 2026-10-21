@@ -20,7 +20,13 @@ export default function HomeScreen() {
   const t = useT();
   const [categoryId, setCategoryId] = useState<string | null>(null);
   const categories = useCategories();
-  const products = useProducts(categoryId);
+  const products = useProducts(); // all products once; grouped below
+
+  // "All" → a section per category that has products; a category → just that one.
+  const sections = (categories.data ?? [])
+    .filter((cat) => categoryId === null || cat.id === categoryId)
+    .map((cat) => ({ id: cat.id, name: cat.name, items: (products.data ?? []).filter((p) => p.category_id === cat.id) }))
+    .filter((s) => s.items.length > 0);
 
   return (
     <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: c.ground }}>
@@ -116,30 +122,35 @@ export default function HomeScreen() {
           </Pressable>
         </View>
 
-        {/* Popular products */}
-        <View style={{ gap: 10 }}>
-          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 20, height: 28 }}>
-            <AppText variant="title" numberOfLines={1}>{t("popularToday")}</AppText>
-            <AppText variant="label" color={c.price} numberOfLines={1}>{t("seeAll")}</AppText>
-          </View>
-
-          {products.isError ? (
-            <Pressable onPress={() => products.refetch()} accessibilityRole="button" style={{ paddingHorizontal: 20 }}>
-              <AppText muted>{t("loadError")}</AppText>
-            </Pressable>
-          ) : (
-            <FlatList
-              horizontal
-              data={products.data ?? []}
-              keyExtractor={(p) => p.id}
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ paddingHorizontal: 20, gap: 12 }}
-              renderItem={({ item }) => (
-                <ProductCard name={item.name} pricePerKg={Number(item.base_price_per_kg)} image={productImage(item.name, item.image_path)} />
-              )}
-            />
-          )}
-        </View>
+        {/* Product sections: one row per category ("All") or just the chosen category */}
+        {products.isError ? (
+          <Pressable onPress={() => products.refetch()} accessibilityRole="button" style={{ paddingHorizontal: 20 }}>
+            <AppText muted>{t("loadError")}</AppText>
+          </Pressable>
+        ) : sections.length === 0 && products.isSuccess ? (
+          <AppText muted style={{ paddingHorizontal: 20 }}>{t("noItems")}</AppText>
+        ) : (
+          sections.map((section) => (
+            <View key={section.id} style={{ gap: 10 }}>
+              <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 20, height: 28 }}>
+                <AppText variant="title" numberOfLines={1}>{section.name}</AppText>
+                <Pressable onPress={() => setCategoryId(section.id)} accessibilityRole="button">
+                  <AppText variant="label" color={c.price} numberOfLines={1}>{t("seeAll")}</AppText>
+                </Pressable>
+              </View>
+              <FlatList
+                horizontal
+                data={section.items}
+                keyExtractor={(p) => p.id}
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ paddingHorizontal: 20, gap: 12 }}
+                renderItem={({ item }) => (
+                  <ProductCard name={item.name} pricePerKg={Number(item.base_price_per_kg)} image={productImage(item.name, item.image_path)} />
+                )}
+              />
+            </View>
+          ))
+        )}
       </ScrollView>
     </SafeAreaView>
   );
