@@ -30,7 +30,7 @@ export const en = {
   perKg: "/kg",
   addToCart: "Add to cart",
   add: "Add",
-  loadError: "Couldn't load products. Pull to retry.",
+  loadError: "Couldn't load products. Tap to retry.",
   // tabs
   tabHome: "Home",
   tabOrders: "My orders",

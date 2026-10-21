@@ -1,12 +1,12 @@
 import { useState } from "react";
-import { FlatList, Image, Pressable, RefreshControl, ScrollView, View } from "react-native";
+import { FlatList, Image, Pressable, ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AppText } from "@/components/AppText";
 import { Icon } from "@/components/Icon";
 import { LangToggle } from "@/components/LangToggle";
 import { ProductCard } from "@/components/ProductCard";
 import { useCategories, useProducts } from "@/hooks/useCatalog";
-import { bundled, categoryImage, productImage } from "@/lib/images";
+import { categoryImage, productImage } from "@/lib/images";
 import { useT, type TKey } from "@/i18n";
 import { radius, useTheme } from "@/theme";
 
@@ -22,18 +22,11 @@ export default function HomeScreen() {
   const categories = useCategories();
   const products = useProducts(categoryId);
 
-  const refreshing = categories.isRefetching || products.isRefetching;
-  const onRefresh = () => {
-    categories.refetch();
-    products.refetch();
-  };
-
   return (
     <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: c.ground }}>
-      <ScrollView
-        contentContainerStyle={{ paddingBottom: 24, gap: 18 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={c.primary} />}
-      >
+      {/* No RefreshControl: on Android its SwipeRefreshLayout steals fast horizontal
+          swipes from the nested product/category rows. Queries refetch on focus. */}
+      <ScrollView contentContainerStyle={{ paddingBottom: 24, gap: 18 }}>
         {/* Header */}
         <View style={{ paddingHorizontal: 20, paddingTop: 8, gap: 16 }}>
           <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
@@ -79,7 +72,7 @@ export default function HomeScreen() {
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, gap: 14 }}>
           {[{ id: null as string | null, name: t("all") }, ...(categories.data ?? [])].map((cat) => {
             const selected = categoryId === cat.id;
-            const img = cat.id === null ? bundled.countryChicken : categoryImage(cat.name);
+            const img = categoryImage(cat.id === null ? null : cat.name);
             return (
               <Pressable
                 key={cat.id ?? "all"}
@@ -131,7 +124,9 @@ export default function HomeScreen() {
           </View>
 
           {products.isError ? (
-            <AppText muted style={{ paddingHorizontal: 20 }}>{t("loadError")}</AppText>
+            <Pressable onPress={() => products.refetch()} accessibilityRole="button" style={{ paddingHorizontal: 20 }}>
+              <AppText muted>{t("loadError")}</AppText>
+            </Pressable>
           ) : (
             <FlatList
               horizontal

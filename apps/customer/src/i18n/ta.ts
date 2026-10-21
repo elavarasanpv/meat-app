@@ -29,7 +29,7 @@ export const ta: Record<keyof typeof en, string> = {
   perKg: "/கிலோ",
   addToCart: "கூடையில் சேர்",
   add: "சேர்",
-  loadError: "பொருட்களை ஏற்ற முடியவில்லை. மீண்டும் முயலவும்.",
+  loadError: "பொருட்களை ஏற்ற முடியவில்லை. மீண்டும் முயல தட்டவும்.",
   tabHome: "முகப்பு",
   tabOrders: "ஆர்டர்கள்",
   tabCart: "கூடை",
