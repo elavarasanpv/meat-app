@@ -20,6 +20,17 @@ function greetingKey(): TKey {
 
 const GAP = 12;
 
+/**
+ * Price to show on a sub-category card: the "normal" cut (curry cut / with skin)
+ * if there is one, otherwise the cheapest product inside.
+ */
+function headlinePrice(items: { name: string; base_price_per_kg: number }[]): number | undefined {
+  if (items.length === 0) return undefined;
+  const normal = items.find((p) => /curry cut|with skin/i.test(p.name) && !/skinless/i.test(p.name));
+  const pick = normal ?? items.reduce((a, b) => (Number(b.base_price_per_kg) < Number(a.base_price_per_kg) ? b : a));
+  return Number(pick.base_price_per_kg);
+}
+
 export default function HomeScreen() {
   const router = useRouter();
   const { c } = useTheme();
@@ -176,6 +187,7 @@ export default function HomeScreen() {
                         width={cardWidth}
                         name={sub.name}
                         count={(products.data ?? []).filter((p) => p.subcategory_id === sub.id).length}
+                        price={headlinePrice((products.data ?? []).filter((p) => p.subcategory_id === sub.id))}
                         image={subcategoryImage(sub.name, sub.image_path)}
                         onPress={() => setOpenSub(sub)}
                       />

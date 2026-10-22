@@ -9,6 +9,9 @@ type Props = {
   name: string;
   /** How many products are inside. */
   count: number;
+  /** Headline price shown on the card (the normal cut's price per kg). */
+  price?: number;
+  unit?: "kg" | "piece";
   image?: ImageSourcePropType;
   onPress: () => void;
   width: number;
@@ -20,7 +23,7 @@ const PAD = 12;
  * Card for a sub-category (e.g. Broiler chicken). Same look as ProductCard,
  * but instead of price + Add it shows the option count and opens the sheet.
  */
-export function SubcategoryCard({ name, count, image, onPress, width }: Props) {
+export function SubcategoryCard({ name, count, price, unit = "kg", image, onPress, width }: Props) {
   const { c, productGradient, productBorder } = useTheme();
   const t = useT();
   const height = Math.round(width * 1.3);
@@ -52,11 +55,19 @@ export function SubcategoryCard({ name, count, image, onPress, width }: Props) {
           {image ? <Image source={image} resizeMode="contain" style={{ width: "100%", height: "100%" }} /> : null}
         </View>
 
-        {/* Option count + View pill */}
+        {/* Headline price (normal cut) + option count, and a View pill */}
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", height: 40, marginTop: 4 }}>
-          <AppText variant="caption" muted numberOfLines={1}>
-            {t("nOptions", { n: count })}
-          </AppText>
+          <View>
+            {price !== undefined ? (
+              <AppText variant="price" color={c.price} numberOfLines={1} style={{ fontSize: 17, lineHeight: 21 }}>
+                ₹ {price}
+                <AppText variant="caption" muted style={{ fontSize: 10 }}> {t(unit === "piece" ? "perPiece" : "perKg")}</AppText>
+              </AppText>
+            ) : null}
+            <AppText variant="caption" muted numberOfLines={1} style={{ fontSize: 10, lineHeight: 13 }}>
+              {t("nOptions", { n: count })}
+            </AppText>
+          </View>
           <View
             style={{
               height: 38,
