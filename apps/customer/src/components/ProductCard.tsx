@@ -2,6 +2,7 @@ import { Image, Pressable, View, type ImageSourcePropType } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import Svg, { Defs, Ellipse, RadialGradient, Stop } from "react-native-svg";
 import { AppText } from "./AppText";
+import { Icon } from "./Icon";
 import { radius, useTheme } from "@/theme";
 import { useT } from "@/i18n";
 
@@ -78,13 +79,16 @@ export function ProductCard({ name, pricePerKg, unit = "kg", image, onAdd, onPre
             style={({ pressed }) => ({
               height: 38,
               minWidth: 70,
-              paddingHorizontal: 14,
+              paddingHorizontal: 12,
               borderRadius: radius.pill,
               backgroundColor: pressed ? c.primaryPressed : c.primary,
               alignItems: "center",
               justifyContent: "center",
+              flexDirection: "row",
+              gap: 5,
             })}
           >
+            <Icon name="cart" color="#FFFFFF" size={15} />
             <AppText variant="bodyBold" color="#FFFFFF" numberOfLines={1} style={{ fontSize: 13 }}>
               {t("add")}
             </AppText>

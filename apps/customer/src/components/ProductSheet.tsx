@@ -1,4 +1,5 @@
-import { Modal, Pressable, ScrollView, View, useWindowDimensions } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { Animated, Easing, Modal, Pressable, ScrollView, View, useWindowDimensions } from "react-native";
 import { AppText } from "./AppText";
 import { ProductCard } from "./ProductCard";
 import type { Product } from "@/hooks/useCatalog";
@@ -14,35 +15,65 @@ type Props = {
 };
 
 const GAP = 12;
+const OPEN_MS = 280;
+const CLOSE_MS = 220;
 
 /**
  * Bottom sheet for a sub-category. Image-first: the same big product cards as
  * Home in a 2-up grid, so the cut and its price are obvious at a glance.
+ * Slides up with a fading backdrop, and slides back down before it unmounts.
  */
 export function ProductSheet({ title, products, onClose, onAdd }: Props) {
   const { c } = useTheme();
   const t = useT();
   const localName = useLocalName();
-  const { width: screenWidth } = useWindowDimensions();
+  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const cardWidth = Math.floor((screenWidth - 40 - GAP) / 2);
+  const sheetHeight = Math.round(screenHeight * 0.88);
+
+  const open = title !== null;
+  const [mounted, setMounted] = useState(open);
+  const [lastTitle, setLastTitle] = useState(title); // keep the title while sliding out
+  const progress = useRef(new Animated.Value(0)).current; // 0 = hidden, 1 = shown
+
+  useEffect(() => {
+    if (open) {
+      setLastTitle(title);
+      setMounted(true);
+      Animated.timing(progress, { toValue: 1, duration: OPEN_MS, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
+    } else if (mounted) {
+      Animated.timing(progress, { toValue: 0, duration: CLOSE_MS, easing: Easing.in(Easing.cubic), useNativeDriver: true }).start(
+        ({ finished }) => finished && setMounted(false),
+      );
+    }
+  }, [open, title]);
+
+  const translateY = progress.interpolate({ inputRange: [0, 1], outputRange: [sheetHeight, 0] });
 
   return (
-    <Modal visible={title !== null} transparent animationType="slide" onRequestClose={onClose}>
-      {/* Backdrop */}
-      <Pressable onPress={onClose} accessibilityLabel={t("close")} style={{ flex: 1, backgroundColor: "rgba(20,8,4,0.45)" }} />
+    <Modal visible={mounted} transparent animationType="none" onRequestClose={onClose} statusBarTranslucent>
+      {/* Backdrop fades in/out */}
+      <Animated.View style={{ flex: 1, backgroundColor: "rgba(20,8,4,0.45)", opacity: progress }}>
+        <Pressable onPress={onClose} accessibilityLabel={t("close")} style={{ flex: 1 }} />
+      </Animated.View>
 
-      <View
+      <Animated.View
         style={{
+          position: "absolute",
+          left: 0,
+          right: 0,
+          bottom: 0,
+          height: sheetHeight,
           backgroundColor: c.ground,
           borderTopLeftRadius: 28,
           borderTopRightRadius: 28,
           paddingTop: 10,
-          height: "88%",
+          transform: [{ translateY }],
         }}
       >
         <View style={{ alignSelf: "center", width: 44, height: 5, borderRadius: 3, backgroundColor: c.border, marginBottom: 10 }} />
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, height: 36, marginBottom: 8 }}>
-          <AppText variant="title" numberOfLines={1} style={{ fontSize: 22, lineHeight: 28 }}>{title ?? ""}</AppText>
+          <AppText variant="title" numberOfLines={1} style={{ fontSize: 22, lineHeight: 28, flex: 1 }}>{lastTitle ?? ""}</AppText>
           <Pressable
             onPress={onClose}
             accessibilityRole="button"
@@ -69,7 +100,7 @@ export function ProductSheet({ title, products, onClose, onAdd }: Props) {
             ))}
           </View>
         </ScrollView>
-      </View>
+      </Animated.View>
     </Modal>
   );
 }

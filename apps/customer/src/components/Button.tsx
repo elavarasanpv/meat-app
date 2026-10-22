@@ -1,20 +1,24 @@
 import { ActivityIndicator, Pressable, type PressableProps, type ViewStyle } from "react-native";
 import { AppText } from "./AppText";
+import { Icon, type IconName } from "./Icon";
 import { radius, useTheme } from "@/theme";
 
 type Props = Omit<PressableProps, "style"> & {
   label: string;
   variant?: "primary" | "outline" | "soft";
   size?: "lg" | "sm";
+  /** Optional icon drawn before the label. */
+  icon?: IconName;
   loading?: boolean;
   style?: ViewStyle;
 };
 
 /** Pill button. Primary = ember fill; outline = ember border; soft = neutral fill. */
-export function Button({ label, variant = "primary", size = "lg", loading, disabled, style, ...rest }: Props) {
+export function Button({ label, variant = "primary", size = "lg", icon, loading, disabled, style, ...rest }: Props) {
   const { c } = useTheme();
   const height = size === "lg" ? 56 : 40;
   const isDisabled = disabled || loading;
+  const fg = variant === "primary" ? c.onPrimary : variant === "outline" ? c.price : c.ink;
 
   return (
     <Pressable
@@ -28,6 +32,7 @@ export function Button({ label, variant = "primary", size = "lg", loading, disab
           alignItems: "center",
           justifyContent: "center",
           flexDirection: "row",
+          gap: 8,
           opacity: isDisabled ? 0.55 : 1,
         },
         variant === "primary" && { backgroundColor: pressed ? c.primaryPressed : c.primary },
@@ -38,16 +43,14 @@ export function Button({ label, variant = "primary", size = "lg", loading, disab
       {...rest}
     >
       {loading ? (
-        <ActivityIndicator color={variant === "primary" ? c.onPrimary : c.primary} />
+        <ActivityIndicator color={fg} />
       ) : (
-        <AppText
-          variant="bodyBold"
-          numberOfLines={1}
-          style={{ fontSize: size === "lg" ? 16 : 13 }}
-          color={variant === "primary" ? c.onPrimary : variant === "outline" ? c.price : c.ink}
-        >
-          {label}
-        </AppText>
+        <>
+          {icon ? <Icon name={icon} color={fg} size={size === "lg" ? 20 : 16} /> : null}
+          <AppText variant="bodyBold" numberOfLines={1} style={{ fontSize: size === "lg" ? 16 : 13 }} color={fg}>
+            {label}
+          </AppText>
+        </>
       )}
     </Pressable>
   );

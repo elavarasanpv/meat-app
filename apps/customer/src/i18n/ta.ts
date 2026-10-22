@@ -46,6 +46,7 @@ export const ta: Record<keyof typeof en, string> = {
   estTotal: "மதிப்பிடப்பட்ட தொகை",
   weightNote: "இறுதி கட்டணம் பேக் செய்த எடையின் படி (±5%). பணம் செலுத்தும் முன் சரியான தொகை தெரியும்.",
   goToCart: "கூடைக்கு செல்",
+  shopMore: "மேலும் சேர்",
   notFound: "பொருள் கிடைக்கவில்லை",
   cartEmpty: "உங்கள் கூடை காலியாக உள்ளது",
   browseProducts: "பொருட்களை பார்க்க",

@@ -102,6 +102,9 @@ export default function CartScreen() {
           );
         })}
 
+        {/* Back to Home to add more items */}
+        <Button label={t("shopMore")} variant="outline" size="sm" icon="home" onPress={() => router.push("/(tabs)")} style={{ alignSelf: "flex-start" }} />
+
         {/* Bill summary */}
         <View style={{ marginTop: 6, padding: 16, borderRadius: 20, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, gap: 8 }}>
           <View style={{ flexDirection: "row", justifyContent: "space-between" }}>

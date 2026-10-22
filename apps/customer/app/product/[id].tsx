@@ -32,7 +32,6 @@ export default function ProductDetailScreen() {
   const [qty, setQty] = useState<number>(inCart?.qty ?? (isKg ? 1 : 12));
   const [size, setSize] = useState<(typeof SIZES)[number]>(inCart?.size ?? "medium");
   const [notes, setNotes] = useState(inCart?.notes ?? "");
-  const [added, setAdded] = useState(false);
 
   if (!product) {
     return (
@@ -59,7 +58,8 @@ export default function ProductDetailScreen() {
       size: isKg ? size : undefined,
       notes: notes.trim() || undefined,
     });
-    setAdded(true);
+    // Straight to the cart so the customer sees what they just added
+    router.replace("/(tabs)/cart");
   }
 
   const chip = (selected: boolean) => ({
@@ -196,18 +196,7 @@ export default function ProductDetailScreen() {
           <AppText variant="price" color={c.price} numberOfLines={1} style={{ fontSize: 20, lineHeight: 25 }}>₹ {estimate}</AppText>
         </View>
         <View style={{ flex: 1 }}>
-          <Button
-            label={added ? t("goToCart") : t("addToCart")}
-            variant={added ? "outline" : "primary"}
-            onPress={() => {
-              if (added) {
-                router.back();
-                router.push("/(tabs)/cart");
-              } else {
-                addToCart();
-              }
-            }}
-          />
+          <Button label={t("addToCart")} icon="cart" onPress={addToCart} />
         </View>
       </View>
     </SafeAreaView>
