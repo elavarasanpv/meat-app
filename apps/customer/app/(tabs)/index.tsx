@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useRouter } from "expo-router";
 import { Image, Pressable, ScrollView, View, useWindowDimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AppText } from "@/components/AppText";
@@ -20,6 +21,7 @@ function greetingKey(): TKey {
 const GAP = 12;
 
 export default function HomeScreen() {
+  const router = useRouter();
   const { c } = useTheme();
   const { width: screenWidth } = useWindowDimensions();
   const cardWidth = Math.floor((screenWidth - 40 - GAP) / 2);
@@ -186,6 +188,8 @@ export default function HomeScreen() {
                         pricePerKg={Number(item.base_price_per_kg)}
                         unit={item.unit}
                         image={productImage(item.name, item.image_path)}
+                        onPress={() => router.push(`/product/${item.id}`)}
+                        onAdd={() => router.push(`/product/${item.id}`)}
                       />
                     ))}
               </View>
@@ -194,7 +198,15 @@ export default function HomeScreen() {
         )}
       </ScrollView>
 
-      <ProductSheet title={openSub?.name ?? null} products={sheetProducts} onClose={() => setOpenSub(null)} />
+      <ProductSheet
+        title={openSub?.name ?? null}
+        products={sheetProducts}
+        onClose={() => setOpenSub(null)}
+        onAdd={(p) => {
+          setOpenSub(null);
+          router.push(`/product/${p.id}`);
+        }}
+      />
     </SafeAreaView>
   );
 }

@@ -2,6 +2,7 @@ import { Tabs } from "expo-router";
 import { View } from "react-native";
 import { Icon, type IconName } from "@/components/Icon";
 import { useLang, useT } from "@/i18n";
+import { useCart } from "@/store/cart";
 import { fonts, useTheme } from "@/theme";
 
 function TabIcon({ name, focused, color }: { name: IconName; focused: boolean; color: string }) {
@@ -26,6 +27,7 @@ export default function TabsLayout() {
   const { c } = useTheme();
   const t = useT();
   const lang = useLang((s) => s.lang);
+  const cartCount = useCart((s) => s.items.length);
 
   return (
     <Tabs
@@ -49,7 +51,12 @@ export default function TabsLayout() {
       />
       <Tabs.Screen
         name="cart"
-        options={{ title: t("tabCart"), tabBarIcon: (p) => <TabIcon name="cart" {...p} /> }}
+        options={{
+          title: t("tabCart"),
+          tabBarIcon: (p) => <TabIcon name="cart" {...p} />,
+          tabBarBadge: cartCount > 0 ? cartCount : undefined,
+          tabBarBadgeStyle: { backgroundColor: c.primary, color: "#FFFFFF", fontSize: 11 },
+        }}
       />
       <Tabs.Screen
         name="help"
