@@ -1,10 +1,38 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
-import { canTransition, type OrderStatus } from "@freshcut/shared";
+import { randomInt } from "node:crypto";
+import * as bcrypt from "bcryptjs";
+import { canTransition, type OrderStatus, type PlaceOrderInput } from "@freshcut/shared";
 import { SupabaseService } from "../supabase.service";
 
 @Injectable()
 export class OrdersService {
   constructor(private readonly supabase: SupabaseService) {}
+
+  /**
+   * Place an order: generates the delivery OTP and calls the atomic
+   * create_order() SQL function (prices, totals, display id, items, history).
+   */
+  async placeOrder(customerId: string, input: PlaceOrderInput) {
+    const otp = String(randomInt(1000, 10000)); // 4 digits, never leading zero
+    const otpHash = await bcrypt.hash(otp, 8);
+
+    const { data, error } = await this.supabase.admin.rpc("create_order", {
+      p_customer: customerId,
+      p_address: input.addressId,
+      p_slot_start: input.slot.startsAt,
+      p_slot_end: input.slot.endsAt,
+      p_payment: input.paymentMode,
+      p_items: input.items.map((i) => ({ product_id: i.productId, qty: i.qty, size: i.size ?? null, notes: i.notes ?? null })),
+      p_otp_hash: otpHash,
+      p_otp: otp,
+    });
+    if (error) {
+      if (error.code === "P0002") throw new NotFoundException(error.message);
+      throw new BadRequestException(error.message);
+    }
+    const row = (Array.isArray(data) ? data[0] : data) as { order_id: string; display_id: string; est_amount: number };
+    return { orderId: row.order_id, displayId: row.display_id, estAmount: Number(row.est_amount), otp };
+  }
 
   /**
    * The single gate for every order status change.

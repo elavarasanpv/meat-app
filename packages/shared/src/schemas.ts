@@ -8,18 +8,30 @@ export const paymentModeSchema = z.enum(PAYMENT_MODES);
 
 export const orderItemInputSchema = z.object({
   productId: z.string().uuid(),
-  requestedKg: z.number().positive().max(25),
-  cut: z.string().min(1).max(60),          // e.g. "curry cut"
+  /** Kg (0.5 steps) for weight products, piece count for eggs. */
+  qty: z.number().positive().max(50),
   size: z.enum(["small", "medium", "large"]).optional(),
-  skinless: z.boolean().optional(),
   notes: z.string().max(300).optional(),   // "remove neck, keep liver"
+});
+
+export const deliverySlotSchema = z.object({
+  startsAt: z.string().datetime({ offset: true }),
+  endsAt: z.string().datetime({ offset: true }),
 });
 
 export const placeOrderSchema = z.object({
   addressId: z.string().uuid(),
-  slotId: z.string().uuid(),
-  paymentMode: paymentModeSchema,
+  slot: deliverySlotSchema,
+  /** Prepaid UPI comes with the payment gateway later. */
+  paymentMode: z.enum(["cod", "upi_on_delivery"]),
   items: z.array(orderItemInputSchema).min(1).max(20),
+});
+
+export const addressInputSchema = z.object({
+  label: z.string().min(1).max(30),
+  addressText: z.string().min(5).max(300),
+  landmark: z.string().max(120).optional(),
+  pincode: z.string().regex(/^[1-9]\d{5}$/),
 });
 
 export const packOrderSchema = z.object({
@@ -41,6 +53,8 @@ export const deliverOrderSchema = z.object({
 });
 
 export type OrderItemInput = z.infer<typeof orderItemInputSchema>;
+export type DeliverySlotInput = z.infer<typeof deliverySlotSchema>;
 export type PlaceOrderInput = z.infer<typeof placeOrderSchema>;
+export type AddressInput = z.infer<typeof addressInputSchema>;
 export type PackOrderInput = z.infer<typeof packOrderSchema>;
 export type DeliverOrderInput = z.infer<typeof deliverOrderSchema>;

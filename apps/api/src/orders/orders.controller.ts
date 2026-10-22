@@ -1,14 +1,9 @@
-import {
-  Body,
-  Controller,
-  Headers,
-  Post,
-  UnauthorizedException,
-} from "@nestjs/common";
+import { BadRequestException, Body, Controller, Get, Headers, Post } from "@nestjs/common";
 import { z } from "zod";
-import { orderStatusSchema } from "@freshcut/shared";
+import { orderStatusSchema, placeOrderSchema, upcomingSlots } from "@freshcut/shared";
 import { OrdersService } from "./orders.service";
 import { SupabaseService } from "../supabase.service";
+import { requireUser } from "../auth";
 
 const transitionBody = z.object({
   orderId: z.string().uuid(),
@@ -18,6 +13,12 @@ const transitionBody = z.object({
   lng: z.number().optional(),
 });
 
+function parse<T>(schema: z.ZodType<T>, body: unknown): T {
+  const r = schema.safeParse(body);
+  if (!r.success) throw new BadRequestException(r.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; "));
+  return r.data;
+}
+
 @Controller("orders")
 export class OrdersController {
   constructor(
@@ -25,23 +26,29 @@ export class OrdersController {
     private readonly supabase: SupabaseService,
   ) {}
 
+  /** GET /orders/slots — delivery windows the customer can pick right now. */
+  @Get("slots")
+  slots() {
+    return upcomingSlots();
+  }
+
+  /** POST /orders — place an order from the cart. */
+  @Post()
+  async place(@Headers("authorization") auth: string | undefined, @Body() body: unknown) {
+    const user = await requireUser(this.supabase, auth);
+    const input = parse(placeOrderSchema, body);
+    return this.orders.placeOrder(user.id, input);
+  }
+
   /**
    * POST /orders/transition
-   * Skeleton endpoint: authenticates the caller, validates the body and
-   * applies the state change. Role checks per transition (dealer can only
+   * Applies a state change. Role checks per transition (dealer can only
    * ACCEPT/PACK, rider only PICK_UP/DELIVER, etc.) come next.
    */
   @Post("transition")
-  async transition(
-    @Headers("authorization") auth: string | undefined,
-    @Body() body: unknown,
-  ) {
-    const token = auth?.replace(/^Bearer\s+/i, "");
-    if (!token) throw new UnauthorizedException();
-    const user = await this.supabase.userFromToken(token);
-    if (!user) throw new UnauthorizedException();
-
-    const input = transitionBody.parse(body);
+  async transition(@Headers("authorization") auth: string | undefined, @Body() body: unknown) {
+    const user = await requireUser(this.supabase, auth);
+    const input = parse(transitionBody, body);
     return this.orders.transition({ ...input, actorId: user.id });
   }
 }

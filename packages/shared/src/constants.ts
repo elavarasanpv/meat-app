@@ -1,6 +1,19 @@
 /** Weight tolerance: final packed weight may differ from ordered weight by this fraction. */
 export const WEIGHT_TOLERANCE = 0.05;
 
+/** Delivery pricing (also enforced in the create_order SQL function). */
+export const DELIVERY_FEE = 20;
+export const FREE_DELIVERY_ABOVE = 499;
+
+/** Delivery windows offered each day, in IST hours [start, end). */
+export const SLOT_WINDOWS: ReadonlyArray<readonly [number, number]> = [
+  [7, 9],
+  [12, 14],
+  [17, 19],
+];
+/** A slot must start at least this long after "now" to be offered. */
+export const SLOT_LEAD_MINUTES = 60;
+
 /** Minutes a dealer has to accept before the order is flagged for reassignment. */
 export const DEALER_ACCEPT_TIMEOUT_MIN = 5;
 

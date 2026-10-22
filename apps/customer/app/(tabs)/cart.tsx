@@ -1,4 +1,4 @@
-import { Alert, Image, Pressable, ScrollView, View } from "react-native";
+import { Image, Pressable, ScrollView, View } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AppText } from "@/components/AppText";
@@ -129,7 +129,7 @@ export default function CartScreen() {
       </ScrollView>
 
       <View style={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 20, backgroundColor: c.surface, borderTopWidth: 1, borderTopColor: c.border }}>
-        <Button label={`${t("placeOrder")} · ₹ ${toPay}`} onPress={() => Alert.alert("FreshCut", t("checkoutSoon"))} />
+        <Button label={`${t("placeOrder")} · ₹ ${toPay}`} onPress={() => router.push("/checkout")} />
       </View>
     </SafeAreaView>
   );
