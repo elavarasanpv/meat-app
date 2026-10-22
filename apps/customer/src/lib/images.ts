@@ -19,6 +19,11 @@ export const bundled = {
   legPiece: require("../../assets/images/leg-piece.png") as ImageSourcePropType,
   wings: require("../../assets/images/wings.png") as ImageSourcePropType,
   chickenBoneless: require("../../assets/images/chicken-boneless.png") as ImageSourcePropType,
+  // country chicken
+  countryHenWhole: require("../../assets/images/country-hen-whole.png") as ImageSourcePropType,
+  countryCockWhole: require("../../assets/images/country-cock-whole.png") as ImageSourcePropType,
+  countryHenCut: require("../../assets/images/country-hen-cut.png") as ImageSourcePropType,
+  countryCockCut: require("../../assets/images/country-cock-cut.png") as ImageSourcePropType,
 };
 
 /**
@@ -34,7 +39,12 @@ export function productImage(name: string, imagePath: string | null): ImageSourc
   if (n.includes("mutton") || n.includes("goat")) {
     return n.includes("boneless") ? bundled.muttonBoneless : bundled.mutton;
   }
-  if (n.includes("country")) return bundled.countryChicken;
+  if (n.includes("country")) {
+    const cock = n.includes("cock");
+    if (n.includes("cut")) return cock ? bundled.countryCockCut : bundled.countryHenCut;
+    if (n.includes("whole")) return cock ? bundled.countryCockWhole : bundled.countryHenWhole;
+    return bundled.countryChicken;
+  }
   // chicken cuts (broiler); most specific first
   if (n.includes("leg")) return bundled.legPiece;
   if (n.includes("breast")) return bundled.breastPiece;
