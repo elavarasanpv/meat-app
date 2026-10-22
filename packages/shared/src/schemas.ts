@@ -52,9 +52,17 @@ export const deliverOrderSchema = z.object({
   lng: z.number().optional(),
 });
 
+export const riderLocationSchema = z.object({
+  lat: z.number().min(-90).max(90),
+  lng: z.number().min(-180).max(180),
+  heading: z.number().min(0).max(360).optional(),
+  speedKmh: z.number().min(0).max(200).optional(),
+});
+
 export type OrderItemInput = z.infer<typeof orderItemInputSchema>;
 export type DeliverySlotInput = z.infer<typeof deliverySlotSchema>;
 export type PlaceOrderInput = z.infer<typeof placeOrderSchema>;
 export type AddressInput = z.infer<typeof addressInputSchema>;
+export type RiderLocationInput = z.infer<typeof riderLocationSchema>;
 export type PackOrderInput = z.infer<typeof packOrderSchema>;
 export type DeliverOrderInput = z.infer<typeof deliverOrderSchema>;

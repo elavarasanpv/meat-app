@@ -113,6 +113,17 @@ export const en = {
   st_DELIVERY_FAILED: "Delivery failed",
   st_RETURNED: "Returned",
   st_REFUNDED: "Refunded",
+  // tracking
+  liveTracking: "Live tracking",
+  liveLost: "Connection weak — showing last known position",
+  waitingRider: "Waiting for the rider's location…",
+  riderOnTheWay: "Your rider is on the way",
+  riderAway: "{km} km away · about {lo}–{hi} min",
+  arrivingNow: "Rider is arriving now!",
+  updatedSecs: "Updated {n} s ago",
+  updatedMins: "Updated {n} min ago",
+  shop: "Shop",
+  yourHome: "Your home",
   // tabs
   tabHome: "Home",
   tabOrders: "My orders",

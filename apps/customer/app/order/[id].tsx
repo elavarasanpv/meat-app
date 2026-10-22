@@ -6,6 +6,8 @@ import { AppText } from "@/components/AppText";
 import { Button } from "@/components/Button";
 import { Icon } from "@/components/Icon";
 import { StatusBadge } from "@/components/StatusBadge";
+import { TrackingCard } from "@/components/TrackingCard";
+import { useRiderLocation } from "@/hooks/useTracking";
 import { useOrder, useOrderOtp } from "@/hooks/useOrders";
 import { dateTime, dayLabel, slotWindow } from "@/lib/format";
 import { useLocalName, useT, type TKey } from "@/i18n";
@@ -24,6 +26,8 @@ export default function OrderDetailScreen() {
   const order = useOrder(id);
   const otp = useOrderOtp(id);
   const o = order.data;
+  const tracking = useRiderLocation(id, o?.rider_id);
+  const showTracking = !!o?.rider_id && ["RIDER_ASSIGNED", "PICKED_UP", "OUT_FOR_DELIVERY"].includes(o.status);
 
   const reached = (s: OrderStatus) => (o ? rank(o.status) >= rank(s) : false);
   const showOtp = !!o && !["DELIVERED", "CANCELLED", "RETURNED", "REFUNDED"].includes(o.status) && !!otp.data;
@@ -52,6 +56,14 @@ export default function OrderDetailScreen() {
             </View>
             <AppText variant="subtitle" color={c.successText} numberOfLines={1} style={{ flex: 1 }}>{t("orderPlaced")}</AppText>
           </View>
+        ) : null}
+
+        {showTracking && o ? (
+          <TrackingCard
+            rider={tracking.data}
+            pickup={o.pickup_lat != null && o.pickup_lng != null ? { lat: o.pickup_lat, lng: o.pickup_lng } : null}
+            home={o.addresses?.lat != null && o.addresses?.lng != null ? { lat: o.addresses.lat, lng: o.addresses.lng } : null}
+          />
         ) : null}
 
         {showOtp ? (
