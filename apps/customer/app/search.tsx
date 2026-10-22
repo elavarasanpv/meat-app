@@ -4,6 +4,7 @@ import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AppText } from "@/components/AppText";
 import { Icon } from "@/components/Icon";
+import { SearchHint } from "@/components/SearchHint";
 import { useCategories, useProducts, useSubcategories, type Product } from "@/hooks/useCatalog";
 import { productImage } from "@/lib/images";
 import { buildTargets, searchProducts, type SearchResult } from "@/lib/search";
@@ -68,6 +69,11 @@ export default function SearchScreen() {
         </Pressable>
         <View style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 10, height: 54, paddingHorizontal: 16, borderRadius: radius.pill, backgroundColor: c.surface, borderWidth: 1.5, borderColor: c.primary }}>
           <Icon name="search" color={c.muted} size={20} />
+          {query.length === 0 ? (
+            <View style={{ position: "absolute", left: 46, right: 44, top: 0, bottom: 0, justifyContent: "center" }} pointerEvents="none">
+              <SearchHint />
+            </View>
+          ) : null}
           <TextInput
             value={query}
             onChangeText={setQuery}
@@ -75,7 +81,6 @@ export default function SearchScreen() {
             autoCorrect={false}
             autoComplete="off"
             spellCheck={false}
-            placeholder={t("searchPlaceholder")}
             placeholderTextColor={c.muted}
             style={{ flex: 1, fontFamily: fonts.bodySemi, fontSize: 15, color: c.ink }}
             accessibilityLabel={t("searchPlaceholder")}

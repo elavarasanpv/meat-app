@@ -19,6 +19,8 @@ export const ta: Record<keyof typeof en, string> = {
   greetingEvening: "மாலை வணக்கம்",
   deliverTo: "அரசு பள்ளி அருகில், கள்ளக்குறிச்சி",
   searchPlaceholder: 'தேடுங்கள் அல்லது "1 கிலோ சிக்கன்" என்று சொல்லுங்கள்',
+  searchVerb: "தேடுங்கள்",
+  searchWords: "கோழி,ஆட்டுக்கறி,முட்டை,நாட்டுக்கோழி,கறி துண்டு",
   all: "எல்லாம்",
   aiLabel: "AI உங்களுக்கு பரிந்துரைக்கிறது",
   aiSuggestion: "ஞாயிறு — வழக்கமான 1.5 கிலோ ஆட்டுக்கறி?",

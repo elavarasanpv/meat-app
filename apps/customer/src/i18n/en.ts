@@ -20,6 +20,8 @@ export const en = {
   greetingEvening: "Good evening",
   deliverTo: "Near Govt school, Kallakurichi",
   searchPlaceholder: 'Search or say "1 kg chicken"',
+  searchVerb: "Search",
+  searchWords: "chicken,mutton,eggs,country chicken,curry cut",
   all: "All",
   aiLabel: "AI SUGGESTS FOR YOU",
   aiSuggestion: "It's Sunday — your usual 1.5 kg mutton curry cut?",

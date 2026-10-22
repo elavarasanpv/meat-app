@@ -7,6 +7,7 @@ import { Icon } from "@/components/Icon";
 import { LangToggle } from "@/components/LangToggle";
 import { ProductCard } from "@/components/ProductCard";
 import { ProductSheet } from "@/components/ProductSheet";
+import { SearchHint } from "@/components/SearchHint";
 import { SubcategoryCard } from "@/components/SubcategoryCard";
 import { useCategories, useProducts, useSubcategories, type Subcategory } from "@/hooks/useCatalog";
 import { categoryImage, productImage, subcategoryImage } from "@/lib/images";
@@ -43,6 +44,7 @@ export default function HomeScreen() {
   const subcategories = useSubcategories();
   const products = useProducts(); // all products once; grouped below
   const [openSub, setOpenSub] = useState<Subcategory | null>(null);
+  const [scrolled, setScrolled] = useState(false);
 
   // "All" → a section per category; a category → just that one. A section shows
   // sub-category cards when it has them (chicken), otherwise its products directly.
@@ -62,9 +64,18 @@ export default function HomeScreen() {
     <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: c.ground }}>
       {/* No RefreshControl: on Android its SwipeRefreshLayout steals fast horizontal
           swipes from the nested product/category rows. Queries refetch on focus. */}
-      <ScrollView contentContainerStyle={{ paddingBottom: 24, gap: 18 }}>
-        {/* Header */}
-        <View style={{ paddingHorizontal: 20, paddingTop: 8, gap: 16 }}>
+      <ScrollView
+        contentContainerStyle={{ paddingBottom: 24, gap: 8 }}
+        stickyHeaderIndices={[1]}
+        scrollEventThrottle={16}
+        onScroll={(e) => {
+          const y = e.nativeEvent.contentOffset.y;
+          // header row is ~66px tall; past it the search bar is pinned → show shadow
+          setScrolled((prev) => (y > 70 ? true : y < 60 ? false : prev));
+        }}
+      >
+        {/* Header (scrolls away) */}
+        <View style={{ paddingHorizontal: 20, paddingTop: 8 }}>
           <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 10, flex: 1 }}>
               <View style={{ width: 40, height: 40, borderRadius: 14, backgroundColor: c.primary, alignItems: "center", justifyContent: "center" }}>
@@ -90,15 +101,23 @@ export default function HomeScreen() {
               </Pressable>
             </View>
           </View>
+        </View>
 
-          {/* Search with voice button */}
+        {/* Search bar — sticky (stickyHeaderIndices), gets a shadow once the page scrolls */}
+        <View
+          style={[
+            { paddingHorizontal: 20, paddingVertical: 10, backgroundColor: c.ground },
+            scrolled && { shadowColor: "#000", shadowOpacity: 0.12, shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, elevation: 6, borderBottomWidth: 1, borderBottomColor: c.border },
+          ]}
+        >
           <Pressable
             onPress={() => router.push("/search")}
             accessibilityRole="search"
+            accessibilityLabel={t("searchPlaceholder")}
             style={{ flexDirection: "row", alignItems: "center", gap: 10, height: 54, paddingLeft: 18, paddingRight: 7, borderRadius: radius.pill, backgroundColor: c.surface, borderWidth: 1.5, borderColor: c.border }}
           >
             <Icon name="search" color={c.muted} size={20} />
-            <AppText variant="bodyBold" muted style={{ flex: 1 }} numberOfLines={1}>{t("searchPlaceholder")}</AppText>
+            <SearchHint />
             <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: c.primary, alignItems: "center", justifyContent: "center" }}>
               <Icon name="mic" color="#FFFFFF" size={18} />
             </View>
