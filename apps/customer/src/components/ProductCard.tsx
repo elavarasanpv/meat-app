@@ -1,5 +1,6 @@
 import { Image, Pressable, View, type ImageSourcePropType } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import Svg, { Defs, Ellipse, RadialGradient, Stop } from "react-native-svg";
 import { AppText } from "./AppText";
 import { radius, useTheme } from "@/theme";
 import { useT } from "@/i18n";
@@ -44,7 +45,17 @@ export function ProductCard({ name, pricePerKg, unit = "kg", image, onAdd, onPre
 
         {/* Image band: bleeds to the card edges, whole cut-out, soft shadow pool beneath */}
         <View style={{ flex: 1, marginHorizontal: -PAD, alignItems: "center", justifyContent: "flex-end" }}>
-          <View style={{ position: "absolute", bottom: 3, width: "66%", height: 12, borderRadius: 999, backgroundColor: "rgba(120,40,16,0.18)" }} />
+          {/* Soft contact shadow: a radial fade, not a flat bar */}
+          <Svg width={width} height={26} style={{ position: "absolute", bottom: 0 }} pointerEvents="none">
+            <Defs>
+              <RadialGradient id="shadow" cx="50%" cy="50%" rx="50%" ry="50%">
+                <Stop offset="0" stopColor="#7A2A10" stopOpacity={0.28} />
+                <Stop offset="0.6" stopColor="#7A2A10" stopOpacity={0.1} />
+                <Stop offset="1" stopColor="#7A2A10" stopOpacity={0} />
+              </RadialGradient>
+            </Defs>
+            <Ellipse cx={width / 2} cy={14} rx={width * 0.36} ry={11} fill="url(#shadow)" />
+          </Svg>
           {image ? (
             <Image source={image} resizeMode="contain" style={{ width: "100%", height: "100%" }} />
           ) : null}
