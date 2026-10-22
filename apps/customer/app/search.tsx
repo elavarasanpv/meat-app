@@ -72,6 +72,9 @@ export default function SearchScreen() {
             value={query}
             onChangeText={setQuery}
             autoFocus
+            autoCorrect={false}
+            autoComplete="off"
+            spellCheck={false}
             placeholder={t("searchPlaceholder")}
             placeholderTextColor={c.muted}
             style={{ flex: 1, fontFamily: fonts.bodySemi, fontSize: 15, color: c.ink }}
