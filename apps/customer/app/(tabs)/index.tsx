@@ -93,6 +93,7 @@ export default function HomeScreen() {
 
           {/* Search with voice button */}
           <Pressable
+            onPress={() => router.push("/search")}
             accessibilityRole="search"
             style={{ flexDirection: "row", alignItems: "center", gap: 10, height: 54, paddingLeft: 18, paddingRight: 7, borderRadius: radius.pill, backgroundColor: c.surface, borderWidth: 1.5, borderColor: c.border }}
           >

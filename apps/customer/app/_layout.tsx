@@ -59,6 +59,7 @@ export default function RootLayout() {
         <Stack.Protected guard={!!session}>
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="product/[id]" />
+          <Stack.Screen name="search" />
           <Stack.Screen name="checkout" />
           <Stack.Screen name="address/new" />
           <Stack.Screen name="order/[id]" />

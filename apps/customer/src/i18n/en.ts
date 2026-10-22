@@ -60,6 +60,9 @@ export const en = {
   placeOrder: "Place order",
   remove: "Remove",
   checkoutSoon: "Checkout comes in the next step — address, slot and payment.",
+  searchHint: "Type in English or Tamil — spelling mistakes are okay",
+  didYouMean: "Did you mean",
+  noResults: "Nothing found for \"{q}\"",
   // checkout
   checkout: "Checkout",
   deliverToLabel: "Deliver to",
