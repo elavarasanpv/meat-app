@@ -23,10 +23,22 @@ export function productImage(name: string, imagePath: string | null): ImageSourc
   }
   const n = name.toLowerCase();
   if (n.includes("egg")) return n.includes("country") ? bundled.countryEggs : bundled.farmEggs;
+  if (n.includes("mutton") || n.includes("goat")) {
+    return n.includes("boneless") ? bundled.muttonBoneless : bundled.mutton;
+  }
   if (n.includes("country")) return bundled.countryChicken;
   if (n.includes("chicken")) return bundled.broilerChicken;
-  if (n.includes("boneless")) return bundled.muttonBoneless;
-  if (n.includes("mutton") || n.includes("goat")) return bundled.mutton;
+  return undefined;
+}
+
+/** Image for a sub-category card (Broiler chicken / Country chicken). */
+export function subcategoryImage(name: string, imagePath: string | null): ImageSourcePropType | undefined {
+  if (imagePath) {
+    return { uri: supabase.storage.from("product-images").getPublicUrl(imagePath).data.publicUrl };
+  }
+  const n = name.toLowerCase();
+  if (n.includes("country")) return bundled.countryChicken;
+  if (n.includes("broiler") || n.includes("chicken")) return bundled.broilerChicken;
   return undefined;
 }
 

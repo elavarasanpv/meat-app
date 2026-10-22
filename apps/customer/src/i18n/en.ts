@@ -31,6 +31,9 @@ export const en = {
   perPiece: "/piece",
   addToCart: "Add to cart",
   add: "Add",
+  view: "View",
+  nOptions: "{n} options",
+  close: "Close",
   loadError: "Couldn't load products. Tap to retry.",
   noItems: "No items in this category yet.",
   // tabs

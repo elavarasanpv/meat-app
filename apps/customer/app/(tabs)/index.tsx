@@ -5,8 +5,10 @@ import { AppText } from "@/components/AppText";
 import { Icon } from "@/components/Icon";
 import { LangToggle } from "@/components/LangToggle";
 import { ProductCard } from "@/components/ProductCard";
-import { useCategories, useProducts } from "@/hooks/useCatalog";
-import { categoryImage, productImage } from "@/lib/images";
+import { ProductSheet } from "@/components/ProductSheet";
+import { SubcategoryCard } from "@/components/SubcategoryCard";
+import { useCategories, useProducts, useSubcategories, type Subcategory } from "@/hooks/useCatalog";
+import { categoryImage, productImage, subcategoryImage } from "@/lib/images";
 import { useT, type TKey } from "@/i18n";
 import { radius, useTheme } from "@/theme";
 
@@ -24,13 +26,23 @@ export default function HomeScreen() {
   const t = useT();
   const [categoryId, setCategoryId] = useState<string | null>(null);
   const categories = useCategories();
+  const subcategories = useSubcategories();
   const products = useProducts(); // all products once; grouped below
+  const [openSub, setOpenSub] = useState<Subcategory | null>(null);
 
-  // "All" → a section per category that has products; a category → just that one.
+  // "All" → a section per category; a category → just that one. A section shows
+  // sub-category cards when it has them (chicken), otherwise its products directly.
   const sections = (categories.data ?? [])
     .filter((cat) => categoryId === null || cat.id === categoryId)
-    .map((cat) => ({ id: cat.id, name: cat.name, items: (products.data ?? []).filter((p) => p.category_id === cat.id) }))
-    .filter((s) => s.items.length > 0);
+    .map((cat) => ({
+      id: cat.id,
+      name: cat.name,
+      subs: (subcategories.data ?? []).filter((su) => su.category_id === cat.id),
+      items: (products.data ?? []).filter((p) => p.category_id === cat.id),
+    }))
+    .filter((s) => s.subs.length > 0 || s.items.length > 0);
+
+  const sheetProducts = openSub ? (products.data ?? []).filter((p) => p.subcategory_id === openSub.id) : [];
 
   return (
     <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: c.ground }}>
@@ -153,23 +165,36 @@ export default function HomeScreen() {
                   <AppText variant="label" color={c.price} numberOfLines={1}>{t("seeAll")}</AppText>
                 </Pressable>
               </View>
-              {/* 2-up grid: both cards fully visible, page scrolls vertically */}
+              {/* 2-up grid: sub-category cards when the category has them, else products */}
               <View style={{ flexDirection: "row", flexWrap: "wrap", gap: GAP, paddingHorizontal: 20 }}>
-                {section.items.map((item) => (
-                  <ProductCard
-                    key={item.id}
-                    width={cardWidth}
-                    name={item.name}
-                    pricePerKg={Number(item.base_price_per_kg)}
-                    unit={item.unit}
-                    image={productImage(item.name, item.image_path)}
-                  />
-                ))}
+                {section.subs.length > 0
+                  ? section.subs.map((sub) => (
+                      <SubcategoryCard
+                        key={sub.id}
+                        width={cardWidth}
+                        name={sub.name}
+                        count={(products.data ?? []).filter((p) => p.subcategory_id === sub.id).length}
+                        image={subcategoryImage(sub.name, sub.image_path)}
+                        onPress={() => setOpenSub(sub)}
+                      />
+                    ))
+                  : section.items.map((item) => (
+                      <ProductCard
+                        key={item.id}
+                        width={cardWidth}
+                        name={item.name}
+                        pricePerKg={Number(item.base_price_per_kg)}
+                        unit={item.unit}
+                        image={productImage(item.name, item.image_path)}
+                      />
+                    ))}
               </View>
             </View>
           ))
         )}
       </ScrollView>
+
+      <ProductSheet title={openSub?.name ?? null} products={sheetProducts} onClose={() => setOpenSub(null)} />
     </SafeAreaView>
   );
 }
