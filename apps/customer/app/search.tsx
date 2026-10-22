@@ -49,7 +49,10 @@ export default function SearchScreen() {
   const { strong, close } = useMemo(() => searchProducts(targets, query), [targets, query]);
 
   const open = (r: SearchResult) => router.push(`/product/${r.product.id}`);
-  const showEmpty = query.trim().length > 0 && strong.length === 0 && close.length === 0;
+  const empty = query.trim().length === 0;
+  // No query yet: the whole catalog, so people can just scroll and tap.
+  const defaultList: SearchResult[] = empty ? (products.data ?? []).map((p) => ({ product: p, score: 1 })) : [];
+  const showEmpty = !empty && strong.length === 0 && close.length === 0;
 
   return (
     <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: c.ground }}>
@@ -83,11 +86,11 @@ export default function SearchScreen() {
       </View>
 
       <ScrollView contentContainerStyle={{ padding: 20, gap: 10 }} keyboardShouldPersistTaps="handled">
-        {query.trim().length === 0 ? (
-          <AppText muted>{t("searchHint")}</AppText>
+        {empty ? (
+          <AppText variant="caption" muted numberOfLines={2}>{t("searchHint")}</AppText>
         ) : null}
 
-        {strong.map((r) => (
+        {[...defaultList, ...strong].map((r) => (
           <Row key={r.product.id} product={r.product} onPress={() => open(r)} />
         ))}
 
