@@ -91,7 +91,7 @@ export function usePlaceOrder() {
   });
 }
 
-const SUMMARY = "id, display_id, status, est_amount, final_amount, payment_mode, created_at, delivery_slots(starts_at, ends_at), order_items(id)";
+const SUMMARY = "id,display_id,status,est_amount,final_amount,payment_mode,created_at,delivery_slots(starts_at,ends_at),order_items(id)";
 
 export function useOrders() {
   const userId = useAuth((s) => s.session?.user.id);
@@ -111,15 +111,15 @@ export function useOrder(id: string | undefined) {
     queryKey: ["orders", "detail", id],
     enabled: !!id,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("orders")
-        .select(
-          `${SUMMARY}, addresses(label, address_text, landmark),
-           order_items(id, requested_kg, actual_kg, unit_price_per_kg, size, notes, products(name, name_ta, unit)),
-           order_status_history(to_status, created_at)`,
-        )
-        .eq("id", id!)
-        .single();
+      // PostgREST rejects whitespace in select and duplicate embeds, so build it compact.
+      const select = [
+        "id,display_id,status,est_amount,final_amount,payment_mode,created_at",
+        "delivery_slots(starts_at,ends_at)",
+        "addresses(label,address_text,landmark)",
+        "order_items(id,requested_kg,actual_kg,unit_price_per_kg,size,notes,products(name,name_ta,unit))",
+        "order_status_history(to_status,created_at)",
+      ].join(",");
+      const { data, error } = await supabase.from("orders").select(select).eq("id", id!).single();
       if (error) throw error;
       return data as unknown as OrderDetail;
     },
