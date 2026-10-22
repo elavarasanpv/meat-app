@@ -3,7 +3,7 @@ import { AppText } from "./AppText";
 import { ProductCard } from "./ProductCard";
 import type { Product } from "@/hooks/useCatalog";
 import { productImage } from "@/lib/images";
-import { useT } from "@/i18n";
+import { useLocalName, useT } from "@/i18n";
 import { useTheme } from "@/theme";
 
 type Props = {
@@ -22,6 +22,7 @@ const GAP = 12;
 export function ProductSheet({ title, products, onClose, onAdd }: Props) {
   const { c } = useTheme();
   const t = useT();
+  const localName = useLocalName();
   const { width: screenWidth } = useWindowDimensions();
   const cardWidth = Math.floor((screenWidth - 40 - GAP) / 2);
 
@@ -58,7 +59,7 @@ export function ProductSheet({ title, products, onClose, onAdd }: Props) {
               <ProductCard
                 key={p.id}
                 width={cardWidth}
-                name={p.name}
+                name={localName(p)}
                 pricePerKg={Number(p.base_price_per_kg)}
                 unit={p.unit}
                 image={productImage(p.name, p.image_path)}

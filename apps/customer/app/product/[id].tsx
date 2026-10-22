@@ -9,7 +9,7 @@ import { Icon } from "@/components/Icon";
 import { useProducts } from "@/hooks/useCatalog";
 import { productImage } from "@/lib/images";
 import { useCart } from "@/store/cart";
-import { useT } from "@/i18n";
+import { useLocalName, useT } from "@/i18n";
 import { fonts, radius, useTheme } from "@/theme";
 
 const KG_CHIPS = [0.5, 1, 1.5, 2];
@@ -19,6 +19,7 @@ const SIZES = ["small", "medium", "large"] as const;
 export default function ProductDetailScreen() {
   const { c, productGradient, productBorder } = useTheme();
   const t = useT();
+  const localName = useLocalName();
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const products = useProducts();
@@ -51,6 +52,7 @@ export default function ProductDetailScreen() {
     upsert({
       productId: product!.id,
       name: product!.name,
+      nameTa: product!.name_ta ?? undefined,
       unit: product!.unit,
       price,
       qty,
@@ -85,7 +87,7 @@ export default function ProductDetailScreen() {
             <Icon name="back" color={c.ink} />
           </Pressable>
           <AppText variant="subtitle" numberOfLines={1} style={{ flex: 1, textAlign: "center", marginHorizontal: 12 }}>
-            {product.name}
+            {localName(product)}
           </AppText>
           <View style={{ width: 48 }} />
         </View>
@@ -105,7 +107,7 @@ export default function ProductDetailScreen() {
           {/* Name + price */}
           <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
             <AppText variant="title" numberOfLines={2} style={{ flex: 1, fontSize: 20, lineHeight: 26, height: 52 }}>
-              {product.name}
+              {localName(product)}
             </AppText>
             <View style={{ alignItems: "flex-end" }}>
               <AppText variant="price" color={c.price} style={{ fontSize: 20, lineHeight: 24 }}>₹ {price}</AppText>

@@ -10,7 +10,7 @@ import { ProductSheet } from "@/components/ProductSheet";
 import { SubcategoryCard } from "@/components/SubcategoryCard";
 import { useCategories, useProducts, useSubcategories, type Subcategory } from "@/hooks/useCatalog";
 import { categoryImage, productImage, subcategoryImage } from "@/lib/images";
-import { useT, type TKey } from "@/i18n";
+import { useLocalName, useT, type TKey } from "@/i18n";
 import { radius, useTheme } from "@/theme";
 
 function greetingKey(): TKey {
@@ -37,6 +37,7 @@ export default function HomeScreen() {
   const { width: screenWidth } = useWindowDimensions();
   const cardWidth = Math.floor((screenWidth - 40 - GAP) / 2);
   const t = useT();
+  const localName = useLocalName();
   const [categoryId, setCategoryId] = useState<string | null>(null);
   const categories = useCategories();
   const subcategories = useSubcategories();
@@ -49,7 +50,7 @@ export default function HomeScreen() {
     .filter((cat) => categoryId === null || cat.id === categoryId)
     .map((cat) => ({
       id: cat.id,
-      name: cat.name,
+      name: localName(cat),
       subs: (subcategories.data ?? []).filter((su) => su.category_id === cat.id),
       items: (products.data ?? []).filter((p) => p.category_id === cat.id),
     }))
@@ -133,11 +134,11 @@ export default function HomeScreen() {
                   {img ? (
                     <Image source={img} resizeMode="contain" style={{ width: 66, height: 48 }} />
                   ) : (
-                    <AppText variant="title" color={c.price} style={{ fontSize: 20 }}>{cat.name.charAt(0)}</AppText>
+                    <AppText variant="title" color={c.price} style={{ fontSize: 20 }}>{(cat.id === null ? cat.name : localName(cat as { name: string; name_ta: string | null })).charAt(0)}</AppText>
                   )}
                 </View>
                 <AppText variant="label" color={selected ? c.primary : c.ink} numberOfLines={1} style={{ height: 18 }}>
-                  {cat.name}
+                  {cat.id === null ? cat.name : localName(cat as { name: string; name_ta: string | null })}
                 </AppText>
               </Pressable>
             );
@@ -185,7 +186,7 @@ export default function HomeScreen() {
                       <SubcategoryCard
                         key={sub.id}
                         width={cardWidth}
-                        name={sub.name}
+                        name={localName(sub)}
                         count={(products.data ?? []).filter((p) => p.subcategory_id === sub.id).length}
                         price={headlinePrice((products.data ?? []).filter((p) => p.subcategory_id === sub.id))}
                         image={subcategoryImage(sub.name, sub.image_path)}
@@ -196,7 +197,7 @@ export default function HomeScreen() {
                       <ProductCard
                         key={item.id}
                         width={cardWidth}
-                        name={item.name}
+                        name={localName(item)}
                         pricePerKg={Number(item.base_price_per_kg)}
                         unit={item.unit}
                         image={productImage(item.name, item.image_path)}
@@ -211,7 +212,7 @@ export default function HomeScreen() {
       </ScrollView>
 
       <ProductSheet
-        title={openSub?.name ?? null}
+        title={openSub ? localName(openSub) : null}
         products={sheetProducts}
         onClose={() => setOpenSub(null)}
         onAdd={(p) => {

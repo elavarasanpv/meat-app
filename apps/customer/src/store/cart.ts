@@ -5,7 +5,10 @@ import type { ProductUnit } from "@/hooks/useCatalog";
 
 export type CartItem = {
   productId: string;
+  /** English name (also used to pick the image). */
   name: string;
+  /** Tamil name, if the product has one. */
+  nameTa?: string;
   unit: ProductUnit;
   /** Price per kg or per piece. */
   price: number;

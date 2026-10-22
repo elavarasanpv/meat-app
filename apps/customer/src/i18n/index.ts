@@ -32,6 +32,12 @@ export const useLang = create<LangState>((set, get) => ({
   },
 }));
 
+/** Display name for a catalog row: Tamil when the language is Tamil and a translation exists. */
+export function useLocalName() {
+  const lang = useLang((s) => s.lang);
+  return (row: { name: string; name_ta?: string | null }) => (lang === "ta" && row.name_ta ? row.name_ta : row.name);
+}
+
 /** t("key", { name: "Priya" }) → replaces {name} in the string. */
 export function useT() {
   const lang = useLang((s) => s.lang);

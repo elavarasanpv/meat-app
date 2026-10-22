@@ -6,12 +6,13 @@ import { Button } from "@/components/Button";
 import { Icon } from "@/components/Icon";
 import { productImage } from "@/lib/images";
 import { FREE_DELIVERY_ABOVE, cartTotals, formatQty, lineTotal, qtyStep, useCart } from "@/store/cart";
-import { useT } from "@/i18n";
+import { useLocalName, useT } from "@/i18n";
 import { radius, useTheme } from "@/theme";
 
 export default function CartScreen() {
   const { c } = useTheme();
   const t = useT();
+  const localName = useLocalName();
   const router = useRouter();
   const items = useCart((s) => s.items);
   const setQty = useCart((s) => s.setQty);
@@ -60,7 +61,7 @@ export default function CartScreen() {
               </View>
 
               <View style={{ flex: 1, gap: 2 }}>
-                <AppText variant="bodyBold" numberOfLines={1} style={{ fontSize: 14 }}>{item.name}</AppText>
+                <AppText variant="bodyBold" numberOfLines={1} style={{ fontSize: 14 }}>{localName({ name: item.name, name_ta: item.nameTa })}</AppText>
                 <AppText variant="caption" muted numberOfLines={1}>
                   ₹ {item.price} {t(item.unit === "piece" ? "perPiece" : "perKg")}
                   {item.size ? ` · ${t(item.size === "small" ? "sizeSmall" : item.size === "medium" ? "sizeMedium" : "sizeLarge")}` : ""}
