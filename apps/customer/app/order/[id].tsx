@@ -8,6 +8,7 @@ import { Button } from "@/components/Button";
 import { Icon } from "@/components/Icon";
 import { StatusBadge } from "@/components/StatusBadge";
 import { ArrivedPanel } from "@/components/ArrivedPanel";
+import { DeliveryInfoCard } from "@/components/DeliveryInfoCard";
 import { TrackingMap } from "@/components/TrackingMap";
 import { useRiderLocation } from "@/hooks/useTracking";
 import { useOrder, useOrderOtp } from "@/hooks/useOrders";
@@ -59,7 +60,7 @@ export default function OrderDetailScreen() {
   const deliveredAt = o?.order_status_history.find((h) => h.to_status === "DELIVERED")?.created_at;
   const showOtp = !!o && !arrived && !["DELIVERED", "CANCELLED", "RETURNED", "REFUNDED"].includes(o.status) && !!otp.data;
   const card = { padding: 16, borderRadius: 22, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, gap: 10 } as const;
-  const mapH = Math.round(screenH * (arrived ? 0.3 : 0.42));
+  const mapH = Math.round(screenH * (arrived ? 0.26 : 0.42));
 
   const back = () => (router.canGoBack() ? router.back() : router.replace("/(tabs)/orders"));
 
@@ -229,16 +230,16 @@ export default function OrderDetailScreen() {
           </View>
           ) : null}
 
-          {/* Delivery */}
-          {o ? (
+          {/* Delivery + bill: compact card while tracking, full cards otherwise */}
+          {o && showTracking ? (
+            <View style={{ marginHorizontal: -16 }}>
+              <DeliveryInfoCard order={o} pickedUpAt={pickedUpAt} />
+            </View>
+          ) : null}
+
+          {o && !showTracking ? (
             <View style={card}>
-              <AppText variant="subtitle" numberOfLines={1} style={{ height: 24 }}>{showTracking ? t("deliveryDetails") : t("deliverToLabel")}</AppText>
-              {showTracking && pickedUpAt ? (
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                  <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: c.success }} />
-                  <AppText variant="caption" muted numberOfLines={1}>{t("pickedUpAt", { when: dateTime(pickedUpAt) })}</AppText>
-                </View>
-              ) : null}
+              <AppText variant="subtitle" numberOfLines={1} style={{ height: 24 }}>{t("deliverToLabel")}</AppText>
               {o.delivery_slots ? (
                 <AppText variant="bodyBold" numberOfLines={1}>
                   {dayLabel(o.delivery_slots.starts_at, { today: t("today"), tomorrow: t("tomorrow") })} · {slotWindow(o.delivery_slots.starts_at, o.delivery_slots.ends_at)}
@@ -252,8 +253,7 @@ export default function OrderDetailScreen() {
             </View>
           ) : null}
 
-          {/* Items + bill */}
-          {o ? (
+          {o && !showTracking ? (
             <View style={card}>
               <AppText variant="subtitle" numberOfLines={1} style={{ height: 24 }}>{t("bill")}</AppText>
               {o.order_items.map((it) => {

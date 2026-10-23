@@ -57,7 +57,7 @@ export function ArrivedPanel({ amount, paymentMode, otp, riderPhone = "+91999999
   return (
     <Animated.View
       style={{
-        marginTop: -56,
+        marginTop: -40,
         marginHorizontal: 16,
         borderRadius: 28,
         overflow: "hidden",
@@ -71,16 +71,16 @@ export function ArrivedPanel({ amount, paymentMode, otp, riderPhone = "+91999999
       }}
     >
       {/* Hero band: ember gradient feel via two layers + the rider illustration */}
-      <View style={{ backgroundColor: c.primary, height: 190, overflow: "hidden" }}>
+      <View style={{ backgroundColor: c.primary, height: 150, overflow: "hidden" }}>
         <View style={{ position: "absolute", left: -40, top: -60, width: 220, height: 220, borderRadius: 110, backgroundColor: "rgba(255,255,255,0.12)" }} />
         <View style={{ position: "absolute", left: 60, bottom: -90, width: 180, height: 180, borderRadius: 90, backgroundColor: "rgba(0,0,0,0.08)" }} />
-        <Image source={rider} resizeMode="contain" style={{ position: "absolute", right: -6, bottom: -8, width: 132, height: 200 }} />
+        <Image source={rider} resizeMode="contain" style={{ position: "absolute", right: -4, bottom: -6, width: 108, height: 160 }} />
 
-        <View style={{ padding: 18, paddingRight: 140, gap: 8, flex: 1, justifyContent: "center" }}>
-          <Animated.View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: "rgba(255,255,255,0.22)", alignItems: "center", justifyContent: "center", transform: [{ scale: pulse }] }}>
-            <Icon name="bell" color="#FFFFFF" size={24} />
+        <View style={{ padding: 16, paddingRight: 118, gap: 6, flex: 1, justifyContent: "center" }}>
+          <Animated.View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255,255,255,0.22)", alignItems: "center", justifyContent: "center", transform: [{ scale: pulse }] }}>
+            <Icon name="bell" color="#FFFFFF" size={20} />
           </Animated.View>
-          <AppText style={{ fontFamily: fonts.display, fontSize: 24, lineHeight: 30 }} color="#FFFFFF" numberOfLines={2}>
+          <AppText style={{ fontFamily: fonts.display, fontSize: 22, lineHeight: 27 }} color="#FFFFFF" numberOfLines={2}>
             {t("riderArrived")}
           </AppText>
           <AppText variant="caption" color="rgba(255,255,255,0.9)" numberOfLines={2}>
@@ -89,35 +89,28 @@ export function ArrivedPanel({ amount, paymentMode, otp, riderPhone = "+91999999
         </View>
       </View>
 
-      {/* What to do now: OTP + amount */}
-      <View style={{ padding: 16, gap: 12 }}>
-        {otp ? (
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 14, padding: 14, borderRadius: 18, backgroundColor: c.tint, borderWidth: 1.5, borderColor: c.primary }}>
-            <View style={{ flex: 1 }}>
-              <AppText variant="label" color={c.price} numberOfLines={1}>{t("yourOtp")}</AppText>
-              <AppText variant="caption" muted numberOfLines={2}>{t("shareOtp")}</AppText>
-            </View>
-            <View style={{ paddingHorizontal: 14, height: 56, borderRadius: 16, backgroundColor: c.surface, justifyContent: "center" }}>
-              <AppText style={{ fontFamily: fonts.display, fontSize: 30, lineHeight: 36, letterSpacing: 6 }} color={c.ink}>{otp}</AppText>
-            </View>
+      {/* What to do now: OTP and amount side by side, then Call */}
+      <View style={{ padding: 14, gap: 10 }}>
+        <View style={{ flexDirection: "row", gap: 10 }}>
+          <View style={{ flex: 1, padding: 12, borderRadius: 18, backgroundColor: c.tint, borderWidth: 1.5, borderColor: c.primary, alignItems: "center", gap: 2 }}>
+            <AppText variant="label" color={c.price} numberOfLines={1} style={{ fontSize: 11 }}>{t("yourOtp")}</AppText>
+            <AppText style={{ fontFamily: fonts.display, fontSize: 30, lineHeight: 36, letterSpacing: 5 }} color={c.ink} numberOfLines={1}>{otp ?? "— — — —"}</AppText>
+            <AppText variant="caption" muted numberOfLines={1} style={{ fontSize: 10 }}>{t("tellRider")}</AppText>
           </View>
-        ) : null}
-
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 14, padding: 14, borderRadius: 18, backgroundColor: c.surface2 }}>
-          <View style={{ flex: 1 }}>
-            <AppText variant="label" muted numberOfLines={1}>{t("amountDue")}</AppText>
-            <AppText variant="caption" muted numberOfLines={1}>{payLabel}</AppText>
+          <View style={{ flex: 1, padding: 12, borderRadius: 18, backgroundColor: c.surface2, alignItems: "center", gap: 2 }}>
+            <AppText variant="label" muted numberOfLines={1} style={{ fontSize: 11 }}>{t("amountDue")}</AppText>
+            <AppText style={{ fontFamily: fonts.display, fontSize: 30, lineHeight: 36 }} color={paymentMode === "prepaid_upi" ? c.successText : c.price} numberOfLines={1}>
+              {paymentMode === "prepaid_upi" ? "✓" : `₹${amount}`}
+            </AppText>
+            <AppText variant="caption" muted numberOfLines={1} style={{ fontSize: 10 }}>{payLabel}</AppText>
           </View>
-          <AppText style={{ fontFamily: fonts.display, fontSize: 30, lineHeight: 36 }} color={paymentMode === "prepaid_upi" ? c.successText : c.price}>
-            {paymentMode === "prepaid_upi" ? "✓" : `₹ ${amount}`}
-          </AppText>
         </View>
 
         <Pressable
           onPress={() => Linking.openURL(`tel:${riderPhone}`)}
           accessibilityRole="button"
           accessibilityLabel={t("callRider")}
-          style={({ pressed }) => ({ height: 52, borderRadius: 26, backgroundColor: pressed ? c.primaryPressed : c.success, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10 })}
+          style={({ pressed }) => ({ height: 50, borderRadius: 25, backgroundColor: pressed ? c.primaryPressed : c.success, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10 })}
         >
           <Icon name="phone" color="#FFFFFF" size={20} />
           <AppText variant="bodyBold" color="#FFFFFF" numberOfLines={1} style={{ fontSize: 15 }}>{t("callRider")}</AppText>
