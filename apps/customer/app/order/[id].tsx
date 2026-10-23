@@ -52,6 +52,11 @@ export default function OrderDetailScreen() {
   const agoSec = rider ? Math.max(0, Math.round((now - new Date(rider.updated_at).getTime()) / 1000)) : 0;
 
   const reached = (s: OrderStatus) => (o ? rank(o.status) >= rank(s) : false);
+  const delivered = o?.status === "DELIVERED";
+  // The full timeline only matters before dispatch; during delivery the map + ETA say it all.
+  const showTimeline = !!o && !showTracking && !delivered;
+  const pickedUpAt = o?.order_status_history.find((h) => h.to_status === "PICKED_UP" || h.to_status === "OUT_FOR_DELIVERY")?.created_at;
+  const deliveredAt = o?.order_status_history.find((h) => h.to_status === "DELIVERED")?.created_at;
   const showOtp = !!o && !arrived && !["DELIVERED", "CANCELLED", "RETURNED", "REFUNDED"].includes(o.status) && !!otp.data;
   const card = { padding: 16, borderRadius: 22, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, gap: 10 } as const;
   const mapH = Math.round(screenH * (arrived ? 0.3 : 0.42));
@@ -181,7 +186,23 @@ export default function OrderDetailScreen() {
             </View>
           ) : null}
 
-          {/* Timeline */}
+          {/* Delivered: success card instead of a timeline */}
+          {delivered && o ? (
+            <View style={{ padding: 16, borderRadius: 22, backgroundColor: c.successBg, flexDirection: "row", alignItems: "center", gap: 12 }}>
+              <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: c.success, alignItems: "center", justifyContent: "center" }}>
+                <Icon name="home" color="#FFFFFF" size={22} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <AppText variant="subtitle" color={c.successText} numberOfLines={1}>{t("st_DELIVERED")}</AppText>
+                <AppText variant="caption" color={c.successText} numberOfLines={2}>
+                  {deliveredAt ? t("deliveredOn", { when: dateTime(deliveredAt) }) : t("thanksNote")}
+                </AppText>
+              </View>
+            </View>
+          ) : null}
+
+          {/* Timeline (pre-dispatch only) */}
+          {showTimeline ? (
           <View style={card}>
             <AppText variant="subtitle" numberOfLines={1} style={{ height: 24 }}>{t("orderStatus")}</AppText>
             {TIMELINE.map((s, i) => {
@@ -206,11 +227,18 @@ export default function OrderDetailScreen() {
               );
             })}
           </View>
+          ) : null}
 
           {/* Delivery */}
           {o ? (
             <View style={card}>
-              <AppText variant="subtitle" numberOfLines={1} style={{ height: 24 }}>{t("deliverToLabel")}</AppText>
+              <AppText variant="subtitle" numberOfLines={1} style={{ height: 24 }}>{showTracking ? t("deliveryDetails") : t("deliverToLabel")}</AppText>
+              {showTracking && pickedUpAt ? (
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                  <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: c.success }} />
+                  <AppText variant="caption" muted numberOfLines={1}>{t("pickedUpAt", { when: dateTime(pickedUpAt) })}</AppText>
+                </View>
+              ) : null}
               {o.delivery_slots ? (
                 <AppText variant="bodyBold" numberOfLines={1}>
                   {dayLabel(o.delivery_slots.starts_at, { today: t("today"), tomorrow: t("tomorrow") })} · {slotWindow(o.delivery_slots.starts_at, o.delivery_slots.ends_at)}

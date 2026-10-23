@@ -132,6 +132,10 @@ export const en = {
   arrivedSub: "Please come to the door and collect your order",
   amountDue: "Amount to pay",
   paidOnline: "Paid online",
+  deliveryDetails: "Delivery details",
+  pickedUpAt: "Picked up from the shop at {when}",
+  deliveredOn: "Delivered on {when}",
+  thanksNote: "Thank you for ordering with FreshCut",
   shop: "Shop",
   yourHome: "Your home",
   // tabs
