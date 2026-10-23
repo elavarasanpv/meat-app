@@ -2,6 +2,13 @@ import { useEffect, useRef } from "react";
 import { Platform, Pressable, View } from "react-native";
 import MapView, { AnimatedRegion, Marker, MarkerAnimated, Polyline, PROVIDER_GOOGLE } from "react-native-maps";
 import { Icon } from "./Icon";
+
+// Pre-rendered marker bitmaps: custom marker views get clipped on Android's new architecture.
+const MARKERS = {
+  rider: require("../../assets/markers/rider.png"),
+  home: require("../../assets/markers/home.png"),
+  shop: require("../../assets/markers/shop.png"),
+};
 import type { RiderLocation } from "@/hooks/useTracking";
 import { useTheme } from "@/theme";
 
@@ -27,16 +34,6 @@ const MAP_STYLE = [
 
 const DEFAULT = { lat: 11.7383, lng: 78.9594 }; // Kallakurichi
 
-function Pin({ bg, border, icon, size = 40 }: { bg: string; border: string; icon: "logo" | "home"; size?: number }) {
-  return (
-    <View style={{ alignItems: "center" }}>
-      <View style={{ width: size, height: size, borderRadius: 14, backgroundColor: bg, borderWidth: 2.5, borderColor: border, alignItems: "center", justifyContent: "center", elevation: 4, shadowColor: "#000", shadowOpacity: 0.2, shadowRadius: 4, shadowOffset: { width: 0, height: 2 } }}>
-        <Icon name={icon} color={border === "#FFFFFF" ? "#FFFFFF" : border} size={size * 0.5} />
-      </View>
-      <View style={{ width: 0, height: 0, borderLeftWidth: 6, borderRightWidth: 6, borderTopWidth: 8, borderLeftColor: "transparent", borderRightColor: "transparent", borderTopColor: border, marginTop: -1 }} />
-    </View>
-  );
-}
 
 /**
  * Zepto-style live map: shop and home pins, the rider glides between updates,
@@ -105,27 +102,15 @@ export function TrackingMap({ rider, pickup, home, height }: Props) {
         ) : null}
 
         {pickup ? (
-          <Marker coordinate={{ latitude: pickup.lat, longitude: pickup.lng }} anchor={{ x: 0.5, y: 1 }}>
-            <Pin bg="#FFFFFF" border={c.ink} icon="logo" size={36} />
-          </Marker>
+          <Marker coordinate={{ latitude: pickup.lat, longitude: pickup.lng }} anchor={{ x: 0.5, y: 1 }} image={MARKERS.shop} />
         ) : null}
 
         {home ? (
-          <Marker coordinate={{ latitude: home.lat, longitude: home.lng }} anchor={{ x: 0.5, y: 1 }}>
-            <Pin bg={c.primary} border="#FFFFFF" icon="home" size={40} />
-          </Marker>
+          <Marker coordinate={{ latitude: home.lat, longitude: home.lng }} anchor={{ x: 0.5, y: 1 }} image={MARKERS.home} />
         ) : null}
 
         {rider ? (
-          <MarkerAnimated coordinate={coord as any} anchor={{ x: 0.5, y: 0.5 }}>
-            <View style={{ alignItems: "center", justifyContent: "center" }}>
-              {/* pulse halo */}
-              <View style={{ position: "absolute", width: 64, height: 64, borderRadius: 32, backgroundColor: c.primary, opacity: 0.15 }} />
-              <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: c.primary, borderWidth: 3, borderColor: "#FFFFFF", alignItems: "center", justifyContent: "center", elevation: 6, shadowColor: "#000", shadowOpacity: 0.25, shadowRadius: 5, shadowOffset: { width: 0, height: 3 } }}>
-                <Icon name="truck" color="#FFFFFF" size={22} />
-              </View>
-            </View>
-          </MarkerAnimated>
+          <MarkerAnimated coordinate={coord as any} anchor={{ x: 0.5, y: 0.5 }} image={MARKERS.rider} zIndex={10} />
         ) : null}
       </MapView>
 
