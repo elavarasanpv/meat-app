@@ -122,6 +122,12 @@ export const en = {
   arrivingNow: "Rider is arriving now!",
   updatedSecs: "Updated {n} s ago",
   updatedMins: "Updated {n} min ago",
+  arrivesIn: "Arrives in",
+  minutes: "min",
+  distance: "Distance",
+  yourRider: "Your rider",
+  callRider: "Call rider",
+  call: "Call",
   shop: "Shop",
   yourHome: "Your home",
   // tabs

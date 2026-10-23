@@ -14,7 +14,16 @@
       "package": "com.freshcut.customer",
       "adaptiveIcon": {
         "backgroundColor": "#E4461F"
-      }
+      },
+      "config": {
+        "googleMaps": {
+          "apiKey": "${GOOGLE_MAPS_ANDROID_KEY}"
+        }
+      },
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION"
+      ]
     },
     "plugins": [
       "expo-router",
