@@ -7,6 +7,7 @@ import { AppText } from "@/components/AppText";
 import { Button } from "@/components/Button";
 import { Icon } from "@/components/Icon";
 import { StatusBadge } from "@/components/StatusBadge";
+import { ArrivedPanel } from "@/components/ArrivedPanel";
 import { TrackingMap } from "@/components/TrackingMap";
 import { useRiderLocation } from "@/hooks/useTracking";
 import { useOrder, useOrderOtp } from "@/hooks/useOrders";
@@ -34,6 +35,7 @@ export default function OrderDetailScreen() {
   const tracking = useRiderLocation(id, o?.rider_id);
   const rider = tracking.data;
   const showTracking = !!o?.rider_id && TRACKABLE.includes(o.status);
+  const arrived = showTracking && !!o?.arrived_at && o.status === "OUT_FOR_DELIVERY";
 
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
@@ -50,9 +52,9 @@ export default function OrderDetailScreen() {
   const agoSec = rider ? Math.max(0, Math.round((now - new Date(rider.updated_at).getTime()) / 1000)) : 0;
 
   const reached = (s: OrderStatus) => (o ? rank(o.status) >= rank(s) : false);
-  const showOtp = !!o && !["DELIVERED", "CANCELLED", "RETURNED", "REFUNDED"].includes(o.status) && !!otp.data;
+  const showOtp = !!o && !arrived && !["DELIVERED", "CANCELLED", "RETURNED", "REFUNDED"].includes(o.status) && !!otp.data;
   const card = { padding: 16, borderRadius: 22, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, gap: 10 } as const;
-  const mapH = Math.round(screenH * 0.42);
+  const mapH = Math.round(screenH * (arrived ? 0.3 : 0.42));
 
   const back = () => (router.canGoBack() ? router.back() : router.replace("/(tabs)/orders"));
 
@@ -79,7 +81,9 @@ export default function OrderDetailScreen() {
               </View>
             </View>
 
-            {/* ETA card overlapping the map */}
+            {arrived ? (
+              <ArrivedPanel amount={Number(o.final_amount ?? o.est_amount)} paymentMode={o.payment_mode} otp={otp.data ?? null} />
+            ) : (
             <View style={{ marginTop: -36, marginHorizontal: 16, padding: 18, borderRadius: 24, backgroundColor: c.surface, elevation: 8, shadowColor: "#000", shadowOpacity: 0.12, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, gap: 12 }}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
                 <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: stale ? c.muted : c.success }} />
@@ -135,6 +139,7 @@ export default function OrderDetailScreen() {
                 </Pressable>
               </View>
             </View>
+            )}
           </>
         ) : (
           /* Plain header when there is nothing to track yet */

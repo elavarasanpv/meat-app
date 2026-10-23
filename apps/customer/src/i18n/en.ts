@@ -128,6 +128,10 @@ export const en = {
   yourRider: "Your rider",
   callRider: "Call rider",
   call: "Call",
+  riderArrived: "Your rider has arrived!",
+  arrivedSub: "Please come to the door and collect your order",
+  amountDue: "Amount to pay",
+  paidOnline: "Paid online",
   shop: "Shop",
   yourHome: "Your home",
   // tabs

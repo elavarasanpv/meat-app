@@ -18,6 +18,7 @@ const args = process.argv.slice(2);
 const displayId = args.find((a) => !a.startsWith("--"));
 const intervalSec = Number(args[args.indexOf("--interval") + 1]) || 5;
 const reset = args.includes("--reset");
+const arriveOnly = args.includes("--arrive");
 if (!displayId) {
   console.error("usage: node --env-file=.env scripts/simulate-ride.mjs <DISPLAY_ID> [--interval 5] [--reset]");
   process.exit(1);
@@ -45,7 +46,7 @@ const { data: order, error: oErr } = await admin
 if (oErr || !order) throw new Error(`order ${displayId} not found: ${oErr?.message}`);
 
 if (reset) {
-  await admin.from("orders").update({ status: "PLACED", rider_id: null, pickup_lat: null, pickup_lng: null }).eq("id", order.id);
+  await admin.from("orders").update({ status: "PLACED", rider_id: null, pickup_lat: null, pickup_lng: null, arrived_at: null }).eq("id", order.id);
   await admin.from("order_status_history").delete().eq("order_id", order.id).neq("to_status", "PLACED");
   if (order.rider_id) await admin.from("rider_locations").delete().eq("rider_id", order.rider_id);
   console.log(`↺ ${displayId} reset to PLACED`);
@@ -70,6 +71,7 @@ if (addr?.lat == null) {
 }
 
 // 3. order → OUT_FOR_DELIVERY with history for the timeline
+if (!(arriveOnly && order.status === "OUT_FOR_DELIVERY"))
 await admin
   .from("orders")
   .update({ rider_id: rider.id, status: "OUT_FOR_DELIVERY", pickup_lat: PICKUP.lat, pickup_lng: PICKUP.lng })
@@ -89,6 +91,20 @@ const { data: session, error: vErr } = await user.auth.verifyOtp({ phone: TEST_P
 if (vErr) throw new Error(`test login failed: ${vErr.message}`);
 const token = session.session.access_token;
 
+async function arrive() {
+  const res = await fetch(`${API}/rider/arrived`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ orderId: order.id }),
+  });
+  console.log(`🔔 arrived → ${res.status} ${JSON.stringify(await res.json().catch(() => ({})))}`);
+}
+
+if (arriveOnly) {
+  await arrive();
+  process.exit(0);
+}
+
 console.log(`▶ riding ${STEPS} steps, one every ${intervalSec}s (Ctrl+C to stop)`);
 for (let i = 0; i <= STEPS; i++) {
   const f = i / STEPS;
@@ -103,4 +119,5 @@ for (let i = 0; i <= STEPS; i++) {
   console.log(`  ${String(i).padStart(2)}/${STEPS}  ${point.lat.toFixed(5)}, ${point.lng.toFixed(5)}  → ${res.status} ${JSON.stringify(body)}`);
   if (i < STEPS) await new Promise((r) => setTimeout(r, intervalSec * 1000));
 }
-console.log("✔ arrived. Run with --reset to put the order back.");
+await arrive();
+console.log("✔ ride finished. Run with --reset to put the order back.");

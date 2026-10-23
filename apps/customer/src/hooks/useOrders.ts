@@ -28,6 +28,7 @@ export type OrderSummary = {
 
 export type OrderDetail = Omit<OrderSummary, "order_items"> & {
   rider_id: string | null;
+  arrived_at: string | null;
   pickup_lat: number | null;
   pickup_lng: number | null;
   addresses: { label: string; address_text: string; landmark: string | null; lat: number | null; lng: number | null } | null;
@@ -116,7 +117,7 @@ export function useOrder(id: string | undefined) {
     queryFn: async () => {
       // PostgREST rejects whitespace in select and duplicate embeds, so build it compact.
       const select = [
-        "id,display_id,status,est_amount,final_amount,payment_mode,created_at,rider_id,pickup_lat,pickup_lng",
+        "id,display_id,status,est_amount,final_amount,payment_mode,created_at,rider_id,arrived_at,pickup_lat,pickup_lng",
         "delivery_slots(starts_at,ends_at)",
         "addresses(label,address_text,landmark,lat,lng)",
         "order_items(id,requested_kg,actual_kg,unit_price_per_kg,size,notes,products(name,name_ta,unit))",
