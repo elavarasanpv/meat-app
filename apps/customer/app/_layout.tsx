@@ -28,13 +28,13 @@ export const unstable_settings = { initialRouteName: "(tabs)" };
 
 // Queries pause while offline and resume on reconnect; cached data survives restarts
 // so the catalog and recent orders still show with no signal.
-bindOnlineManager();
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: { retry: 2, staleTime: 60_000, gcTime: 24 * 60 * 60_000, refetchOnReconnect: true, networkMode: "offlineFirst" },
     mutations: { networkMode: "online" },
   },
 });
+bindOnlineManager(queryClient);
 const persister = createAsyncStoragePersister({ storage: AsyncStorage, key: "freshcut.query-cache" });
 
 export default function RootLayout() {
