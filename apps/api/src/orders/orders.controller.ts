@@ -1,6 +1,6 @@
-import { BadRequestException, Body, Controller, Get, Headers, Post } from "@nestjs/common";
+import { BadRequestException, Body, Controller, Get, Headers, Param, Post } from "@nestjs/common";
 import { z } from "zod";
-import { orderStatusSchema, placeOrderSchema, upcomingSlots } from "@freshcut/shared";
+import { cancelOrderSchema, orderStatusSchema, placeOrderSchema, upcomingSlots } from "@freshcut/shared";
 import { OrdersService } from "./orders.service";
 import { SupabaseService } from "../supabase.service";
 import { requireUser } from "../auth";
@@ -38,6 +38,14 @@ export class OrdersController {
     const user = await requireUser(this.supabase, auth);
     const input = parse(placeOrderSchema, body);
     return this.orders.placeOrder(user.id, input);
+  }
+
+  /** POST /orders/:id/cancel — customer cancels their own order (only until the shop accepts). */
+  @Post(":id/cancel")
+  async cancel(@Headers("authorization") auth: string | undefined, @Param("id") id: string, @Body() body: unknown) {
+    const user = await requireUser(this.supabase, auth);
+    const input = parse(cancelOrderSchema, body);
+    return this.orders.cancelByCustomer(user.id, id, input);
   }
 
   /**

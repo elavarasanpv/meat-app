@@ -2,16 +2,17 @@ import { useEffect, useState } from "react";
 import { Linking, Pressable, ScrollView, View, useWindowDimensions } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
-import { ARRIVING_KM, ORDER_STATUSES, etaMinutesRange, haversineKm, type OrderStatus } from "@freshcut/shared";
+import { ARRIVING_KM, CUSTOMER_CANCELLABLE, ORDER_STATUSES, etaMinutesRange, haversineKm, type OrderStatus } from "@freshcut/shared";
 import { AppText } from "@/components/AppText";
 import { Button } from "@/components/Button";
 import { Icon } from "@/components/Icon";
 import { StatusBadge } from "@/components/StatusBadge";
 import { ArrivedPanel } from "@/components/ArrivedPanel";
+import { CancelSheet } from "@/components/CancelSheet";
 import { DeliveryInfoCard } from "@/components/DeliveryInfoCard";
 import { TrackingMap } from "@/components/TrackingMap";
 import { useRiderLocation } from "@/hooks/useTracking";
-import { useOrder, useOrderOtp } from "@/hooks/useOrders";
+import { useCancelOrder, useOrder, useOrderOtp } from "@/hooks/useOrders";
 import { dateTime, dayLabel, slotWindow } from "@/lib/format";
 import { useLocalName, useT, type TKey } from "@/i18n";
 import { fonts, useTheme } from "@/theme";
@@ -38,6 +39,11 @@ export default function OrderDetailScreen() {
   const showTracking = !!o?.rider_id && TRACKABLE.includes(o.status);
   const arrived = showTracking && !!o?.arrived_at && o.status === "OUT_FOR_DELIVERY";
 
+  const cancel = useCancelOrder();
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [cancelError, setCancelError] = useState<string | null>(null);
+  const canCancel = !!o && CUSTOMER_CANCELLABLE.includes(o.status);
+  const isCancelled = o?.status === "CANCELLED";
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
     const idv = setInterval(() => setNow(Date.now()), 10_000);
@@ -187,6 +193,18 @@ export default function OrderDetailScreen() {
             </View>
           ) : null}
 
+          {/* Cancelled */}
+          {isCancelled && o ? (
+            <View style={{ padding: 16, borderRadius: 22, backgroundColor: c.tint, borderWidth: 1, borderColor: c.primary, gap: 4 }}>
+              <AppText variant="subtitle" color={c.price} numberOfLines={1}>{t("cancelled")}</AppText>
+              {o.cancel_reason ? (
+                <AppText variant="caption" muted numberOfLines={2}>
+                  {t("cancelReasonLabel")}: {t((`reason_${o.cancel_reason.split(":")[0]}`) as TKey)}
+                </AppText>
+              ) : null}
+            </View>
+          ) : null}
+
           {/* Delivered: success card instead of a timeline */}
           {delivered && o ? (
             <View style={{ padding: 16, borderRadius: 22, backgroundColor: c.successBg, flexDirection: "row", alignItems: "center", gap: 12 }}>
@@ -284,8 +302,31 @@ export default function OrderDetailScreen() {
           ) : null}
 
           {placed === "1" ? <Button label={t("backHome")} variant="outline" icon="home" onPress={() => router.replace("/(tabs)")} /> : null}
+
+          {canCancel ? (
+            <View style={{ gap: 6, alignItems: "center" }}>
+              <Button label={t("cancelOrder")} variant="outline" onPress={() => { setCancelError(null); setCancelOpen(true); }} style={{ borderColor: c.danger, alignSelf: "stretch" }} />
+              <AppText variant="caption" muted numberOfLines={1}>{t("cancelUntil")}</AppText>
+            </View>
+          ) : null}
         </View>
       </ScrollView>
+
+      <CancelSheet
+        visible={cancelOpen}
+        busy={cancel.isPending}
+        error={cancelError}
+        onClose={() => setCancelOpen(false)}
+        onConfirm={async (reason) => {
+          setCancelError(null);
+          try {
+            await cancel.mutateAsync({ orderId: id!, reason });
+            setCancelOpen(false);
+          } catch (e) {
+            setCancelError(`${t("cancelFailed")} (${(e as Error).message})`);
+          }
+        }}
+      />
     </View>
   );
 }

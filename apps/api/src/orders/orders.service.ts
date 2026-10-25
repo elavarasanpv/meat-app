@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { randomInt } from "node:crypto";
 import * as bcrypt from "bcryptjs";
-import { canTransition, type OrderStatus, type PlaceOrderInput } from "@freshcut/shared";
+import { CUSTOMER_CANCELLABLE, canTransition, type CancelOrderInput, type OrderStatus, type PlaceOrderInput } from "@freshcut/shared";
 import { SupabaseService } from "../supabase.service";
 
 @Injectable()
@@ -32,6 +32,20 @@ export class OrdersService {
     }
     const row = (Array.isArray(data) ? data[0] : data) as { order_id: string; display_id: string; est_amount: number };
     return { orderId: row.order_id, displayId: row.display_id, estAmount: Number(row.est_amount), otp };
+  }
+
+  /** Customer-initiated cancel: must own the order and it must not be accepted yet. */
+  async cancelByCustomer(customerId: string, orderId: string, input: CancelOrderInput) {
+    const db = this.supabase.admin;
+    const { data: order } = await db.from("orders").select("id, status, customer_id").eq("id", orderId).maybeSingle();
+    if (!order || order.customer_id !== customerId) throw new NotFoundException("Order not found");
+    if (!CUSTOMER_CANCELLABLE.includes(order.status as OrderStatus)) {
+      throw new BadRequestException("This order can no longer be cancelled — please call support");
+    }
+    const reason = input.note ? `${input.reason}: ${input.note}` : input.reason;
+    const result = await this.transition({ orderId, to: "CANCELLED", actorId: customerId, note: reason });
+    await db.from("orders").update({ cancel_reason: reason }).eq("id", orderId);
+    return result;
   }
 
   /**

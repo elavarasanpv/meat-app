@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ORDER_STATUSES } from "./order-state";
+import { CANCEL_REASONS, ORDER_STATUSES } from "./order-state";
 import { PAYMENT_MODES, ROLES } from "./constants";
 
 export const roleSchema = z.enum(ROLES);
@@ -59,10 +59,16 @@ export const riderLocationSchema = z.object({
   speedKmh: z.number().min(0).max(200).optional(),
 });
 
+export const cancelOrderSchema = z.object({
+  reason: z.enum(CANCEL_REASONS),
+  note: z.string().max(200).optional(),
+});
+
 export type OrderItemInput = z.infer<typeof orderItemInputSchema>;
 export type DeliverySlotInput = z.infer<typeof deliverySlotSchema>;
 export type PlaceOrderInput = z.infer<typeof placeOrderSchema>;
 export type AddressInput = z.infer<typeof addressInputSchema>;
 export type RiderLocationInput = z.infer<typeof riderLocationSchema>;
+export type CancelOrderInput = z.infer<typeof cancelOrderSchema>;
 export type PackOrderInput = z.infer<typeof packOrderSchema>;
 export type DeliverOrderInput = z.infer<typeof deliverOrderSchema>;

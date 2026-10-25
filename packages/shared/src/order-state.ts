@@ -41,12 +41,12 @@ export function canTransition(from: OrderStatus, to: OrderStatus): boolean {
   return TRANSITIONS[from]?.includes(to) ?? false;
 }
 
-/** Statuses in which the customer may still cancel without admin help. */
-export const CUSTOMER_CANCELLABLE: OrderStatus[] = [
-  "PLACED",
-  "DEALER_ASSIGNED",
-  "ACCEPTED",
-];
+/** Statuses in which the customer may still cancel without admin help (until the shop accepts). */
+export const CUSTOMER_CANCELLABLE: OrderStatus[] = ["PLACED", "DEALER_ASSIGNED"];
+
+/** Reasons offered in the app when cancelling; stored as-is on orders.cancel_reason. */
+export const CANCEL_REASONS = ["mistake", "change_items", "too_long", "other"] as const;
+export type CancelReason = (typeof CANCEL_REASONS)[number];
 
 /** Guard data each transition requires before it is allowed. */
 export const TRANSITION_REQUIREMENTS: Partial<Record<OrderStatus, string[]>> = {
