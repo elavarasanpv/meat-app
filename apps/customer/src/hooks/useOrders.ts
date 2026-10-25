@@ -56,6 +56,7 @@ export function useAddresses() {
       const { data, error } = await supabase
         .from("addresses")
         .select("id, label, address_text, landmark, pincode, lat, lng")
+        .is("archived_at", null)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data as Address[];
@@ -92,6 +93,31 @@ export function useServiceablePincodes() {
       if (error) throw error;
       return data as ServiceablePincode[];
     },
+  });
+}
+
+export type AddressInput = { label: string; address_text: string; landmark?: string; pincode: string; lat?: number; lng?: number };
+
+export function useUpdateAddress() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...input }: AddressInput & { id: string }) => {
+      const { error } = await supabase.from("addresses").update({ ...input, landmark: input.landmark ?? null }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["addresses"] }),
+  });
+}
+
+/** Archive (soft delete): past orders keep pointing at the row. */
+export function useDeleteAddress() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("addresses").update({ archived_at: new Date().toISOString() }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["addresses"] }),
   });
 }
 

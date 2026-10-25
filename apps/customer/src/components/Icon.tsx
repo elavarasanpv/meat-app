@@ -2,7 +2,7 @@ import Svg, { Circle, Path, Rect } from "react-native-svg";
 
 export type IconName =
   | "search" | "mic" | "bell" | "pin" | "chevronDown" | "back" | "sparkle"
-  | "home" | "orders" | "cart" | "phone" | "truck" | "logo" | "logout" | "clock" | "receipt" | "chevronUp";
+  | "home" | "orders" | "cart" | "phone" | "truck" | "logo" | "logout" | "clock" | "receipt" | "chevronUp" | "edit" | "trash";
 
 type Props = { name: IconName; size?: number; color: string; strokeWidth?: number };
 
@@ -27,6 +27,8 @@ export function Icon({ name, size = 22, color, strokeWidth = 2.2 }: Props) {
       {name === "clock" && (<><Circle cx={12} cy={12} r={9} {...p} /><Path d="M12 7v5l3 2" {...p} /></>)}
       {name === "receipt" && (<><Path d="M6 3h12v18l-3-2-3 2-3-2-3 2z" {...p} /><Path d="M9 8h6" {...p} /><Path d="M9 12h6" {...p} /></>)}
       {name === "chevronUp" && <Path d="M6 15l6-6 6 6" {...p} />}
+      {name === "edit" && (<><Path d="M4 20h4l10-10-4-4L4 16z" {...p} /><Path d="M13 7l4 4" {...p} /></>)}
+      {name === "trash" && (<><Path d="M4 7h16" {...p} /><Path d="M9 7V4h6v3" {...p} /><Path d="M6 7l1 13h10l1-13" {...p} /><Path d="M10 11v6" {...p} /><Path d="M14 11v6" {...p} /></>)}
       {name === "logout" && (<><Path d="M15 4h4v16h-4" {...p} /><Path d="M10 8l-4 4 4 4" {...p} /><Path d="M6 12h10" {...p} /></>)}
     </Svg>
   );

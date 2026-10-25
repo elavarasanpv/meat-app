@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
-import { Pressable, ScrollView, View } from "react-native";
+import { Alert, Pressable, ScrollView, View } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AppText } from "@/components/AppText";
 import { Button } from "@/components/Button";
 import { Icon } from "@/components/Icon";
-import { useAddresses, usePlaceOrder, useSlots, type Slot } from "@/hooks/useOrders";
+import { useAddresses, useDeleteAddress, usePlaceOrder, useSlots, type Slot } from "@/hooks/useOrders";
 import { useT } from "@/i18n";
 import { FREE_DELIVERY_ABOVE, cartTotals, useCart } from "@/store/cart";
 import { radius, useTheme } from "@/theme";
@@ -21,6 +21,7 @@ export default function CheckoutScreen() {
   const { itemTotal, delivery, toPay } = cartTotals(items);
 
   const addresses = useAddresses();
+  const removeAddress = useDeleteAddress();
   const slots = useSlots();
   const place = usePlaceOrder();
 
@@ -31,8 +32,17 @@ export default function CheckoutScreen() {
 
   // Default to the newest address / first slot once loaded
   useEffect(() => {
-    if (!addressId && addresses.data?.length) setAddressId(addresses.data[0].id);
+    const list = addresses.data ?? [];
+    if (list.length === 0) return setAddressId(null);
+    if (!addressId || !list.some((a) => a.id === addressId)) setAddressId(list[0].id);
   }, [addresses.data]);
+
+  function confirmDelete(id: string) {
+    Alert.alert(t("deleteConfirm"), t("deleteSub"), [
+      { text: t("cancel"), style: "cancel" },
+      { text: t("delete"), style: "destructive", onPress: () => removeAddress.mutate(id) },
+    ]);
+  }
   useEffect(() => {
     if (!slot && slots.data?.length) setSlot(slots.data[0]);
   }, [slots.data]);
@@ -125,6 +135,26 @@ export default function CheckoutScreen() {
                         <AppText variant="label" color={c.price} numberOfLines={1}>{t("setLocation")} · {t("locationMissing")}</AppText>
                       </Pressable>
                     )}
+                  </View>
+                  <View style={{ gap: 6 }}>
+                    <Pressable
+                      onPress={() => router.push({ pathname: "/address/new", params: { id: a.id } })}
+                      accessibilityRole="button"
+                      accessibilityLabel={t("editAddress")}
+                      hitSlop={6}
+                      style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: c.surface2, alignItems: "center", justifyContent: "center" }}
+                    >
+                      <Icon name="edit" color={c.ink} size={16} />
+                    </Pressable>
+                    <Pressable
+                      onPress={() => confirmDelete(a.id)}
+                      accessibilityRole="button"
+                      accessibilityLabel={t("deleteAddress")}
+                      hitSlop={6}
+                      style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: c.tint, alignItems: "center", justifyContent: "center" }}
+                    >
+                      <Icon name="trash" color={c.danger} size={16} />
+                    </Pressable>
                   </View>
                 </Pressable>
               );

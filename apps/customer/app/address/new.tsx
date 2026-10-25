@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, TextInput, View } from "react-native";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AppText } from "@/components/AppText";
 import { Button } from "@/components/Button";
 import { Icon } from "@/components/Icon";
 import { LocationPicker, type LatLng } from "@/components/LocationPicker";
-import { useAddAddress, useServiceablePincodes } from "@/hooks/useOrders";
+import { useAddAddress, useAddresses, useServiceablePincodes, useUpdateAddress } from "@/hooks/useOrders";
 import { useT, type TKey } from "@/i18n";
 import { fonts, radius, useTheme } from "@/theme";
 
@@ -20,13 +20,17 @@ export default function NewAddressScreen() {
   const { c } = useTheme();
   const t = useT();
   const router = useRouter();
+  const { id } = useLocalSearchParams<{ id?: string }>();
+  const existing = useAddresses().data?.find((a) => a.id === id);
   const add = useAddAddress();
+  const update = useUpdateAddress();
   const served = useServiceablePincodes();
-  const [label, setLabel] = useState("Home");
-  const [text, setText] = useState("");
-  const [landmark, setLandmark] = useState("");
-  const [pincode, setPincode] = useState("");
-  const [pin, setPin] = useState<LatLng | null>(null);
+  const [label, setLabel] = useState(existing?.label ?? "Home");
+  const [text, setText] = useState(existing?.address_text ?? "");
+  const [landmark, setLandmark] = useState(existing?.landmark ?? "");
+  const [pincode, setPincode] = useState(existing?.pincode ?? "");
+  const [pin, setPin] = useState<LatLng | null>(existing?.lat != null && existing?.lng != null ? { lat: existing.lat, lng: existing.lng } : null);
+  const editing = !!existing;
   const [error, setError] = useState<string | null>(null);
 
   const match = pincode.length === 6 ? served.data?.find((z) => z.pincode === pincode) : undefined;
@@ -57,7 +61,9 @@ export default function NewAddressScreen() {
     if (notServed) return setError(t("pincodeNotServed", { pin: pincode }));
     setError(null);
     try {
-      await add.mutateAsync({ label, address_text: text.trim(), landmark: landmark.trim() || undefined, pincode, lat: pin?.lat, lng: pin?.lng });
+      const input = { label, address_text: text.trim(), landmark: landmark.trim() || undefined, pincode, lat: pin?.lat, lng: pin?.lng };
+      if (editing) await update.mutateAsync({ id: existing.id, ...input });
+      else await add.mutateAsync(input);
       router.back();
     } catch (e) {
       setError((e as Error).message);
@@ -76,7 +82,7 @@ export default function NewAddressScreen() {
           >
             <Icon name="back" color={c.ink} />
           </Pressable>
-          <AppText variant="title" numberOfLines={1}>{t("newAddress")}</AppText>
+          <AppText variant="title" numberOfLines={1}>{t(editing ? "editAddress" : "newAddress")}</AppText>
         </View>
 
         <ScrollView contentContainerStyle={{ padding: 20, gap: 16 }} keyboardShouldPersistTaps="handled">
@@ -142,7 +148,7 @@ export default function NewAddressScreen() {
         </ScrollView>
 
         <View style={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 20, backgroundColor: c.surface, borderTopWidth: 1, borderTopColor: c.border }}>
-          <Button label={t("saveAddress")} onPress={save} loading={add.isPending} />
+          <Button label={t("saveAddress")} onPress={save} loading={add.isPending || update.isPending} />
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
