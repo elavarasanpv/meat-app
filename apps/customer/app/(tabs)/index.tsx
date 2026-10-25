@@ -9,10 +9,12 @@ import { ProductCard } from "@/components/ProductCard";
 import { ProductSheet } from "@/components/ProductSheet";
 import { SearchHint } from "@/components/SearchHint";
 import { SubcategoryCard } from "@/components/SubcategoryCard";
+import { ErrorState, ProductGridSkeleton, Skeleton } from "@/components/States";
 import { useCategories, useProducts, useSubcategories, type Subcategory } from "@/hooks/useCatalog";
 import { categoryImage, productImage, subcategoryImage } from "@/lib/images";
 import { useLocalName, useT, type TKey } from "@/i18n";
 import { radius, useTheme } from "@/theme";
+import { queryState } from "@/lib/network";
 
 function greetingKey(): TKey {
   const h = new Date().getHours();
@@ -43,6 +45,8 @@ export default function HomeScreen() {
   const categories = useCategories();
   const subcategories = useSubcategories();
   const products = useProducts(); // all products once; grouped below
+  const pst = queryState(products);
+  const cst = queryState(categories);
   const [openSub, setOpenSub] = useState<Subcategory | null>(null);
   const [scrolled, setScrolled] = useState(false);
 
@@ -126,6 +130,9 @@ export default function HomeScreen() {
 
         {/* Category bubbles */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, gap: 14 }}>
+          {cst.loading
+            ? Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} style={{ width: 78, height: 86, borderRadius: 18 }} />)
+            : null}
           {[{ id: null as string | null, name: t("all") }, ...(categories.data ?? [])].map((cat) => {
             const selected = categoryId === cat.id;
             const img = categoryImage(cat.id === null ? null : cat.name);
@@ -184,12 +191,19 @@ export default function HomeScreen() {
         </View>
 
         {/* Product sections: one row per category ("All") or just the chosen category */}
-        {products.isError ? (
-          <Pressable onPress={() => products.refetch()} accessibilityRole="button" style={{ paddingHorizontal: 20 }}>
-            <AppText muted>{t("loadError")}</AppText>
-          </Pressable>
-        ) : sections.length === 0 && products.isSuccess ? (
-          <AppText muted style={{ paddingHorizontal: 20 }}>{t("noItems")}</AppText>
+        {pst.loading || cst.loading ? (
+          <View style={{ gap: 18 }}>
+            <ProductGridSkeleton cardWidth={cardWidth} />
+            <ProductGridSkeleton cardWidth={cardWidth} />
+          </View>
+        ) : pst.failed || cst.failed ? (
+          <View style={{ paddingHorizontal: 20 }}>
+            <ErrorState onRetry={() => { products.refetch(); categories.refetch(); subcategories.refetch(); }} />
+          </View>
+        ) : sections.length === 0 ? (
+          <View style={{ paddingHorizontal: 20 }}>
+            <ErrorState icon="cart" title={t("noProducts")} message={categoryId ? t("noItems") : undefined} onRetry={() => products.refetch()} />
+          </View>
         ) : (
           sections.map((section) => (
             <View key={section.id} style={{ gap: 10 }}>

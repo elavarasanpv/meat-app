@@ -2,7 +2,12 @@ import { useEffect } from "react";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import * as SplashScreen from "expo-splash-screen";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient } from "@tanstack/react-query";
+import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
+import { createAsyncStoragePersister } from "@tanstack/query-async-storage-persister";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { OfflineBanner } from "@/components/OfflineBanner";
+import { bindOnlineManager } from "@/lib/network";
 import { useFonts } from "expo-font";
 import { Outfit_700Bold, Outfit_800ExtraBold } from "@expo-google-fonts/outfit";
 import {
@@ -21,9 +26,16 @@ SplashScreen.preventAutoHideAsync().catch(() => {});
 // Signed-in users land on the tabs; signed-out users are redirected to (auth)/login.
 export const unstable_settings = { initialRouteName: "(tabs)" };
 
+// Queries pause while offline and resume on reconnect; cached data survives restarts
+// so the catalog and recent orders still show with no signal.
+bindOnlineManager();
 const queryClient = new QueryClient({
-  defaultOptions: { queries: { retry: 2, staleTime: 60_000 } },
+  defaultOptions: {
+    queries: { retry: 2, staleTime: 60_000, gcTime: 24 * 60 * 60_000, refetchOnReconnect: true, networkMode: "offlineFirst" },
+    mutations: { networkMode: "online" },
+  },
 });
+const persister = createAsyncStoragePersister({ storage: AsyncStorage, key: "freshcut.query-cache" });
 
 export default function RootLayout() {
   const { c, scheme } = useTheme();
@@ -53,8 +65,9 @@ export default function RootLayout() {
   if (!ready) return null;
 
   return (
-    <QueryClientProvider client={queryClient}>
+    <PersistQueryClientProvider client={queryClient} persistOptions={{ persister, maxAge: 24 * 60 * 60_000 }}>
       <StatusBar style={scheme === "dark" ? "light" : "dark"} />
+      <OfflineBanner />
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: c.ground } }}>
         <Stack.Protected guard={!!session}>
           <Stack.Screen name="(tabs)" />
@@ -69,6 +82,6 @@ export default function RootLayout() {
           <Stack.Screen name="(auth)" />
         </Stack.Protected>
       </Stack>
-    </QueryClientProvider>
+    </PersistQueryClientProvider>
   );
 }

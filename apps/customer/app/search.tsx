@@ -4,12 +4,14 @@ import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AppText } from "@/components/AppText";
 import { Icon } from "@/components/Icon";
+import { ErrorState, ListSkeleton } from "@/components/States";
 import { SearchHint } from "@/components/SearchHint";
 import { useCategories, useProducts, useSubcategories, type Product } from "@/hooks/useCatalog";
 import { productImage } from "@/lib/images";
 import { buildTargets, searchProducts, type SearchResult } from "@/lib/search";
 import { useLocalName, useT } from "@/i18n";
 import { fonts, radius, useTheme } from "@/theme";
+import { queryState } from "@/lib/network";
 
 function Row({ product, onPress }: { product: Product; onPress: () => void }) {
   const { c } = useTheme();
@@ -97,6 +99,8 @@ export default function SearchScreen() {
         {empty ? (
           <AppText variant="caption" muted numberOfLines={2}>{t("searchHint")}</AppText>
         ) : null}
+        {queryState(products).loading ? <ListSkeleton rows={6} height={78} /> : null}
+        {queryState(products).failed ? <ErrorState onRetry={() => products.refetch()} /> : null}
 
         {[...defaultList, ...strong].map((r) => (
           <Row key={r.product.id} product={r.product} onPress={() => open(r)} />

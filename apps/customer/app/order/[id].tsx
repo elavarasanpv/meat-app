@@ -7,6 +7,7 @@ import { AppText } from "@/components/AppText";
 import { Button } from "@/components/Button";
 import { Icon } from "@/components/Icon";
 import { StatusBadge } from "@/components/StatusBadge";
+import { ErrorState, Skeleton } from "@/components/States";
 import { ArrivedPanel } from "@/components/ArrivedPanel";
 import { CancelSheet } from "@/components/CancelSheet";
 import { DeliveryInfoCard } from "@/components/DeliveryInfoCard";
@@ -16,6 +17,7 @@ import { useCancelOrder, useOrder, useOrderOtp } from "@/hooks/useOrders";
 import { dateTime, dayLabel, slotWindow } from "@/lib/format";
 import { useLocalName, useT, type TKey } from "@/i18n";
 import { fonts, useTheme } from "@/theme";
+import { queryState } from "@/lib/network";
 
 /** The happy path shown as a timeline; side exits (cancelled etc.) are shown as a badge only. */
 const TIMELINE: OrderStatus[] = ["PLACED", "ACCEPTED", "PACKED", "OUT_FOR_DELIVERY", "DELIVERED"];
@@ -175,6 +177,17 @@ export default function OrderDetailScreen() {
         )}
 
         <View style={{ padding: 16, gap: 14 }}>
+          {!o && queryState(order).loading ? (
+            <>
+              <Skeleton style={{ height: 96, borderRadius: 22 }} />
+              <Skeleton style={{ height: 220, borderRadius: 22 }} />
+              <Skeleton style={{ height: 120, borderRadius: 22 }} />
+            </>
+          ) : null}
+          {!o && !queryState(order).loading ? (
+            <ErrorState title={queryState(order).failed ? undefined : t("orderNotFound")} onRetry={queryState(order).failed ? () => order.refetch() : undefined} />
+          ) : null}
+
           {placed === "1" ? (
             <View style={{ padding: 16, borderRadius: 22, backgroundColor: c.successBg, flexDirection: "row", alignItems: "center", gap: 12 }}>
               <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: c.success, alignItems: "center", justifyContent: "center" }}>

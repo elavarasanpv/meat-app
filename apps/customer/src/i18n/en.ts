@@ -175,6 +175,15 @@ export const en = {
   thanksNote: "Thank you for ordering with FreshCut",
   shop: "Shop",
   yourHome: "Your home",
+  // states
+  offlineBanner: "No internet — showing saved data",
+  offlineTitle: "You're offline",
+  offlineError: "No internet connection. Check your network and try again.",
+  errorTitle: "Something went wrong",
+  serverError: "Couldn't reach FreshCut. Please try again.",
+  retry: "Try again",
+  noProducts: "No products available right now",
+  orderNotFound: "Order not found",
   // tabs
   tabHome: "Home",
   tabOrders: "My orders",

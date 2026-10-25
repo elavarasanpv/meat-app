@@ -5,29 +5,24 @@ import { AppText } from "@/components/AppText";
 import { Button } from "@/components/Button";
 import { Icon } from "@/components/Icon";
 import { StatusBadge } from "@/components/StatusBadge";
+import { EmptyState, ErrorState, ListSkeleton } from "@/components/States";
 import { useOrders } from "@/hooks/useOrders";
 import { dayLabel, slotWindow } from "@/lib/format";
 import { useT } from "@/i18n";
 import { useTheme } from "@/theme";
+import { queryState } from "@/lib/network";
 
 export default function OrdersScreen() {
   const { c } = useTheme();
   const t = useT();
   const router = useRouter();
   const orders = useOrders();
+  const st = queryState(orders);
 
   if (orders.data && orders.data.length === 0) {
     return (
       <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: c.ground }}>
-        <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 14, padding: 24 }}>
-          <View style={{ width: 72, height: 72, borderRadius: 24, backgroundColor: c.tint, alignItems: "center", justifyContent: "center" }}>
-            <Icon name="orders" color={c.primary} size={32} />
-          </View>
-          <AppText variant="title" numberOfLines={1}>{t("noOrders")}</AppText>
-          <View style={{ width: 220 }}>
-            <Button label={t("browseProducts")} size="sm" onPress={() => router.push("/(tabs)")} />
-          </View>
-        </View>
+        <EmptyState title={t("noOrders")} icon="orders" actionLabel={t("browseProducts")} onAction={() => router.push("/(tabs)")} />
       </SafeAreaView>
     );
   }
@@ -38,9 +33,8 @@ export default function OrdersScreen() {
         <AppText variant="title" numberOfLines={1}>{t("tabOrders")}</AppText>
       </View>
       <ScrollView contentContainerStyle={{ padding: 20, paddingTop: 10, gap: 10 }}>
-        {orders.isError ? (
-          <Pressable onPress={() => orders.refetch()}><AppText muted>{t("loadError")}</AppText></Pressable>
-        ) : null}
+        {st.loading ? <ListSkeleton rows={4} height={84} /> : null}
+        {st.failed ? <ErrorState onRetry={() => orders.refetch()} /> : null}
         {(orders.data ?? []).map((o) => (
           <Pressable
             key={o.id}

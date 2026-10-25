@@ -5,8 +5,10 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { AppText } from "@/components/AppText";
 import { Button } from "@/components/Button";
 import { Icon } from "@/components/Icon";
+import { ErrorState, Skeleton } from "@/components/States";
 import { useAddresses, useDeleteAddress, usePlaceOrder, useSlots, type Slot } from "@/hooks/useOrders";
 import { useT } from "@/i18n";
+import { errorMessage, queryState } from "@/lib/network";
 import { FREE_DELIVERY_ABOVE, cartTotals, useCart } from "@/store/cart";
 import { radius, useTheme } from "@/theme";
 
@@ -62,7 +64,7 @@ export default function CheckoutScreen() {
       clearCart();
       router.replace({ pathname: "/order/[id]", params: { id: result.orderId, placed: "1" } });
     } catch (e) {
-      setError(`${t("orderFailed")} (${(e as Error).message})`);
+      setError(`${t("orderFailed")} — ${errorMessage(e, t)}`);
     }
   }
 
@@ -160,15 +162,27 @@ export default function CheckoutScreen() {
               );
             })
           ) : (
-            <AppText muted numberOfLines={2}>{addresses.isLoading ? "…" : t("noAddress")}</AppText>
+            queryState(addresses).loading ? (
+              <Skeleton style={{ height: 70, borderRadius: 14 }} />
+            ) : queryState(addresses).failed ? (
+              <ErrorState compact onRetry={() => addresses.refetch()} />
+            ) : (
+              <AppText muted numberOfLines={2}>{t("noAddress")}</AppText>
+            )
           )}
         </View>
 
         {/* Slot */}
         <View style={card}>
           <AppText variant="subtitle" numberOfLines={1} style={{ height: 24 }}>{t("deliverySlot")}</AppText>
-          {slots.isError ? (
-            <Pressable onPress={() => slots.refetch()}><AppText muted>{t("noSlots")}</AppText></Pressable>
+          {queryState(slots).loading ? (
+            <View style={{ flexDirection: "row", gap: 8 }}>
+              <Skeleton style={{ width: 90, height: 46, borderRadius: 23 }} />
+              <Skeleton style={{ width: 90, height: 46, borderRadius: 23 }} />
+              <Skeleton style={{ width: 90, height: 46, borderRadius: 23 }} />
+            </View>
+          ) : queryState(slots).failed ? (
+            <ErrorState compact onRetry={() => slots.refetch()} />
           ) : slots.data && slots.data.length === 0 ? (
             <AppText muted>{t("noSlots")}</AppText>
           ) : (

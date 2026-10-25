@@ -6,11 +6,13 @@ import { LinearGradient } from "expo-linear-gradient";
 import { AppText } from "@/components/AppText";
 import { Button } from "@/components/Button";
 import { Icon } from "@/components/Icon";
+import { ErrorState, Skeleton } from "@/components/States";
 import { useProducts } from "@/hooks/useCatalog";
 import { productImage } from "@/lib/images";
 import { useCart } from "@/store/cart";
 import { useLocalName, useT } from "@/i18n";
 import { fonts, radius, useTheme } from "@/theme";
+import { queryState } from "@/lib/network";
 
 const KG_CHIPS = [0.5, 1, 1.5, 2];
 const PIECE_CHIPS = [6, 12, 30];
@@ -35,8 +37,20 @@ export default function ProductDetailScreen() {
 
   if (!product) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: c.ground, alignItems: "center", justifyContent: "center" }}>
-        <AppText muted>{products.isLoading ? "…" : t("notFound")}</AppText>
+      <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: c.ground, padding: 20, gap: 16 }}>
+        <Pressable onPress={() => router.back()} accessibilityRole="button" accessibilityLabel="Back" style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, alignItems: "center", justifyContent: "center" }}>
+          <Icon name="back" color={c.ink} />
+        </Pressable>
+        {queryState(products).loading ? (
+          <>
+            <Skeleton style={{ height: 230, borderRadius: 28 }} />
+            <Skeleton style={{ height: 26, width: 200 }} />
+            <Skeleton style={{ height: 46 }} />
+            <Skeleton style={{ height: 46 }} />
+          </>
+        ) : (
+          <ErrorState title={queryState(products).failed ? undefined : t("notFound")} onRetry={queryState(products).failed ? () => products.refetch() : undefined} />
+        )}
       </SafeAreaView>
     );
   }
