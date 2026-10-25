@@ -32,7 +32,7 @@ const MAP_STYLE = [
   { featureType: "road.arterial", elementType: "geometry", stylers: [{ color: "#fbe5d6" }] },
 ];
 
-const DEFAULT = { lat: 11.7383, lng: 78.9594 }; // Kallakurichi
+const DEFAULT = { lat: 8.2426, lng: 77.6759 }; // Chettikulam
 
 
 /**

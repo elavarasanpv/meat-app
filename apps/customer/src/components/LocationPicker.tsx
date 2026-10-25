@@ -15,8 +15,8 @@ type Props = {
   height?: number;
 };
 
-/** Kallakurichi town centre — where the map opens when nothing is set yet. */
-const DEFAULT: LatLng = { lat: 11.7383, lng: 78.9594 };
+/** Chettikulam town centre — where the map opens when nothing is set yet. */
+const DEFAULT: LatLng = { lat: 8.2426, lng: 77.6759 };
 const ZOOM: Pick<Region, "latitudeDelta" | "longitudeDelta"> = { latitudeDelta: 0.008, longitudeDelta: 0.008 };
 
 /**

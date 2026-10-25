@@ -110,7 +110,7 @@ export default function NewAddressScreen() {
               value={text}
               onChangeText={setText}
               multiline
-              placeholder="12, Main road, Kallakurichi"
+              placeholder="12, Main road, Chettikulam"
               placeholderTextColor={c.muted}
               maxLength={300}
               style={[field, { minHeight: 96, paddingTop: 12, textAlignVertical: "top" }]}
@@ -128,7 +128,7 @@ export default function NewAddressScreen() {
               value={pincode}
               onChangeText={onPincode}
               keyboardType="number-pad"
-              placeholder="606202"
+              placeholder="627120"
               placeholderTextColor={c.muted}
               maxLength={6}
               style={[field, { height: 50, letterSpacing: 2, borderColor: notServed ? c.danger : match ? c.success : c.border }]}

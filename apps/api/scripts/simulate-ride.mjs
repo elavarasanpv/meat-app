@@ -31,9 +31,9 @@ const API = process.env.API_URL ?? `http://localhost:${process.env.PORT ?? 3001}
 const TEST_PHONE = "+919999999999";
 const TEST_OTP = "123456";
 
-// Kallakurichi: shop on the north-west side, home near the Govt school.
-const PICKUP = { lat: 11.756, lng: 78.9405 };
-const HOME = { lat: 11.7383, lng: 78.9594 };
+// Chettikulam: shop on the north side, home near the Govt school.
+const PICKUP = { lat: 8.2560, lng: 77.6660 };
+const HOME = { lat: 8.2426, lng: 77.6759 };
 const STEPS = 24;
 
 const admin = createClient(URL, SERVICE, { auth: { persistSession: false } });

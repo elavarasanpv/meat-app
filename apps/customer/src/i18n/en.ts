@@ -18,7 +18,7 @@ export const en = {
   greetingMorning: "Good morning",
   greetingAfternoon: "Good afternoon",
   greetingEvening: "Good evening",
-  deliverTo: "Near Govt school, Kallakurichi",
+  deliverTo: "Near Govt school, Chettikulam",
   searchPlaceholder: 'Search or say "1 kg chicken"',
   searchVerb: "Search",
   searchWords: "chicken,mutton,eggs,country chicken,curry cut",
