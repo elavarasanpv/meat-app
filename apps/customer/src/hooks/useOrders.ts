@@ -10,6 +10,8 @@ export type Address = {
   address_text: string;
   landmark: string | null;
   pincode: string;
+  lat: number | null;
+  lng: number | null;
 };
 
 export type Slot = { startsAt: string; endsAt: string; day: "today" | "tomorrow"; label: string };
@@ -52,7 +54,7 @@ export function useAddresses() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("addresses")
-        .select("id, label, address_text, landmark, pincode")
+        .select("id, label, address_text, landmark, pincode, lat, lng")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data as Address[];
@@ -64,7 +66,7 @@ export function useAddAddress() {
   const qc = useQueryClient();
   const userId = useAuth((s) => s.session?.user.id);
   return useMutation({
-    mutationFn: async (input: { label: string; address_text: string; landmark?: string; pincode: string }) => {
+    mutationFn: async (input: { label: string; address_text: string; landmark?: string; pincode: string; lat?: number; lng?: number }) => {
       const { data, error } = await supabase
         .from("addresses")
         .insert({ ...input, user_id: userId })
@@ -72,6 +74,17 @@ export function useAddAddress() {
         .single();
       if (error) throw error;
       return data as { id: string };
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["addresses"] }),
+  });
+}
+
+export function useUpdateAddressLocation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, lat, lng }: { id: string; lat: number; lng: number }) => {
+      const { error } = await supabase.from("addresses").update({ lat, lng }).eq("id", id);
+      if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["addresses"] }),
   });

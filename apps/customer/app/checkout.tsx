@@ -110,6 +110,21 @@ export default function CheckoutScreen() {
                   <View style={{ flex: 1 }}>
                     <AppText variant="bodyBold" numberOfLines={1}>{a.label} · {a.pincode}</AppText>
                     <AppText variant="caption" muted numberOfLines={2}>{a.address_text}{a.landmark ? ` · ${a.landmark}` : ""}</AppText>
+                    {a.lat != null && a.lng != null ? (
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 4 }}>
+                        <Icon name="pin" color={c.successText} size={12} strokeWidth={2.6} />
+                        <AppText variant="caption" color={c.successText} numberOfLines={1}>{t("locationSet")}</AppText>
+                      </View>
+                    ) : (
+                      <Pressable
+                        onPress={() => router.push({ pathname: "/address/location", params: { id: a.id } })}
+                        accessibilityRole="button"
+                        style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 4, alignSelf: "flex-start" }}
+                      >
+                        <Icon name="pin" color={c.price} size={12} strokeWidth={2.6} />
+                        <AppText variant="label" color={c.price} numberOfLines={1}>{t("setLocation")} · {t("locationMissing")}</AppText>
+                      </Pressable>
+                    )}
                   </View>
                 </Pressable>
               );

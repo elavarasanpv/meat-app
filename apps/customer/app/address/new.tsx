@@ -5,6 +5,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { AppText } from "@/components/AppText";
 import { Button } from "@/components/Button";
 import { Icon } from "@/components/Icon";
+import { LocationPicker, type LatLng } from "@/components/LocationPicker";
 import { useAddAddress } from "@/hooks/useOrders";
 import { useT, type TKey } from "@/i18n";
 import { fonts, radius, useTheme } from "@/theme";
@@ -24,6 +25,7 @@ export default function NewAddressScreen() {
   const [text, setText] = useState("");
   const [landmark, setLandmark] = useState("");
   const [pincode, setPincode] = useState("");
+  const [pin, setPin] = useState<LatLng | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const field = {
@@ -42,7 +44,7 @@ export default function NewAddressScreen() {
     if (!/^[1-9]\d{5}$/.test(pincode)) return setError(t("invalidPincode"));
     setError(null);
     try {
-      await add.mutateAsync({ label, address_text: text.trim(), landmark: landmark.trim() || undefined, pincode });
+      await add.mutateAsync({ label, address_text: text.trim(), landmark: landmark.trim() || undefined, pincode, lat: pin?.lat, lng: pin?.lng });
       router.back();
     } catch (e) {
       setError((e as Error).message);
@@ -65,6 +67,11 @@ export default function NewAddressScreen() {
         </View>
 
         <ScrollView contentContainerStyle={{ padding: 20, gap: 16 }} keyboardShouldPersistTaps="handled">
+          <View style={{ gap: 8 }}>
+            <AppText variant="label">{t("pinLocation")}</AppText>
+            <LocationPicker value={pin} onChange={setPin} />
+          </View>
+
           <View style={{ gap: 8 }}>
             <AppText variant="label">{t("saveAs")}</AppText>
             <View style={{ flexDirection: "row", gap: 8 }}>

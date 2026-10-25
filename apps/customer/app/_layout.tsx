@@ -62,6 +62,7 @@ export default function RootLayout() {
           <Stack.Screen name="search" />
           <Stack.Screen name="checkout" />
           <Stack.Screen name="address/new" />
+          <Stack.Screen name="address/location" />
           <Stack.Screen name="order/[id]" />
         </Stack.Protected>
         <Stack.Protected guard={!session}>

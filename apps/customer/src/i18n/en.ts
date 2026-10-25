@@ -78,6 +78,16 @@ export const en = {
   payCod: "Cash on delivery",
   payUpi: "UPI on delivery",
   orderFailed: "Couldn't place the order. Please try again.",
+  // location picker
+  pinLocation: "Mark your house on the map",
+  useMyLocation: "Use my location",
+  moveMapHint: "Move the map so the pin is on your house or gate",
+  locationDenied: "Location permission was refused — move the map by hand instead",
+  locationFailed: "Couldn't get your location — move the map by hand instead",
+  locationMissing: "Location not set",
+  setLocation: "Set location",
+  locationSet: "Location set",
+  saveLocation: "Save location",
   // address form
   newAddress: "New address",
   saveAs: "Save as",
