@@ -58,7 +58,10 @@ export default function OrderDetailScreen() {
   const stale = rider ? now - new Date(rider.updated_at).getTime() > STALE_MS : false;
   const agoSec = rider ? Math.max(0, Math.round((now - new Date(rider.updated_at).getTime()) / 1000)) : 0;
 
-  const reached = (s: OrderStatus) => (o ? rank(o.status) >= rank(s) : false);
+  const SIDE_EXITS: OrderStatus[] = ["CANCELLED", "DELIVERY_FAILED", "RETURNED", "REFUNDED"];
+  // Side exits sort after DELIVERED, so for them only steps recorded in history count as done.
+  const reached = (s: OrderStatus) =>
+    !o ? false : SIDE_EXITS.includes(o.status) ? o.order_status_history.some((h) => h.to_status === s) : rank(o.status) >= rank(s);
   const delivered = o?.status === "DELIVERED";
   // The full timeline only matters before dispatch; during delivery the map + ETA say it all.
   const showTimeline = !!o && !showTracking && !delivered;
