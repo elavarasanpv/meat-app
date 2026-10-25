@@ -1,9 +1,11 @@
 -- Dev seed data (do not run in production)
 insert into zones (id, name) values
-  ('00000000-0000-0000-0000-000000000001', 'Kallakurichi');
+  ('00000000-0000-0000-0000-000000000002', 'Chettikulam');
 
-insert into zone_pincodes (zone_id, pincode) values
-  ('00000000-0000-0000-0000-000000000001', '606202');
+insert into zone_pincodes (zone_id, pincode, lat, lng, area) values
+  ('00000000-0000-0000-0000-000000000002', '627120', 8.2426, 77.6759, 'Chettikulam'),
+  ('00000000-0000-0000-0000-000000000002', '627106', 8.1762, 77.7116, 'Kudankulam'),
+  ('00000000-0000-0000-0000-000000000002', '629401', 8.1333, 77.5833, 'Anjugramam');
 
 insert into categories (id, name, sort) values
   ('00000000-0000-0000-0000-000000000011', 'Chicken', 1),
