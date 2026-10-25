@@ -93,6 +93,8 @@ export const ta: Record<keyof typeof en, string> = {
   pincode: "பின்கோடு",
   saveAddress: "முகவரியை சேமி",
   invalidPincode: "6 இலக்க பின்கோடை உள்ளிடவும்",
+  pincodeNotServed: "மன்னிக்கவும், {pin} பகுதிக்கு இன்னும் டெலிவரி இல்லை",
+  pincodeServed: "{area} பகுதிக்கு டெலிவரி செய்கிறோம்",
   addrRequired: "முழு முகவரியை உள்ளிடவும்",
   noOrders: "இன்னும் ஆர்டர்கள் இல்லை",
   orderPlaced: "ஆர்டர் செய்யப்பட்டது!",

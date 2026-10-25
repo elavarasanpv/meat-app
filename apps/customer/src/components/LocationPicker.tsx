@@ -31,10 +31,19 @@ export function LocationPicker({ value, onChange, height = 260 }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [moving, setMoving] = useState(false);
   const start = value ?? DEFAULT;
+  const lastEmitted = useRef<LatLng | null>(null);
 
   useEffect(() => {
     if (!value) useMyLocation(true); // first open: try GPS silently
   }, []);
+
+  // Parent set a new value (e.g. pincode typed) → pan the map there.
+  useEffect(() => {
+    if (!value) return;
+    const e = lastEmitted.current;
+    if (e && Math.abs(e.lat - value.lat) < 1e-7 && Math.abs(e.lng - value.lng) < 1e-7) return;
+    mapRef.current?.animateToRegion({ latitude: value.lat, longitude: value.lng, ...ZOOM }, 600);
+  }, [value?.lat, value?.lng]);
 
   async function useMyLocation(silent = false) {
     setLocating(true);
@@ -47,6 +56,7 @@ export function LocationPicker({ value, onChange, height = 260 }: Props) {
       }
       const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
       const p = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+      lastEmitted.current = p;
       mapRef.current?.animateToRegion({ latitude: p.lat, longitude: p.lng, ...ZOOM }, 500);
       onChange(p);
     } catch {
@@ -67,7 +77,9 @@ export function LocationPicker({ value, onChange, height = 260 }: Props) {
           onRegionChange={() => setMoving(true)}
           onRegionChangeComplete={(r) => {
             setMoving(false);
-            onChange({ lat: r.latitude, lng: r.longitude });
+            const p = { lat: r.latitude, lng: r.longitude };
+            lastEmitted.current = p;
+            onChange(p);
           }}
           showsUserLocation
           showsMyLocationButton={false}

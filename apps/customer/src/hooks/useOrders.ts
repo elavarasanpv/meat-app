@@ -79,6 +79,21 @@ export function useAddAddress() {
   });
 }
 
+export type ServiceablePincode = { pincode: string; lat: number | null; lng: number | null; area: string | null };
+
+/** Pincodes we deliver to, with an approximate map centre each. */
+export function useServiceablePincodes() {
+  return useQuery({
+    queryKey: ["zone_pincodes"],
+    staleTime: 10 * 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("zone_pincodes").select("pincode, lat, lng, area");
+      if (error) throw error;
+      return data as ServiceablePincode[];
+    },
+  });
+}
+
 export function useUpdateAddressLocation() {
   const qc = useQueryClient();
   return useMutation({

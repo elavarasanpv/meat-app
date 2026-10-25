@@ -6,7 +6,7 @@ import { AppText } from "@/components/AppText";
 import { Button } from "@/components/Button";
 import { Icon } from "@/components/Icon";
 import { LocationPicker, type LatLng } from "@/components/LocationPicker";
-import { useAddAddress } from "@/hooks/useOrders";
+import { useAddAddress, useServiceablePincodes } from "@/hooks/useOrders";
 import { useT, type TKey } from "@/i18n";
 import { fonts, radius, useTheme } from "@/theme";
 
@@ -21,12 +21,24 @@ export default function NewAddressScreen() {
   const t = useT();
   const router = useRouter();
   const add = useAddAddress();
+  const served = useServiceablePincodes();
   const [label, setLabel] = useState("Home");
   const [text, setText] = useState("");
   const [landmark, setLandmark] = useState("");
   const [pincode, setPincode] = useState("");
   const [pin, setPin] = useState<LatLng | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const match = pincode.length === 6 ? served.data?.find((z) => z.pincode === pincode) : undefined;
+  const notServed = pincode.length === 6 && !!served.data && !match;
+
+  function onPincode(v: string) {
+    const digits = v.replace(/\D/g, "").slice(0, 6);
+    setPincode(digits);
+    setError(null);
+    const z = digits.length === 6 ? served.data?.find((p) => p.pincode === digits) : undefined;
+    if (z?.lat != null && z?.lng != null) setPin({ lat: z.lat, lng: z.lng }); // jump the map there
+  }
 
   const field = {
     paddingHorizontal: 16,
@@ -42,6 +54,7 @@ export default function NewAddressScreen() {
   async function save() {
     if (text.trim().length < 5) return setError(t("addrRequired"));
     if (!/^[1-9]\d{5}$/.test(pincode)) return setError(t("invalidPincode"));
+    if (notServed) return setError(t("pincodeNotServed", { pin: pincode }));
     setError(null);
     try {
       await add.mutateAsync({ label, address_text: text.trim(), landmark: landmark.trim() || undefined, pincode, lat: pin?.lat, lng: pin?.lng });
@@ -113,13 +126,16 @@ export default function NewAddressScreen() {
             <AppText variant="label">{t("pincode")}</AppText>
             <TextInput
               value={pincode}
-              onChangeText={(v) => setPincode(v.replace(/\D/g, "").slice(0, 6))}
+              onChangeText={onPincode}
               keyboardType="number-pad"
               placeholder="606202"
               placeholderTextColor={c.muted}
               maxLength={6}
-              style={[field, { height: 50, letterSpacing: 2 }]}
+              style={[field, { height: 50, letterSpacing: 2, borderColor: notServed ? c.danger : match ? c.success : c.border }]}
             />
+            <AppText variant="caption" color={notServed ? c.danger : c.successText} numberOfLines={1} style={{ height: 18 }}>
+              {notServed ? t("pincodeNotServed", { pin: pincode }) : match ? t("pincodeServed", { area: match.area ?? match.pincode }) : ""}
+            </AppText>
           </View>
 
           <AppText variant="caption" color={c.danger} numberOfLines={2} style={{ height: 36 }}>{error ?? ""}</AppText>

@@ -99,6 +99,8 @@ export const en = {
   pincode: "Pincode",
   saveAddress: "Save address",
   invalidPincode: "Enter a 6-digit pincode",
+  pincodeNotServed: "Sorry, we don't deliver to {pin} yet",
+  pincodeServed: "We deliver to {area}",
   addrRequired: "Enter the full address",
   // orders
   noOrders: "No orders yet",
