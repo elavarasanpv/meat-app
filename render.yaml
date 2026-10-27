@@ -1,0 +1,33 @@
+# Render Blueprint for the FreshCut API (NestJS).
+# Render reads this file when you create a "Blueprint" from the GitHub repo.
+# Secrets are NOT stored here: Render asks for each `sync: false` value once, in its dashboard.
+services:
+  - type: web
+    name: freshcut-api
+    runtime: node
+    region: singapore # closest Render region to Tamil Nadu
+    plan: free # switch to "starter" before launch so the API never sleeps
+    branch: main
+    # Only redeploy when the API or the shared package changes, not on app/admin edits.
+    buildFilter:
+      paths:
+        - apps/api/**
+        - packages/shared/**
+        - pnpm-lock.yaml
+        - render.yaml
+    # Install just the API and what it depends on, build shared (CJS) then the API.
+    buildCommand: >-
+      npx --yes pnpm@9.15.0 install --frozen-lockfile --filter api...
+      && npx --yes pnpm@9.15.0 --filter @freshcut/shared build
+      && npx --yes pnpm@9.15.0 --filter api build
+    startCommand: node apps/api/dist/main.js
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: "24"
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
