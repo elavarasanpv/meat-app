@@ -55,7 +55,7 @@ export function TrackingMap({ rider, pickup, home, height }: Props) {
     const pts = [rider && { latitude: rider.lat, longitude: rider.lng }, home && { latitude: home.lat, longitude: home.lng }].filter(Boolean) as { latitude: number; longitude: number }[];
     if (pts.length === 0) return;
     if (pts.length === 1) {
-      mapRef.current?.animateToRegion({ ...pts[0], latitudeDelta: 0.02, longitudeDelta: 0.02 }, animated ? 600 : 0);
+      mapRef.current?.animateToRegion({ ...pts[0], latitudeDelta: 0.012, longitudeDelta: 0.012 }, animated ? 600 : 0);
       return;
     }
     mapRef.current?.fitToCoordinates(pts, { edgePadding: { top: 90, bottom: 120, left: 70, right: 70 }, animated });
@@ -77,7 +77,7 @@ export function TrackingMap({ rider, pickup, home, height }: Props) {
         style={{ flex: 1 }}
         mapType={kind}
         customMapStyle={kind === "standard" ? RURAL_MAP_STYLE : []}
-        initialRegion={{ latitude: center.lat, longitude: center.lng, latitudeDelta: 0.03, longitudeDelta: 0.03 }}
+        initialRegion={{ latitude: center.lat, longitude: center.lng, latitudeDelta: 0.015, longitudeDelta: 0.015 }}
         showsCompass={false}
         toolbarEnabled={false}
         pitchEnabled={false}

@@ -24,7 +24,7 @@ type Props = {
 
 /** Chettikulam town centre — where the map opens when nothing else is known. */
 const DEFAULT: LatLng = { lat: 8.2426, lng: 77.6759 };
-const ZOOM: Pick<Region, "latitudeDelta" | "longitudeDelta"> = { latitudeDelta: 0.004, longitudeDelta: 0.004 };
+const ZOOM: Pick<Region, "latitudeDelta" | "longitudeDelta"> = { latitudeDelta: 0.012, longitudeDelta: 0.012 };
 /** Worse than this, we warn the user to adjust the pin by hand. */
 const WEAK_GPS_M = 60;
 
