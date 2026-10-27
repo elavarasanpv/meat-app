@@ -101,7 +101,7 @@ export default function CheckoutScreen() {
         <View style={card}>
           <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", height: 28 }}>
             <AppText variant="subtitle" numberOfLines={1}>{t("deliverToLabel")}</AppText>
-            <Pressable onPress={() => router.push("/address/new")} accessibilityRole="button" style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+            <Pressable onPress={() => router.push("/address/location")} accessibilityRole="button" style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
               <AppText variant="label" color={c.price} numberOfLines={1}>+ {t("addAddress")}</AppText>
             </Pressable>
           </View>

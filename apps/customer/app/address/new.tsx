@@ -1,11 +1,13 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, TextInput, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AppText } from "@/components/AppText";
 import { Button } from "@/components/Button";
 import { Icon } from "@/components/Icon";
-import { LocationPicker, type LatLng, type PinSource } from "@/components/LocationPicker";
+import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
+import { RURAL_MAP_STYLE } from "@/lib/mapStyle";
+import { usePinDraft, type LatLng } from "@/lib/pin";
 import { useAddAddress, useAddresses, useServiceablePincodes, useUpdateAddress } from "@/hooks/useOrders";
 import { useT, type TKey } from "@/i18n";
 import { fonts, radius, useTheme } from "@/theme";
@@ -30,9 +32,23 @@ export default function NewAddressScreen() {
   const [landmark, setLandmark] = useState(existing?.landmark ?? "");
   const [pincode, setPincode] = useState(existing?.pincode ?? "");
   const [pin, setPin] = useState<LatLng | null>(existing?.lat != null && existing?.lng != null ? { lat: existing.lat, lng: existing.lng } : null);
-  const [pinSource, setPinSource] = useState<PinSource | null>(existing?.lat != null ? "saved" : null);
+  const draft = usePinDraft((s) => s.draft);
+  const clearDraft = usePinDraft((s) => s.clear);
   const editing = !!existing;
   const [error, setError] = useState<string | null>(null);
+
+  // A spot confirmed on the full-screen picker: take its pin and fill in what it told us,
+  // without overwriting anything the user already typed.
+  useEffect(() => {
+    if (!draft) return;
+    setPin({ lat: draft.lat, lng: draft.lng });
+    if (draft.pincode) setPincode(draft.pincode);
+    setText((cur) => (cur.trim() ? cur : draft.title));
+    setError(null);
+  }, [draft]);
+  useEffect(() => () => clearDraft(), []);
+
+  const openPicker = () => router.push({ pathname: "/address/location", params: { from: "form" } });
 
   const match = pincode.length === 6 ? served.data?.find((z) => z.pincode === pincode) : undefined;
   const notServed = pincode.length === 6 && !!served.data && !match;
@@ -41,8 +57,6 @@ export default function NewAddressScreen() {
     const digits = v.replace(/\D/g, "").slice(0, 6);
     setPincode(digits);
     setError(null);
-    // The pincode only moves the map to that area when nothing better is pinned yet;
-    // a GPS / hand-placed / saved pin is never replaced by a rough town centre.
   }
 
   const field = {
@@ -89,15 +103,36 @@ export default function NewAddressScreen() {
 
         <ScrollView contentContainerStyle={{ padding: 20, gap: 16 }} keyboardShouldPersistTaps="handled">
           <View style={{ gap: 8 }}>
-            <AppText variant="label">{t("pinLocation")}</AppText>
-            <LocationPicker
-              value={pin}
-              fallbackCenter={match?.lat != null && match?.lng != null && pinSource !== "gps" && pinSource !== "manual" && pinSource !== "saved" ? { lat: match.lat, lng: match.lng } : null}
-              onChange={(p, src) => {
-                setPin(p);
-                setPinSource(src);
-              }}
-            />
+            <AppText variant="label">{t("deliveryLocation")}</AppText>
+            <View style={{ borderRadius: 22, overflow: "hidden", borderWidth: 1, borderColor: c.border, backgroundColor: c.surface }}>
+              {pin ? (
+                // Lite mode = a static map image: cheap, and taps go to "Change" instead of panning.
+                <View pointerEvents="none" style={{ height: 140 }}>
+                  <MapView
+                    provider={Platform.OS === "android" ? PROVIDER_GOOGLE : undefined}
+                    style={{ flex: 1 }}
+                    liteMode
+                    customMapStyle={RURAL_MAP_STYLE}
+                    region={{ latitude: pin.lat, longitude: pin.lng, latitudeDelta: 0.0035, longitudeDelta: 0.009 }}
+                    scrollEnabled={false}
+                    zoomEnabled={false}
+                    toolbarEnabled={false}
+                  >
+                    <Marker coordinate={{ latitude: pin.lat, longitude: pin.lng }} anchor={{ x: 0.5, y: 1 }} image={require("../../assets/markers/home.png")} />
+                  </MapView>
+                </View>
+              ) : null}
+              <Pressable onPress={openPicker} accessibilityRole="button" style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 12, padding: 14, backgroundColor: pressed ? c.tintSoft : c.surface })}>
+                <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: c.tint, alignItems: "center", justifyContent: "center" }}>
+                  <Icon name="pin" color={c.primary} size={20} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <AppText variant="bodyBold" numberOfLines={1}>{pin ? draft?.title || t("locationSet") : t("locationMissing")}</AppText>
+                  <AppText variant="caption" muted numberOfLines={1}>{pin ? draft?.subtitle || `${pin.lat.toFixed(5)}, ${pin.lng.toFixed(5)}` : t("pinRequired")}</AppText>
+                </View>
+                <AppText variant="bodyBold" color={c.price} numberOfLines={1}>{pin ? t("changeLocation") : t("setLocation")}</AppText>
+              </Pressable>
+            </View>
           </View>
 
           <View style={{ gap: 8 }}>
