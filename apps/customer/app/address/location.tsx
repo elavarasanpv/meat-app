@@ -51,7 +51,7 @@ export default function AddressLocationScreen() {
       </View>
 
       <View style={{ flex: 1, padding: 20, gap: 12 }}>
-        <LocationPicker value={pin} onChange={setPin} height={Math.round(height * 0.55)} />
+        <LocationPicker value={pin} onChange={(p) => setPin(p)} height={Math.round(height * 0.55)} />
         <AppText variant="caption" color={c.danger} numberOfLines={2} style={{ height: 18 }}>{error ?? ""}</AppText>
       </View>
 

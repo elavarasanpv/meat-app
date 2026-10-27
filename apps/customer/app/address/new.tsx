@@ -5,7 +5,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { AppText } from "@/components/AppText";
 import { Button } from "@/components/Button";
 import { Icon } from "@/components/Icon";
-import { LocationPicker, type LatLng } from "@/components/LocationPicker";
+import { LocationPicker, type LatLng, type PinSource } from "@/components/LocationPicker";
 import { useAddAddress, useAddresses, useServiceablePincodes, useUpdateAddress } from "@/hooks/useOrders";
 import { useT, type TKey } from "@/i18n";
 import { fonts, radius, useTheme } from "@/theme";
@@ -30,6 +30,7 @@ export default function NewAddressScreen() {
   const [landmark, setLandmark] = useState(existing?.landmark ?? "");
   const [pincode, setPincode] = useState(existing?.pincode ?? "");
   const [pin, setPin] = useState<LatLng | null>(existing?.lat != null && existing?.lng != null ? { lat: existing.lat, lng: existing.lng } : null);
+  const [pinSource, setPinSource] = useState<PinSource | null>(existing?.lat != null ? "saved" : null);
   const editing = !!existing;
   const [error, setError] = useState<string | null>(null);
 
@@ -40,8 +41,8 @@ export default function NewAddressScreen() {
     const digits = v.replace(/\D/g, "").slice(0, 6);
     setPincode(digits);
     setError(null);
-    const z = digits.length === 6 ? served.data?.find((p) => p.pincode === digits) : undefined;
-    if (z?.lat != null && z?.lng != null) setPin({ lat: z.lat, lng: z.lng }); // jump the map there
+    // The pincode only moves the map to that area when nothing better is pinned yet;
+    // a GPS / hand-placed / saved pin is never replaced by a rough town centre.
   }
 
   const field = {
@@ -59,6 +60,7 @@ export default function NewAddressScreen() {
     if (text.trim().length < 5) return setError(t("addrRequired"));
     if (!/^[1-9]\d{5}$/.test(pincode)) return setError(t("invalidPincode"));
     if (notServed) return setError(t("pincodeNotServed", { pin: pincode }));
+    if (!pin) return setError(t("pinRequired"));
     setError(null);
     try {
       const input = { label, address_text: text.trim(), landmark: landmark.trim() || undefined, pincode, lat: pin?.lat, lng: pin?.lng };
@@ -88,7 +90,14 @@ export default function NewAddressScreen() {
         <ScrollView contentContainerStyle={{ padding: 20, gap: 16 }} keyboardShouldPersistTaps="handled">
           <View style={{ gap: 8 }}>
             <AppText variant="label">{t("pinLocation")}</AppText>
-            <LocationPicker value={pin} onChange={setPin} />
+            <LocationPicker
+              value={pin}
+              fallbackCenter={match?.lat != null && match?.lng != null && pinSource !== "gps" && pinSource !== "manual" && pinSource !== "saved" ? { lat: match.lat, lng: match.lng } : null}
+              onChange={(p, src) => {
+                setPin(p);
+                setPinSource(src);
+              }}
+            />
           </View>
 
           <View style={{ gap: 8 }}>

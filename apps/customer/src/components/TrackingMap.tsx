@@ -1,7 +1,9 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Platform, Pressable, View } from "react-native";
 import MapView, { AnimatedRegion, Marker, MarkerAnimated, Polyline, PROVIDER_GOOGLE } from "react-native-maps";
 import { Icon } from "./Icon";
+import { MapTypeToggle } from "./MapTypeToggle";
+import { RURAL_MAP_STYLE, type MapKind } from "@/lib/mapStyle";
 
 // Pre-rendered marker bitmaps: custom marker views get clipped on Android's new architecture.
 const MARKERS = {
@@ -21,16 +23,7 @@ type Props = {
   height: number;
 };
 
-/** Calm, low-noise map style: hides POI clutter so our three pins stand out. */
-const MAP_STYLE = [
-  { featureType: "poi", stylers: [{ visibility: "off" }] },
-  { featureType: "transit", stylers: [{ visibility: "off" }] },
-  { featureType: "road", elementType: "labels.icon", stylers: [{ visibility: "off" }] },
-  { featureType: "water", stylers: [{ color: "#cfe3f3" }] },
-  { featureType: "landscape", stylers: [{ color: "#f4efe9" }] },
-  { featureType: "road", elementType: "geometry", stylers: [{ color: "#ffffff" }] },
-  { featureType: "road.arterial", elementType: "geometry", stylers: [{ color: "#fbe5d6" }] },
-];
+
 
 const DEFAULT = { lat: 8.2426, lng: 77.6759 }; // Chettikulam
 
@@ -42,6 +35,7 @@ const DEFAULT = { lat: 8.2426, lng: 77.6759 }; // Chettikulam
 export function TrackingMap({ rider, pickup, home, height }: Props) {
   const { c } = useTheme();
   const mapRef = useRef<MapView>(null);
+  const [kind, setKind] = useState<MapKind>("standard");
   const coord = useRef(
     new AnimatedRegion({
       latitude: rider?.lat ?? pickup?.lat ?? DEFAULT.lat,
@@ -81,7 +75,8 @@ export function TrackingMap({ rider, pickup, home, height }: Props) {
         ref={mapRef}
         provider={Platform.OS === "android" ? PROVIDER_GOOGLE : undefined}
         style={{ flex: 1 }}
-        customMapStyle={MAP_STYLE}
+        mapType={kind}
+        customMapStyle={kind === "standard" ? RURAL_MAP_STYLE : []}
         initialRegion={{ latitude: center.lat, longitude: center.lng, latitudeDelta: 0.03, longitudeDelta: 0.03 }}
         showsCompass={false}
         toolbarEnabled={false}
@@ -113,6 +108,11 @@ export function TrackingMap({ rider, pickup, home, height }: Props) {
           <MarkerAnimated coordinate={coord as any} anchor={{ x: 0.5, y: 0.5 }} image={MARKERS.rider} zIndex={10} />
         ) : null}
       </MapView>
+
+      {/* Map / Satellite */}
+      <View style={{ position: "absolute", left: 14, bottom: 14 }}>
+        <MapTypeToggle value={kind} onChange={setKind} />
+      </View>
 
       {/* Recenter */}
       <Pressable

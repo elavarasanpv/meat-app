@@ -78,6 +78,11 @@ export const en = {
   payCod: "Cash on delivery",
   payUpi: "UPI on delivery",
   orderFailed: "Couldn't place the order. Please try again.",
+  mapView: "Map",
+  satelliteView: "Satellite",
+  gpsAccuracy: "GPS accurate to ±{m} m",
+  gpsWeak: "Weak GPS (±{m} m) — move the map to your exact gate",
+  pinRequired: "Mark your house on the map before saving",
   // location picker
   pinLocation: "Mark your house on the map",
   useMyLocation: "Use my location",
