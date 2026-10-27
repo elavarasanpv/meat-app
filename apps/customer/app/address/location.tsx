@@ -58,6 +58,13 @@ export default function SelectLocationScreen() {
 
   const goTo = (p: LatLng) => mapRef.current?.animateToRegion({ latitude: p.lat, longitude: p.lng, ...ZOOM }, 600);
 
+  // Step the zoom one level; pinch works too, but big buttons are easier on a small rural phone.
+  async function zoomBy(step: 1 | -1) {
+    const cam = await mapRef.current?.getCamera();
+    if (!cam?.zoom) return;
+    mapRef.current?.animateCamera({ ...cam, zoom: Math.min(21, Math.max(13, cam.zoom + step)) }, { duration: 250 });
+  }
+
   // First open: a saved/draft pin wins; otherwise quietly try GPS, else the town centre.
   useEffect(() => {
     if (start) return;
@@ -229,6 +236,21 @@ export default function SelectLocationScreen() {
 
         <View style={{ position: "absolute", left: 16, top: 16 }}>
           <MapTypeToggle value={kind} onChange={setKind} />
+        </View>
+
+        {/* Zoom in / out */}
+        <View style={{ position: "absolute", right: 16, bottom: 84, borderRadius: 14, backgroundColor: c.surface, overflow: "hidden", elevation: 4, shadowColor: "#000", shadowOpacity: 0.15, shadowRadius: 4, shadowOffset: { width: 0, height: 2 } }}>
+          {([1, -1] as const).map((step) => (
+            <Pressable
+              key={step}
+              onPress={() => zoomBy(step)}
+              accessibilityRole="button"
+              accessibilityLabel={step === 1 ? "Zoom in" : "Zoom out"}
+              style={({ pressed }) => ({ width: 52, height: 48, alignItems: "center", justifyContent: "center", backgroundColor: pressed ? c.tint : c.surface, borderTopWidth: step === -1 ? 1 : 0, borderTopColor: c.border })}
+            >
+              <AppText variant="title" style={{ fontSize: 26, lineHeight: 30 }}>{step === 1 ? "+" : "−"}</AppText>
+            </Pressable>
+          ))}
         </View>
 
         <Pressable
