@@ -17,7 +17,7 @@ export const ta: Record<keyof typeof en, string> = {
   greetingMorning: "காலை வணக்கம்",
   greetingAfternoon: "மதிய வணக்கம்",
   greetingEvening: "மாலை வணக்கம்",
-  deliverTo: "அரசு பள்ளி அருகில், செட்டிகுளம்",
+  setAddress: "டெலிவரி முகவரியை அமைக்கவும்",
   searchPlaceholder: 'தேடுங்கள் அல்லது "1 கிலோ சிக்கன்" என்று சொல்லுங்கள்',
   searchVerb: "தேடுங்கள்",
   searchWords: "கோழி,ஆட்டுக்கறி,முட்டை,நாட்டுக்கோழி,கறி துண்டு",

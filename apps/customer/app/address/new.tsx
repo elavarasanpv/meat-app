@@ -128,7 +128,7 @@ export default function NewAddressScreen() {
                 </View>
                 <View style={{ flex: 1 }}>
                   <AppText variant="bodyBold" numberOfLines={1}>{pin ? draft?.title || t("locationSet") : t("locationMissing")}</AppText>
-                  <AppText variant="caption" muted numberOfLines={1}>{pin ? draft?.subtitle || `${pin.lat.toFixed(5)}, ${pin.lng.toFixed(5)}` : t("pinRequired")}</AppText>
+                  <AppText variant="caption" muted numberOfLines={1}>{pin ? draft?.subtitle || existing?.pincode || "" : t("pinRequired")}</AppText>
                 </View>
                 <AppText variant="bodyBold" color={c.price} numberOfLines={1}>{pin ? t("changeLocation") : t("setLocation")}</AppText>
               </Pressable>

@@ -11,6 +11,7 @@ import { SearchHint } from "@/components/SearchHint";
 import { SubcategoryCard } from "@/components/SubcategoryCard";
 import { ErrorState, ProductGridSkeleton, Skeleton } from "@/components/States";
 import { useCategories, useProducts, useSubcategories, type Subcategory } from "@/hooks/useCatalog";
+import { useAddresses } from "@/hooks/useOrders";
 import { categoryImage, productImage, subcategoryImage } from "@/lib/images";
 import { useLocalName, useT, type TKey } from "@/i18n";
 import { radius, useTheme } from "@/theme";
@@ -40,6 +41,10 @@ export default function HomeScreen() {
   const { width: screenWidth } = useWindowDimensions();
   const cardWidth = Math.floor((screenWidth - 40 - GAP) / 2);
   const t = useT();
+  // Newest saved address — the same one checkout picks by default. Tapping it opens its edit page.
+  const address = useAddresses().data?.[0];
+  const addressLine = address ? `${address.label} · ${address.landmark || address.address_text}` : t("setAddress");
+  const openAddress = () => router.push(address ? { pathname: "/address/new", params: { id: address.id } } : "/address/location");
   const localName = useLocalName();
   const [categoryId, setCategoryId] = useState<string | null>(null);
   const categories = useCategories();
@@ -87,11 +92,11 @@ export default function HomeScreen() {
               </View>
               <View style={{ flex: 1, height: 42, justifyContent: "center" }}>
                 <AppText variant="subtitle" numberOfLines={1}>{t(greetingKey())}</AppText>
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 4, height: 18 }}>
+                <Pressable onPress={openAddress} accessibilityRole="button" accessibilityLabel={t("editAddress")} hitSlop={8} style={{ flexDirection: "row", alignItems: "center", gap: 4, height: 18 }}>
                   <Icon name="pin" color={c.primary} size={13} strokeWidth={2.4} />
-                  <AppText variant="caption" muted numberOfLines={1} style={{ flexShrink: 1 }}>{t("deliverTo")}</AppText>
+                  <AppText variant="caption" muted numberOfLines={1} style={{ flexShrink: 1 }}>{addressLine}</AppText>
                   <Icon name="chevronDown" color={c.muted} size={13} strokeWidth={2.6} />
-                </View>
+                </Pressable>
               </View>
             </View>
             <View style={{ flexDirection: "row", gap: 8 }}>
