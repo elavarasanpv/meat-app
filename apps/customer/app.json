@@ -16,9 +16,7 @@
         "backgroundColor": "#E4461F"
       },
       "config": {
-        "googleMaps": {
-          "apiKey": "${GOOGLE_MAPS_ANDROID_KEY}"
-        }
+        "googleMaps": {}
       },
       "permissions": [
         "ACCESS_COARSE_LOCATION",
