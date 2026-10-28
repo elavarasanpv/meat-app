@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Animated, Easing, Image, Pressable, View } from "react-native";
+import { Animated, Easing, Image, Platform, Pressable, View } from "react-native";
 import { BlurView } from "expo-blur";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -69,14 +69,14 @@ export function CartBar({ aboveTabBar = false }: Props) {
         accessibilityLabel={t("viewCart")}
         style={({ pressed }) => ({ borderRadius: 22, opacity: pressed ? 0.92 : 1, elevation: 10, shadowColor: "#000", shadowOpacity: 0.18, shadowRadius: 14, shadowOffset: { width: 0, height: 6 } })}
       >
-        {/* Frosted glass: the catalog shows through, blurred, with a soft white film and a hairline highlight */}
+        {/* Frosted glass: a real blur on iOS; on Android expo-blur's blur is experimental and broke screens
+            pushed on top of it (blank white page), so there it's a translucent white film instead. */}
         <BlurView
           intensity={45}
           tint="light"
-          experimentalBlurMethod="dimezisBlurView"
           style={{ borderRadius: 22, overflow: "hidden", borderWidth: 1.5, borderColor: "rgba(255,255,255,0.75)" }}
         >
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 12, height: 68, paddingLeft: 10, paddingRight: 10, backgroundColor: "rgba(255,255,255,0.55)" }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 12, height: 68, paddingLeft: 10, paddingRight: 10, backgroundColor: Platform.OS === "android" ? "rgba(255,255,255,0.86)" : "rgba(255,255,255,0.55)" }}>
             <View style={{ width: 46, height: 46, borderRadius: 14, backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "rgba(0,0,0,0.06)", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
               {thumb ? <Image source={thumb} resizeMode="contain" style={{ width: 42, height: 42 }} /> : <Icon name="cart" color={c.primary} size={22} />}
             </View>
