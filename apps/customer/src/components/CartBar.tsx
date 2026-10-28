@@ -15,6 +15,8 @@ import { radius, useTheme } from "@/theme";
 const ADDED_FLASH_MS = 2500;
 /** Space a screen must leave at the bottom so its last row scrolls clear of the bar. */
 export const CART_BAR_SPACE = 92;
+/** Overlap step of the stacked item avatars. */
+const AVATAR_STEP = 30;
 
 type Props = {
   /** True on tab screens, where the tab bar already covers the bottom inset. */
@@ -53,8 +55,8 @@ export function CartBar({ aboveTabBar = false }: Props) {
 
   if (!visible) return null;
 
-  const first = items[items.length - 1];
-  const thumb = productImage(first.name, null);
+  // Up to the last three items, newest on top of the stack (items are kept in add order).
+  const recent = items.slice(-3);
   const addedName = lastAdded ? (lang === "ta" && lastAdded.nameTa ? lastAdded.nameTa : lastAdded.name) : "";
   const bottom = (aboveTabBar ? 0 : insets.bottom) + 12;
   const summary = items.length === 1 ? t("itemTotalOne", { total: itemTotal }) : t("itemsTotal", { n: items.length, total: itemTotal });
@@ -103,8 +105,19 @@ export function CartBar({ aboveTabBar = false }: Props) {
                 style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: 22 }}
               />
 
-              <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: "rgba(255,255,255,0.95)", borderWidth: 1, borderColor: "rgba(255,255,255,1)", alignItems: "center", justifyContent: "center", overflow: "hidden", shadowColor: "#000", shadowOpacity: 0.12, shadowRadius: 4, shadowOffset: { width: 0, height: 2 }, elevation: 2 }}>
-                {thumb ? <Image source={thumb} resizeMode="contain" style={{ width: 40, height: 40 }} /> : <Icon name="cart" color={c.primary} size={22} />}
+              {/* Avatar group: fixed width so the text column never shifts */}
+              <View style={{ width: 48 + (recent.length - 1) * AVATAR_STEP, height: 48 }}>
+                {recent.map((it, i) => {
+                  const img = productImage(it.name, null);
+                  return (
+                    <View
+                      key={it.productId}
+                      style={{ position: "absolute", left: i * AVATAR_STEP, zIndex: i + 1, width: 48, height: 48, borderRadius: 24, backgroundColor: "#FFFFFF", borderWidth: 2, borderColor: "#FFFFFF", alignItems: "center", justifyContent: "center", overflow: "hidden", elevation: 2, shadowColor: "#000", shadowOpacity: 0.12, shadowRadius: 4, shadowOffset: { width: 0, height: 2 } }}
+                    >
+                      {img ? <Image source={img} resizeMode="contain" style={{ width: 38, height: 38 }} /> : <Icon name="cart" color={c.primary} size={20} />}
+                    </View>
+                  );
+                })}
               </View>
               <View style={{ flex: 1 }}>
                 <AppText variant="bodyBold" color={c.ink} numberOfLines={1}>
