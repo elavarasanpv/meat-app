@@ -3,6 +3,7 @@ import { Image, Pressable, ScrollView, TextInput, View } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AppText } from "@/components/AppText";
+import { CartBar, CART_BAR_SPACE } from "@/components/CartBar";
 import { Icon } from "@/components/Icon";
 import { ErrorState, ListSkeleton } from "@/components/States";
 import { SearchHint } from "@/components/SearchHint";
@@ -12,6 +13,7 @@ import { buildTargets, searchProducts, type SearchResult } from "@/lib/search";
 import { useLocalName, useT } from "@/i18n";
 import { fonts, radius, useTheme } from "@/theme";
 import { queryState } from "@/lib/network";
+import { useCart } from "@/store/cart";
 
 function Row({ product, onPress }: { product: Product; onPress: () => void }) {
   const { c } = useTheme();
@@ -44,6 +46,7 @@ export default function SearchScreen() {
   const categories = useCategories();
   const subcategories = useSubcategories();
   const [query, setQuery] = useState("");
+  const hasCart = useCart((s) => s.items.length > 0);
 
   const targets = useMemo(
     () => buildTargets(products.data ?? [], categories.data ?? [], subcategories.data ?? []),
@@ -95,7 +98,7 @@ export default function SearchScreen() {
         </View>
       </View>
 
-      <ScrollView contentContainerStyle={{ padding: 20, gap: 10 }} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: hasCart ? CART_BAR_SPACE : 20, gap: 10 }} keyboardShouldPersistTaps="handled">
         {empty ? (
           <AppText variant="caption" muted numberOfLines={2}>{t("searchHint")}</AppText>
         ) : null}
@@ -119,6 +122,8 @@ export default function SearchScreen() {
 
         {showEmpty ? <AppText muted>{t("noResults", { q: query.trim() })}</AppText> : null}
       </ScrollView>
+
+      <CartBar />
     </SafeAreaView>
   );
 }

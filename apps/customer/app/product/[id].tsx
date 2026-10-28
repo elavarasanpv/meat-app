@@ -9,6 +9,7 @@ import { Icon } from "@/components/Icon";
 import { ErrorState, Skeleton } from "@/components/States";
 import { useProducts } from "@/hooks/useCatalog";
 import { productImage } from "@/lib/images";
+import * as Haptics from "expo-haptics";
 import { useCart } from "@/store/cart";
 import { useLocalName, useT } from "@/i18n";
 import { fonts, radius, useTheme } from "@/theme";
@@ -72,8 +73,11 @@ export default function ProductDetailScreen() {
       size: isKg ? size : undefined,
       notes: notes.trim() || undefined,
     });
-    // Straight to the cart so the customer sees what they just added
-    router.replace("/(tabs)/cart");
+    // Back to the catalog: the floating cart bar there confirms the add, so the
+    // customer can keep shopping (Zepto/Blinkit flow) instead of landing in the cart.
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+    if (router.canGoBack()) router.back();
+    else router.replace("/(tabs)");
   }
 
   const chip = (selected: boolean) => ({
@@ -210,7 +214,7 @@ export default function ProductDetailScreen() {
           <AppText variant="price" color={c.price} numberOfLines={1} style={{ fontSize: 20, lineHeight: 25 }}>₹ {estimate}</AppText>
         </View>
         <View style={{ flex: 1 }}>
-          <Button label={t("addToCart")} icon="cart" onPress={addToCart} />
+          <Button label={t(inCart ? "updateCart" : "addToCart")} icon="cart" onPress={addToCart} />
         </View>
       </View>
     </SafeAreaView>

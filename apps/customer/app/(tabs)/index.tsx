@@ -9,9 +9,11 @@ import { ProductCard } from "@/components/ProductCard";
 import { ProductSheet } from "@/components/ProductSheet";
 import { SearchHint } from "@/components/SearchHint";
 import { SubcategoryCard } from "@/components/SubcategoryCard";
+import { CartBar, CART_BAR_SPACE } from "@/components/CartBar";
 import { ErrorState, ProductGridSkeleton, Skeleton } from "@/components/States";
 import { useCategories, useProducts, useSubcategories, type Subcategory } from "@/hooks/useCatalog";
 import { useAddresses } from "@/hooks/useOrders";
+import { useCart } from "@/store/cart";
 import { categoryImage, productImage, subcategoryImage } from "@/lib/images";
 import { useLocalName, useT, type TKey } from "@/i18n";
 import { radius, useTheme } from "@/theme";
@@ -43,6 +45,7 @@ export default function HomeScreen() {
   const t = useT();
   // Newest saved address — the same one checkout picks by default. Tapping it opens its edit page.
   const address = useAddresses().data?.[0];
+  const hasCart = useCart((s) => s.items.length > 0);
   const addressLine = address ? `${address.label} · ${address.landmark || address.address_text}` : t("setAddress");
   const openAddress = () => router.push(address ? { pathname: "/address/new", params: { id: address.id } } : "/address/location");
   const localName = useLocalName();
@@ -74,7 +77,7 @@ export default function HomeScreen() {
       {/* No RefreshControl: on Android its SwipeRefreshLayout steals fast horizontal
           swipes from the nested product/category rows. Queries refetch on focus. */}
       <ScrollView
-        contentContainerStyle={{ paddingBottom: 24, gap: 8 }}
+        contentContainerStyle={{ paddingBottom: hasCart ? CART_BAR_SPACE : 24, gap: 8 }}
         stickyHeaderIndices={[1]}
         scrollEventThrottle={16}
         onScroll={(e) => {
@@ -249,6 +252,8 @@ export default function HomeScreen() {
           ))
         )}
       </ScrollView>
+
+      <CartBar aboveTabBar />
 
       <ProductSheet
         title={openSub ? localName(openSub) : null}

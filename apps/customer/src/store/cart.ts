@@ -24,6 +24,8 @@ export const FREE_DELIVERY_ABOVE = 499;
 
 type CartState = {
   items: CartItem[];
+  /** The line most recently added/changed — lets the floating cart bar say "X added". */
+  lastAdded: { name: string; nameTa?: string; at: number } | null;
   /** Add or replace the line for a product. */
   upsert: (item: CartItem) => void;
   /** Set quantity; 0 or less removes the line. */
@@ -36,8 +38,12 @@ export const useCart = create<CartState>()(
   persist(
     (set) => ({
       items: [],
+      lastAdded: null,
       upsert: (item) =>
-        set((s) => ({ items: [...s.items.filter((i) => i.productId !== item.productId), item] })),
+        set((s) => ({
+          items: [...s.items.filter((i) => i.productId !== item.productId), item],
+          lastAdded: { name: item.name, nameTa: item.nameTa, at: Date.now() },
+        })),
       setQty: (productId, qty) =>
         set((s) => ({
           items:
@@ -46,9 +52,9 @@ export const useCart = create<CartState>()(
               : s.items.map((i) => (i.productId === productId ? { ...i, qty } : i)),
         })),
       remove: (productId) => set((s) => ({ items: s.items.filter((i) => i.productId !== productId) })),
-      clear: () => set({ items: [] }),
+      clear: () => set({ items: [], lastAdded: null }),
     }),
-    { name: "freshcut.cart", storage: createJSONStorage(() => AsyncStorage) },
+    { name: "freshcut.cart", storage: createJSONStorage(() => AsyncStorage), partialize: (s) => ({ items: s.items }) },
   ),
 );
 

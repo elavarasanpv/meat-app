@@ -50,6 +50,9 @@ export const en = {
   estTotal: "Estimated total",
   weightNote: "Final bill is based on actual packed weight (±5%). You'll see the exact amount before paying.",
   goToCart: "Go to cart",
+  viewCart: "View cart",
+  updateCart: "Update cart",
+  addedToCart: "{name} added",
   shopMore: "Add more items",
   notFound: "Product not found",
   // cart
@@ -183,6 +186,7 @@ export const en = {
   viewBill: "View bill",
   hideBill: "Hide bill",
   itemsTotal: "{n} items · ₹{total}",
+  itemTotalOne: "1 item · ₹{total}",
   paidOnline: "Paid online",
   deliveryDetails: "Delivery details",
   pickedUpAt: "Picked up from the shop at {when}",
