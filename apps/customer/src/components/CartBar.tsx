@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Animated, Easing, Image, Pressable, View } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
+import { BlurView } from "expo-blur";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppText } from "./AppText";
@@ -67,31 +67,33 @@ export function CartBar({ aboveTabBar = false }: Props) {
         onPress={() => router.push("/(tabs)/cart")}
         accessibilityRole="button"
         accessibilityLabel={t("viewCart")}
-        style={({ pressed }) => ({ borderRadius: 22, opacity: pressed ? 0.92 : 1, elevation: 10, shadowColor: "#000", shadowOpacity: 0.28, shadowRadius: 12, shadowOffset: { width: 0, height: 6 } })}
+        style={({ pressed }) => ({ borderRadius: 22, opacity: pressed ? 0.92 : 1, elevation: 10, shadowColor: "#000", shadowOpacity: 0.18, shadowRadius: 14, shadowOffset: { width: 0, height: 6 } })}
       >
-        {/* Dark charcoal→espresso gradient: reads as a control, not another (orange-tinted) product card */}
-        <LinearGradient
-          colors={["#3A2A24", "#1C1715"]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={{ flexDirection: "row", alignItems: "center", gap: 12, height: 68, paddingLeft: 10, paddingRight: 10, borderRadius: 22, borderWidth: 1, borderColor: "rgba(255,255,255,0.08)" }}
+        {/* Frosted glass: the catalog shows through, blurred, with a soft white film and a hairline highlight */}
+        <BlurView
+          intensity={45}
+          tint="light"
+          experimentalBlurMethod="dimezisBlurView"
+          style={{ borderRadius: 22, overflow: "hidden", borderWidth: 1.5, borderColor: "rgba(255,255,255,0.75)" }}
         >
-          <View style={{ width: 46, height: 46, borderRadius: 14, backgroundColor: "#FFFFFF", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
-            {thumb ? <Image source={thumb} resizeMode="contain" style={{ width: 42, height: 42 }} /> : <Icon name="cart" color={c.primary} size={22} />}
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 12, height: 68, paddingLeft: 10, paddingRight: 10, backgroundColor: "rgba(255,255,255,0.55)" }}>
+            <View style={{ width: 46, height: 46, borderRadius: 14, backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "rgba(0,0,0,0.06)", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+              {thumb ? <Image source={thumb} resizeMode="contain" style={{ width: 42, height: 42 }} /> : <Icon name="cart" color={c.primary} size={22} />}
+            </View>
+            <View style={{ flex: 1 }}>
+              <AppText variant="bodyBold" color={c.ink} numberOfLines={1}>
+                {flash ? t("addedToCart", { name: addedName }) : summary}
+              </AppText>
+              <AppText variant="caption" color={c.price} numberOfLines={1}>
+                {flash ? summary : t("shopMore")}
+              </AppText>
+            </View>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 4, height: 44, paddingLeft: 16, paddingRight: 12, borderRadius: radius.pill, backgroundColor: c.primary, elevation: 3, shadowColor: c.primary, shadowOpacity: 0.35, shadowRadius: 6, shadowOffset: { width: 0, height: 3 } }}>
+              <AppText variant="bodyBold" color="#FFFFFF" numberOfLines={1} style={{ fontSize: 14 }}>{t("viewCart")}</AppText>
+              <Icon name="chevronUp" color="#FFFFFF" size={16} strokeWidth={2.6} />
+            </View>
           </View>
-          <View style={{ flex: 1 }}>
-            <AppText variant="bodyBold" color="#FFFFFF" numberOfLines={1}>
-              {flash ? t("addedToCart", { name: addedName }) : summary}
-            </AppText>
-            <AppText variant="caption" color="rgba(255,255,255,0.7)" numberOfLines={1}>
-              {flash ? summary : t("shopMore")}
-            </AppText>
-          </View>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 4, height: 44, paddingLeft: 16, paddingRight: 12, borderRadius: radius.pill, backgroundColor: c.primary }}>
-            <AppText variant="bodyBold" color="#FFFFFF" numberOfLines={1} style={{ fontSize: 14 }}>{t("viewCart")}</AppText>
-            <Icon name="chevronUp" color="#FFFFFF" size={16} strokeWidth={2.6} />
-          </View>
-        </LinearGradient>
+        </BlurView>
       </Pressable>
     </Animated.View>
   );
