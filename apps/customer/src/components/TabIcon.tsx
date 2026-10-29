@@ -87,7 +87,7 @@ const GLYPHS = { home: HomeGlyph, orders: OrdersGlyph, cart: CartGlyph, help: He
  * solid when the tab is selected. The outline and the solid are stacked and
  * cross-faded, so the change looks like the icon filling up rather than a swap.
  */
-export function TabIcon({ name, focused, color, size = 24 }: { name: TabIconName; focused: boolean; color: string; size?: number }) {
+export function TabIcon({ name, focused, color, size = 24, pill = true }: { name: TabIconName; focused: boolean; color: string; size?: number; pill?: boolean }) {
   const { c } = useTheme();
   const G = GLYPHS[name];
   const t = useRef(new Animated.Value(focused ? 1 : 0)).current;
@@ -96,11 +96,13 @@ export function TabIcon({ name, focused, color, size = 24 }: { name: TabIconName
   }, [focused]);
 
   return (
-    <View style={{ width: 56, height: 34, alignItems: "center", justifyContent: "center" }}>
-      <Animated.View
-        pointerEvents="none"
-        style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0, borderRadius: 17, backgroundColor: c.tint, opacity: t, transform: [{ scale: t.interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] }) }] }}
-      />
+    <View style={{ width: pill ? 56 : size + 4, height: pill ? 34 : size + 4, alignItems: "center", justifyContent: "center" }}>
+      {pill ? (
+        <Animated.View
+          pointerEvents="none"
+          style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0, borderRadius: 17, backgroundColor: c.tint, opacity: t, transform: [{ scale: t.interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] }) }] }}
+        />
+      ) : null}
       <Animated.View style={{ opacity: t.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }) }}>
         <G color={color} filled={false} size={size} knock={c.tint} />
       </Animated.View>
