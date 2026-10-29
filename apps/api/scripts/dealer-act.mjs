@@ -15,8 +15,8 @@ const API = process.env.API_URL ?? `http://localhost:${process.env.PORT ?? 3001}
 const admin = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
 const anon = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY, { auth: { persistSession: false } });
 
-await anon.auth.signInWithOtp({ phone: "+919999999999" });
-const { data: s } = await anon.auth.verifyOtp({ phone: "+919999999999", token: "123456", type: "sms" });
+await anon.auth.signInWithOtp({ phone: "+918888888888" });
+const { data: s } = await anon.auth.verifyOtp({ phone: "+918888888888", token: "123456", type: "sms" });
 const token = s.session.access_token;
 const call = async (method, path, body) => {
   const res = await fetch(`${API}${path}`, {

@@ -63,6 +63,66 @@ export class DealerService {
     }));
   }
 
+  /** Today at a glance: counts per stage and today's sales at shop prices. */
+  async summary(dealerId: string) {
+    const db = this.supabase.admin;
+    const dayStart = new Date();
+    dayStart.setHours(0, 0, 0, 0);
+    const [{ data: active }, { data: today }] = await Promise.all([
+      db.from("orders").select("status").eq("dealer_id", dealerId).in("status", SHOP_ACTIVE),
+      db
+        .from("orders")
+        .select("status, order_items(product_id, requested_kg, actual_kg, unavailable)")
+        .eq("dealer_id", dealerId)
+        .gte("created_at", dayStart.toISOString()),
+    ]);
+    const shopPrice = await this.shopPrices(dealerId);
+    const count = (s: string[]) => (active ?? []).filter((o) => s.includes(o.status)).length;
+    let doneCount = 0;
+    let sales = 0;
+    for (const o of today ?? []) {
+      if (["CANCELLED", "RETURNED", "REFUNDED", "DELIVERY_FAILED"].includes(o.status)) continue;
+      doneCount += 1;
+      for (const it of o.order_items as { product_id: string; requested_kg: number; actual_kg: number | null; unavailable: boolean }[]) {
+        if (it.unavailable) continue;
+        sales += Math.round((shopPrice.get(it.product_id) ?? 0) * Number(it.actual_kg ?? it.requested_kg));
+      }
+    }
+    return {
+      newCount: count(["DEALER_ASSIGNED"]),
+      inProgressCount: count(["ACCEPTED", "PACKING"]),
+      readyCount: count(["PACKED"]),
+      todayOrders: doneCount,
+      todaySales: sales,
+    };
+  }
+
+  /** Finished orders (delivered / cancelled …), newest first, with the shop's amount. */
+  async history(dealerId: string, limit = 50) {
+    const db = this.supabase.admin;
+    const { data, error } = await db
+      .from("orders")
+      .select("id, display_id, status, created_at, order_items(product_id, requested_kg, actual_kg, unavailable, products(name, name_ta))")
+      .eq("dealer_id", dealerId)
+      .not("status", "in", `(${SHOP_ACTIVE.join(",")})`)
+      .order("created_at", { ascending: false })
+      .limit(limit);
+    if (error) throw new BadRequestException(error.message);
+    const shopPrice = await this.shopPrices(dealerId);
+    return (data ?? []).map((o) => {
+      const items = o.order_items as unknown as { product_id: string; requested_kg: number; actual_kg: number | null; unavailable: boolean; products: { name: string; name_ta: string | null } }[];
+      const shopAmount = items
+        .filter((i) => !i.unavailable)
+        .reduce((s, i) => s + Math.round((shopPrice.get(i.product_id) ?? 0) * Number(i.actual_kg ?? i.requested_kg)), 0);
+      return { id: o.id, display_id: o.display_id, status: o.status, created_at: o.created_at, shop_amount: shopAmount, items: items.map((i) => i.products) };
+    });
+  }
+
+  private async shopPrices(dealerId: string) {
+    const { data } = await this.supabase.admin.from("dealer_products").select("product_id, price_per_kg").eq("dealer_id", dealerId);
+    return new Map((data ?? []).map((p) => [p.product_id as string, Number(p.price_per_kg ?? 0)]));
+  }
+
   /** Accept the offer and promise a ready time. */
   async accept(profileId: string, input: DealerAcceptInput) {
     const dealer = await this.resolveDealer(profileId);

@@ -10,7 +10,7 @@
 
 import { createClient } from "@supabase/supabase-js";
 
-const phone = (process.argv[2] ?? "919999999999").replace(/^\+/, "");
+const phone = (process.argv[2] ?? "918888888888").replace(/^\+/, "");
 const admin = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
 
 const { data: profile } = await admin.from("profiles").select("id, full_name").eq("phone", phone).maybeSingle();

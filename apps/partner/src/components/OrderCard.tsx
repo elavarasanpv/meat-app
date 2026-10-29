@@ -1,18 +1,20 @@
 import { useEffect, useState } from "react";
-import { ScrollView, Switch, TextInput, View } from "react-native";
+import { TextInput, View } from "react-native";
+import * as Haptics from "expo-haptics";
 import { DEALER_REJECT_REASONS } from "@freshcut/shared";
-import { useAccept, useDealerOrders, usePacked, useReject, useShopState, useStartCutting, useWeigh, type DealerOrder, type DealerOrderItem } from "@/hooks/useDealer";
+import { useAccept, usePacked, useReject, useStartCutting, useWeigh, type DealerOrder, type DealerOrderItem } from "@/hooks/useDealer";
 import { useLang, useT, type TKey } from "@/i18n";
 import { Btn, Chip, Txt, useC } from "@/ui";
+import { Icon } from "./Icon";
 
 const READY_CHOICES = [15, 30, 45, 60];
 
-function clock(iso: string) {
+export function clock(iso: string) {
   return new Date(iso).toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit", hour12: true });
 }
 
-/** Live countdown to the accept deadline ("4:32"). */
-function Countdown({ deadline }: { deadline: string }) {
+/** Live countdown to the accept deadline ("4:32"); turns red under a minute. */
+export function Countdown({ deadline }: { deadline: string }) {
   const c = useC();
   const t = useT();
   const [now, setNow] = useState(Date.now());
@@ -31,7 +33,6 @@ function Countdown({ deadline }: { deadline: string }) {
 }
 
 function ItemRow({ it }: { it: DealerOrderItem }) {
-  const c = useC();
   const t = useT();
   const lang = useLang((s) => s.lang);
   const name = lang === "ta" && it.products.name_ta ? it.products.name_ta : it.products.name;
@@ -47,7 +48,26 @@ function ItemRow({ it }: { it: DealerOrderItem }) {
   );
 }
 
-function OrderCard({ o }: { o: DealerOrder }) {
+/** Status pill: colour says what stage the order is in at a glance. */
+function StagePill({ status }: { status: DealerOrder["status"] }) {
+  const c = useC();
+  const t = useT();
+  const map: Record<DealerOrder["status"], { key: TKey; bg: string; fg: string }> = {
+    DEALER_ASSIGNED: { key: "newOrder", bg: c.tint, fg: c.primary },
+    ACCEPTED: { key: "preparing", bg: c.infoBg, fg: c.info },
+    PACKING: { key: "cutting", bg: c.warningBg, fg: c.warning },
+    PACKED: { key: "ready", bg: c.successBg, fg: c.success },
+  };
+  const m = map[status];
+  return (
+    <View style={{ paddingHorizontal: 10, height: 26, borderRadius: 13, backgroundColor: m.bg, justifyContent: "center" }}>
+      <Txt bold size={12} color={m.fg}>{t(m.key)}</Txt>
+    </View>
+  );
+}
+
+/** One order with the right actions for its stage. `compact` hides the item list (home screen). */
+export function OrderCard({ o, compact }: { o: DealerOrder; compact?: boolean }) {
   const c = useC();
   const t = useT();
   const accept = useAccept();
@@ -60,34 +80,34 @@ function OrderCard({ o }: { o: DealerOrder }) {
 
   const items = o.order_items.filter((i) => !i.unavailable);
   const shopTotal = items.reduce((s, i) => s + Math.round(i.shop_price_per_kg * i.requested_kg), 0);
-  const title: TKey = o.status === "DEALER_ASSIGNED" ? "newOrder" : o.status === "PACKED" ? "ready" : "preparing";
-  const border = o.status === "DEALER_ASSIGNED" ? c.primary : c.border;
+  const isNew = o.status === "DEALER_ASSIGNED";
+  const tap = () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
 
   return (
-    <View style={{ borderRadius: 22, borderWidth: o.status === "DEALER_ASSIGNED" ? 2 : 1, borderColor: border, backgroundColor: c.surface, padding: 16, gap: 12 }}>
+    <View style={{ borderRadius: 22, borderWidth: isNew ? 2 : 1, borderColor: isNew ? c.primary : c.border, backgroundColor: c.surface, padding: 16, gap: 12 }}>
       <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
-        <View>
+        <View style={{ flex: 1 }}>
           <Txt bold size={17}>{o.display_id}</Txt>
-          <Txt size={13} muted>{t(title)}{o.delivery_slots ? ` · ${clock(o.delivery_slots.starts_at)}–${clock(o.delivery_slots.ends_at)}` : ""}</Txt>
+          {o.delivery_slots ? <Txt size={13} muted>{clock(o.delivery_slots.starts_at)}–{clock(o.delivery_slots.ends_at)}</Txt> : null}
         </View>
-        {o.status === "DEALER_ASSIGNED" && o.accept_deadline ? <Countdown deadline={o.accept_deadline} /> : null}
+        {isNew && o.accept_deadline ? <Countdown deadline={o.accept_deadline} /> : <StagePill status={o.status} />}
       </View>
 
       <View style={{ gap: 8, borderTopWidth: 1, borderTopColor: c.border, paddingTop: 10 }}>
-        {items.map((it) => <ItemRow key={it.id} it={it} />)}
+        {compact ? null : items.map((it) => <ItemRow key={it.id} it={it} />)}
         <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
           <Txt size={13} muted>{items.length} {t("items")}</Txt>
           <Txt bold size={16} color={c.primary}>{t("yourAmount")} ₹{shopTotal}</Txt>
         </View>
       </View>
 
-      {o.status === "DEALER_ASSIGNED" ? (
+      {isNew ? (
         mode === "ready" ? (
           <View style={{ gap: 10 }}>
             <Txt bold size={15}>{t("readyIn")}</Txt>
             <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
               {READY_CHOICES.map((m) => (
-                <Chip key={m} label={`${m} ${t("min")}`} onPress={() => accept.mutate({ orderId: o.id, readyMinutes: m })} />
+                <Chip key={m} label={`${m} ${t("min")}`} onPress={() => { tap(); accept.mutate({ orderId: o.id, readyMinutes: m }); }} />
               ))}
             </View>
           </View>
@@ -96,8 +116,9 @@ function OrderCard({ o }: { o: DealerOrder }) {
             <Txt bold size={15}>{t("rejectWhy")}</Txt>
             <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
               {DEALER_REJECT_REASONS.map((r) => (
-                <Chip key={r} label={t(`r_${r}` as TKey)} onPress={() => reject.mutate({ orderId: o.id, reason: r })} />
+                <Chip key={r} label={t(`r_${r}` as TKey)} onPress={() => { tap(); reject.mutate({ orderId: o.id, reason: r }); }} />
               ))}
+              <Chip label={t("back")} onPress={() => setMode("none")} />
             </View>
           </View>
         ) : (
@@ -110,8 +131,13 @@ function OrderCard({ o }: { o: DealerOrder }) {
 
       {o.status === "ACCEPTED" ? (
         <View style={{ gap: 8 }}>
-          {o.ready_by ? <Txt size={13} muted>{t("ready")} · {clock(o.ready_by)}</Txt> : null}
-          <Btn label={t("startCutting")} big onPress={() => cutting.mutate(o.id)} loading={cutting.isPending} />
+          {o.ready_by ? (
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+              <Icon name="clock" color={c.muted} size={16} />
+              <Txt size={13} muted>{t("readyBy")} {clock(o.ready_by)}</Txt>
+            </View>
+          ) : null}
+          <Btn label={t("startCutting")} big onPress={() => { tap(); cutting.mutate(o.id); }} loading={cutting.isPending} />
         </View>
       ) : null}
 
@@ -144,62 +170,16 @@ function OrderCard({ o }: { o: DealerOrder }) {
               </View>
             );
           })}
-          <Btn
-            label={t("markPacked")}
-            kind="success"
-            big
-            onPress={() => packed.mutate(o.id)}
-            loading={packed.isPending}
-            disabled={items.some((i) => i.actual_kg == null)}
-          />
+          <Btn label={t("markPacked")} kind="success" big onPress={() => { tap(); packed.mutate(o.id); }} loading={packed.isPending} disabled={items.some((i) => i.actual_kg == null)} />
         </View>
       ) : null}
 
       {o.status === "PACKED" ? (
-        <View style={{ height: 48, borderRadius: 24, backgroundColor: c.successBg, alignItems: "center", justifyContent: "center" }}>
+        <View style={{ height: 48, borderRadius: 24, backgroundColor: c.successBg, flexDirection: "row", gap: 8, alignItems: "center", justifyContent: "center" }}>
+          <Icon name="scooter" color={c.success} size={20} />
           <Txt bold size={15} color={c.success}>{t("waitingRider")}</Txt>
         </View>
       ) : null}
-    </View>
-  );
-}
-
-export function OrdersScreen({ dealerId, shopName, isOpen }: { dealerId: string; shopName: string; isOpen: boolean }) {
-  const c = useC();
-  const t = useT();
-  const orders = useDealerOrders(dealerId);
-  const shop = useShopState();
-  const [open, setOpen] = useState(isOpen);
-
-  const list = orders.data ?? [];
-  return (
-    <View style={{ flex: 1 }}>
-      {/* Shop open/closed — the biggest control on the screen */}
-      <View style={{ margin: 16, marginBottom: 8, padding: 16, borderRadius: 22, backgroundColor: open ? c.successBg : c.surface2, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-        <View style={{ flex: 1 }}>
-          <Txt bold size={17} color={open ? c.success : c.muted}>{open ? t("shopOpen") : t("shopClosed")}</Txt>
-          <Txt size={13} muted numberOfLines={1}>{shopName}</Txt>
-        </View>
-        <Switch
-          value={open}
-          onValueChange={(v) => {
-            setOpen(v);
-            shop.mutate({ isOpen: v });
-          }}
-          trackColor={{ true: c.success, false: c.border }}
-          thumbColor="#FFFFFF"
-        />
-      </View>
-
-      <ScrollView contentContainerStyle={{ padding: 16, paddingTop: 8, gap: 14, paddingBottom: 40 }}>
-        {list.length === 0 ? (
-          <View style={{ padding: 40, alignItems: "center" }}>
-            <Txt muted>{t("noOrders")}</Txt>
-          </View>
-        ) : (
-          list.map((o) => <OrderCard key={o.id} o={o} />)
-        )}
-      </ScrollView>
     </View>
   );
 }

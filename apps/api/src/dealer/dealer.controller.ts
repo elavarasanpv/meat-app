@@ -33,6 +33,22 @@ export class DealerController {
     return this.dealer.listOrders(dealer.id);
   }
 
+  /** GET /dealer/summary — counts per stage + today's sales. */
+  @Get("summary")
+  async summary(@Headers("authorization") auth: string | undefined) {
+    const user = await requireUser(this.supabase, auth);
+    const dealer = await this.dealer.resolveDealer(user.id);
+    return this.dealer.summary(dealer.id);
+  }
+
+  /** GET /dealer/history — finished orders, newest first. */
+  @Get("history")
+  async history(@Headers("authorization") auth: string | undefined) {
+    const user = await requireUser(this.supabase, auth);
+    const dealer = await this.dealer.resolveDealer(user.id);
+    return this.dealer.history(dealer.id);
+  }
+
   /** POST /dealer/orders/accept { orderId, readyMinutes } */
   @Post("orders/accept")
   async accept(@Headers("authorization") auth: string | undefined, @Body() body: unknown) {

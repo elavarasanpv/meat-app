@@ -46,9 +46,11 @@ export function useDealerOrders(dealerId: string | undefined) {
     if (!dealerId) return;
     const channel = supabase
       .channel(`dealer-${dealerId}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "orders", filter: `dealer_id=eq.${dealerId}` }, () =>
-        qc.invalidateQueries({ queryKey: ["dealer", "orders"] }),
-      )
+      .on("postgres_changes", { event: "*", schema: "public", table: "orders", filter: `dealer_id=eq.${dealerId}` }, () => {
+        qc.invalidateQueries({ queryKey: ["dealer", "orders"] });
+        qc.invalidateQueries({ queryKey: ["dealer", "summary"] });
+        qc.invalidateQueries({ queryKey: ["dealer", "history"] });
+      })
       .subscribe();
     return () => {
       supabase.removeChannel(channel);
@@ -60,6 +62,7 @@ export function useDealerOrders(dealerId: string | undefined) {
 
 function invalidate(qc: ReturnType<typeof useQueryClient>) {
   qc.invalidateQueries({ queryKey: ["dealer", "orders"] });
+  qc.invalidateQueries({ queryKey: ["dealer", "summary"] });
 }
 
 export function useAccept() {
@@ -108,6 +111,18 @@ export function useShopState() {
     mutationFn: (p: { isOpen?: boolean; closedUntil?: string | null }) => api("/dealer/shop", { method: "POST", body: p }),
     onSettled: () => qc.invalidateQueries({ queryKey: ["dealer", "me"] }),
   });
+}
+
+export type Summary = { newCount: number; inProgressCount: number; readyCount: number; todayOrders: number; todaySales: number };
+
+export function useSummary(dealerId: string | undefined) {
+  return useQuery<Summary>({ queryKey: ["dealer", "summary"], enabled: !!dealerId, refetchInterval: 30_000, queryFn: () => api("/dealer/summary") });
+}
+
+export type HistoryRow = { id: string; display_id: string; status: string; created_at: string; shop_amount: number; items: { name: string; name_ta: string | null }[] };
+
+export function useHistory(dealerId: string | undefined) {
+  return useQuery<HistoryRow[]>({ queryKey: ["dealer", "history"], enabled: !!dealerId, queryFn: () => api("/dealer/history") });
 }
 
 export type StockRow = { product_id: string; name: string; name_ta: string | null; unit: string; out_of_stock_until: string | null };
