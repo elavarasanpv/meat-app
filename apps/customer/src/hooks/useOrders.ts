@@ -174,10 +174,15 @@ export function useOrders() {
   });
 }
 
+/** Statuses where the customer is waiting on someone else, so the screen must stay fresh. */
+const LIVE: string[] = ["PLACED", "DEALER_ASSIGNED", "ACCEPTED", "PACKING", "PACKED", "RIDER_ASSIGNED", "PICKED_UP", "OUT_FOR_DELIVERY"];
+
 export function useOrder(id: string | undefined) {
   return useQuery({
     queryKey: ["orders", "detail", id],
     enabled: !!id,
+    // Realtime pushes status changes instantly; this poll covers a dropped socket.
+    refetchInterval: (q) => (q.state.data && LIVE.includes((q.state.data as OrderDetail).status) ? 15_000 : false),
     queryFn: async () => {
       // PostgREST rejects whitespace in select and duplicate embeds, so build it compact.
       const select = [

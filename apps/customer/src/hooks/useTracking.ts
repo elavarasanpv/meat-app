@@ -50,7 +50,9 @@ export function useRiderLocation(orderId: string | undefined, riderId: string | 
       { event: "UPDATE", schema: "public", table: "orders", filter: `id=eq.${orderId}` },
       () => qc.invalidateQueries({ queryKey: ["orders"] }),
     );
-    channel.subscribe();
+    channel.subscribe((status, err) => {
+      if (__DEV__) console.log(`[realtime] track-${orderId}: ${status}`, err?.message ?? "");
+    });
     return () => {
       supabase.removeChannel(channel);
     };
