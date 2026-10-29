@@ -1,27 +1,8 @@
 import { Tabs } from "expo-router";
-import { View } from "react-native";
-import { Icon, type IconName } from "@/components/Icon";
+import { TabIcon } from "@/components/TabIcon";
 import { useLang, useT } from "@/i18n";
 import { useCart } from "@/store/cart";
 import { fonts, useTheme } from "@/theme";
-
-function TabIcon({ name, focused, color }: { name: IconName; focused: boolean; color: string }) {
-  const { c } = useTheme();
-  return (
-    <View
-      style={{
-        width: 52,
-        height: 32,
-        borderRadius: 999,
-        alignItems: "center",
-        justifyContent: "center",
-        backgroundColor: focused ? c.tint : "transparent",
-      }}
-    >
-      <Icon name={name} color={color} size={22} strokeWidth={focused ? 2.4 : 2.1} />
-    </View>
-  );
-}
 
 export default function TabsLayout() {
   const { c } = useTheme();
@@ -55,12 +36,12 @@ export default function TabsLayout() {
           title: t("tabCart"),
           tabBarIcon: (p) => <TabIcon name="cart" {...p} />,
           tabBarBadge: cartCount > 0 ? cartCount : undefined,
-          tabBarBadgeStyle: { backgroundColor: c.primary, color: "#FFFFFF", fontSize: 11 },
+          tabBarBadgeStyle: { backgroundColor: c.primary, color: "#FFFFFF", fontSize: 11, top: -4, left: 10, borderWidth: 2, borderColor: c.surface },
         }}
       />
       <Tabs.Screen
         name="help"
-        options={{ title: t("tabHelp"), tabBarIcon: (p) => <TabIcon name="phone" {...p} /> }}
+        options={{ title: t("tabHelp"), tabBarIcon: (p) => <TabIcon name="help" {...p} /> }}
       />
     </Tabs>
   );
