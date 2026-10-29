@@ -13,7 +13,7 @@ export const JOURNEY_ART: Record<JourneyStop, { icon: IconName; frames?: ImageSo
   shop: { icon: "logo" },
   cutting: { icon: "cut" },
   packed: { icon: "cart" },
-  rider: { icon: "truck" },
+  rider: { icon: "scooter" },
 };
 
 /** The marker that travels along the road (PNG when provided). */

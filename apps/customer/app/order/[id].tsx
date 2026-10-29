@@ -23,7 +23,8 @@ import { queryState } from "@/lib/network";
 
 /** The happy path shown as a timeline; side exits (cancelled etc.) are shown as a badge only. */
 const rank = (s: OrderStatus) => ORDER_STATUSES.indexOf(s);
-const TRACKABLE: OrderStatus[] = ["RIDER_ASSIGNED", "PICKED_UP", "OUT_FOR_DELIVERY"];
+/** Map takes over once the rider has the parcel; before that the journey shows "rider picking up". */
+const TRACKABLE: OrderStatus[] = ["PICKED_UP", "OUT_FOR_DELIVERY"];
 const STALE_MS = 3 * 60_000;
 
 export default function OrderDetailScreen() {
@@ -140,7 +141,7 @@ export default function OrderDetailScreen() {
               {/* Rider strip */}
               <View style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: c.border }}>
                 <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: c.tint, alignItems: "center", justifyContent: "center" }}>
-                  <Icon name="truck" color={c.primary} size={22} />
+                  <Icon name="scooter" color={c.primary} size={22} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <AppText variant="bodyBold" numberOfLines={1}>{t("yourRider")}</AppText>
