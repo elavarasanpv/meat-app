@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { Alert, Pressable, ScrollView, View } from "react-native";
+import { Pressable, ScrollView, View } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AppText } from "@/components/AppText";
 import { Button } from "@/components/Button";
+import { ConfirmSheet } from "@/components/ConfirmSheet";
 import { Icon } from "@/components/Icon";
 import { ErrorState, Skeleton } from "@/components/States";
 import { useAddresses, useDeleteAddress, usePlaceOrder, useSlots, type Slot } from "@/hooks/useOrders";
@@ -39,11 +40,12 @@ export default function CheckoutScreen() {
     if (!addressId || !list.some((a) => a.id === addressId)) setAddressId(list[0].id);
   }, [addresses.data]);
 
-  function confirmDelete(id: string) {
-    Alert.alert(t("deleteConfirm"), t("deleteSub"), [
-      { text: t("cancel"), style: "cancel" },
-      { text: t("delete"), style: "destructive", onPress: () => removeAddress.mutate(id) },
-    ]);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const confirmDelete = (id: string) => setDeleteId(id);
+  async function doDelete() {
+    if (!deleteId) return;
+    await removeAddress.mutateAsync(deleteId).catch(() => {});
+    setDeleteId(null);
   }
   useEffect(() => {
     if (!slot && slots.data?.length) setSlot(slots.data[0]);
@@ -251,6 +253,16 @@ export default function CheckoutScreen() {
       <View style={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 20, backgroundColor: c.surface, borderTopWidth: 1, borderTopColor: c.border }}>
         <Button label={`${t("placeOrder")} · ₹ ${toPay}`} onPress={placeOrder} disabled={!canPlace} loading={place.isPending} />
       </View>
+
+      <ConfirmSheet
+        visible={deleteId !== null}
+        title={t("deleteConfirm")}
+        message={t("deleteSub")}
+        confirmLabel={t("delete")}
+        busy={removeAddress.isPending}
+        onConfirm={doDelete}
+        onClose={() => setDeleteId(null)}
+      />
     </SafeAreaView>
   );
 }
