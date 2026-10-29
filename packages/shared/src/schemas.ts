@@ -59,6 +59,46 @@ export const riderLocationSchema = z.object({
   speedKmh: z.number().min(0).max(200).optional(),
 });
 
+export const DEALER_REJECT_REASONS = ["out_of_stock", "closing", "too_busy", "other"] as const;
+
+export const dealerAcceptSchema = z.object({
+  orderId: z.string().uuid(),
+  /** Minutes until the order will be packed and ready for pickup. */
+  readyMinutes: z.number().int().min(5).max(120),
+});
+
+export const dealerRejectSchema = z.object({
+  orderId: z.string().uuid(),
+  reason: z.enum(DEALER_REJECT_REASONS),
+  note: z.string().max(200).optional(),
+});
+
+export const itemUnavailableSchema = z.object({
+  orderId: z.string().uuid(),
+  orderItemId: z.string().uuid(),
+});
+
+export const weighItemSchema = z.object({
+  orderId: z.string().uuid(),
+  orderItemId: z.string().uuid(),
+  /** Actual packed weight in kg (or piece count for per-piece items). */
+  actualQty: z.number().positive().max(100),
+  /** Storage path of the scale photo in the order-proofs bucket. */
+  photoPath: z.string().min(1).max(500).optional(),
+});
+
+export const shopStateSchema = z.object({
+  isOpen: z.boolean().optional(),
+  /** ISO time the shop stays closed until; null clears it. */
+  closedUntil: z.string().datetime({ offset: true }).nullable().optional(),
+});
+
+export const stockSchema = z.object({
+  productId: z.string().uuid(),
+  /** null = in stock; an ISO time = out until then; "infinity" = until switched on. */
+  outOfStockUntil: z.union([z.string().datetime({ offset: true }), z.literal("infinity"), z.null()]),
+});
+
 export const cancelOrderSchema = z.object({
   reason: z.enum(CANCEL_REASONS),
   note: z.string().max(200).optional(),
@@ -71,4 +111,10 @@ export type AddressInput = z.infer<typeof addressInputSchema>;
 export type RiderLocationInput = z.infer<typeof riderLocationSchema>;
 export type CancelOrderInput = z.infer<typeof cancelOrderSchema>;
 export type PackOrderInput = z.infer<typeof packOrderSchema>;
+export type DealerAcceptInput = z.infer<typeof dealerAcceptSchema>;
+export type DealerRejectInput = z.infer<typeof dealerRejectSchema>;
+export type ItemUnavailableInput = z.infer<typeof itemUnavailableSchema>;
+export type WeighItemInput = z.infer<typeof weighItemSchema>;
+export type ShopStateInput = z.infer<typeof shopStateSchema>;
+export type StockInput = z.infer<typeof stockSchema>;
 export type DeliverOrderInput = z.infer<typeof deliverOrderSchema>;

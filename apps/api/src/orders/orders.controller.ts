@@ -2,6 +2,7 @@ import { BadRequestException, Body, Controller, Get, Headers, Param, Post } from
 import { z } from "zod";
 import { cancelOrderSchema, orderStatusSchema, placeOrderSchema, upcomingSlots } from "@freshcut/shared";
 import { OrdersService } from "./orders.service";
+import { AssignmentService } from "../dealer/assignment.service";
 import { SupabaseService } from "../supabase.service";
 import { requireUser } from "../auth";
 
@@ -24,6 +25,7 @@ export class OrdersController {
   constructor(
     private readonly orders: OrdersService,
     private readonly supabase: SupabaseService,
+    private readonly assignment: AssignmentService,
   ) {}
 
   /** GET /orders/slots — delivery windows the customer can pick right now. */
@@ -37,7 +39,10 @@ export class OrdersController {
   async place(@Headers("authorization") auth: string | undefined, @Body() body: unknown) {
     const user = await requireUser(this.supabase, auth);
     const input = parse(placeOrderSchema, body);
-    return this.orders.placeOrder(user.id, input);
+    const result = await this.orders.placeOrder(user.id, input);
+    // Offer the order to the nearest open shop; a failure here never blocks checkout.
+    await this.assignment.offer(result.orderId).catch((e) => console.error("[assign] offer", e));
+    return result;
   }
 
   /** POST /orders/:id/cancel — customer cancels their own order (only until the shop accepts). */
