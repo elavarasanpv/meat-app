@@ -35,7 +35,7 @@ export default function HomeScreen() {
   const Stat = ({ icon, label, value, color, bg, onPress }: { icon: IconName; label: TKey; value: number | string; color: string; bg: string; onPress?: () => void }) => (
     <Pressable onPress={onPress} disabled={!onPress} style={{ flex: 1, padding: 14, borderRadius: 18, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, gap: 8 }}>
       <View style={{ width: 36, height: 36, borderRadius: 12, backgroundColor: bg, alignItems: "center", justifyContent: "center" }}>
-        <Icon name={icon} color={color} size={20} />
+        <Icon name={icon} color={color} size={icon === "cut" ? 24 : 20} />
       </View>
       <Txt bold size={24}>{value}</Txt>
       <Txt size={12} muted numberOfLines={1}>{t(label)}</Txt>
