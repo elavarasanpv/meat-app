@@ -32,16 +32,21 @@ export function Countdown({ deadline }: { deadline: string }) {
   );
 }
 
+/** Product name in the app language (Tamil when set and available). */
+function useItemName() {
+  const lang = useLang((s) => s.lang);
+  return (it: DealerOrderItem) => (lang === "ta" && it.products.name_ta ? it.products.name_ta : it.products.name);
+}
+
 function ItemRow({ it }: { it: DealerOrderItem }) {
   const t = useT();
-  const lang = useLang((s) => s.lang);
-  const name = lang === "ta" && it.products.name_ta ? it.products.name_ta : it.products.name;
+  const name = useItemName()(it);
   const qty = it.products.unit === "kg" ? `${it.requested_kg} ${t("kg")}` : `${Math.round(it.requested_kg)} ${t("pieces")}`;
   return (
     <View style={{ gap: 2 }}>
       <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 10 }}>
         <Txt bold size={15} style={{ flex: 1 }} numberOfLines={2}>{name}</Txt>
-        <Txt bold size={15}>{qty}{it.size ? ` · ${it.size}` : ""}</Txt>
+        <Txt bold size={15}>{qty}{it.size ? ` · ${t(`size_${it.size}` as TKey)}` : ""}</Txt>
       </View>
       {it.notes ? <Txt size={13} muted numberOfLines={2}>{t("customerNote")}: {it.notes}</Txt> : null}
     </View>
@@ -77,6 +82,7 @@ export function OrderCard({ o, compact }: { o: DealerOrder; compact?: boolean })
   const packed = usePacked();
   const [mode, setMode] = useState<"none" | "ready" | "reject">("none");
   const [weights, setWeights] = useState<Record<string, string>>({});
+  const itemName = useItemName();
 
   const items = o.order_items.filter((i) => !i.unavailable);
   const shopTotal = items.reduce((s, i) => s + Math.round(i.shop_price_per_kg * i.requested_kg), 0);
@@ -148,7 +154,7 @@ export function OrderCard({ o, compact }: { o: DealerOrder; compact?: boolean })
             const saved = it.actual_kg != null;
             return (
               <View key={it.id} style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-                <Txt size={14} style={{ flex: 1 }} numberOfLines={1}>{it.products.name}</Txt>
+                <Txt size={14} style={{ flex: 1 }} numberOfLines={2}>{itemName(it)}</Txt>
                 <TextInput
                   value={weights[it.id] ?? (it.actual_kg != null ? String(it.actual_kg) : "")}
                   onChangeText={(v) => setWeights((w) => ({ ...w, [it.id]: v.replace(/[^0-9.]/g, "") }))}
