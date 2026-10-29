@@ -15,6 +15,7 @@
     "@expo-google-fonts/noto-sans-tamil": "^0.4.3",
     "@expo-google-fonts/outfit": "^0.4.3",
     "@expo/metro-runtime": "~6.1.2",
+    "@freshcut/assets": "workspace:*",
     "@freshcut/shared": "workspace:*",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-community/netinfo": "11.4.1",

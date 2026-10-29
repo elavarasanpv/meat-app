@@ -24,7 +24,15 @@ export function Icon({ name, size = 22, color, strokeWidth = 2.2, filled }: Prop
       {name === "phone" && <Path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2" {...line} />}
       {name === "chevronRight" && <Path d="M9 6l6 6-6 6" {...line} />}
       {name === "bell" && (<><Path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z" {...line} /><Path d="M10 21h4" {...line} /></>)}
-      {name === "cut" && (<><Path d="M4 20l12-12 3 3-9 9z" {...line} /><Path d="M14 10l3-3 2 2" {...line} /><Path d="M4 20l1-3" {...line} /></>)}
+      {name === "cut" && (<>
+        <Path d="M3 21h18" {...line} />
+        <Path d="M5 21v-1.5a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1V21" {...line} />
+        <Path d="M6.5 18.5c-1.8-.8-1.6-3.2.4-3.7 2.6-.6 3.7-2.3 5.1-3.5 1.9-1.6 4.9-.4 4.7 2.1-.2 2.7-1.9 5.1-4.6 5.1z" {...p} />
+        <Circle cx={11.8} cy={15.2} r={1} {...line} stroke={filled ? "#FFFFFF" : color} />
+        <Path d="M10.2 10 14 3.3l6.2 3.4-3.3 6.2" {...line} />
+        <Path d="M14 3.3 6.4 7.5" {...line} />
+        <Circle cx={17.2} cy={8.3} r={0.9} {...line} />
+      </>)}
     </Svg>
   );
 }

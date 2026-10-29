@@ -131,7 +131,7 @@ export function useHistory(dealerId: string | undefined) {
   return useQuery<HistoryRow[]>({ queryKey: ["dealer", "history"], enabled: !!dealerId, queryFn: () => api("/dealer/history") });
 }
 
-export type StockRow = { product_id: string; name: string; name_ta: string | null; unit: string; out_of_stock_until: string | null };
+export type StockRow = { product_id: string; name: string; name_ta: string | null; unit: string; image_path: string | null; out_of_stock_until: string | null; category: { name: string; name_ta: string | null; sort: number } };
 
 /** The shop's product list with stock state (read straight from Supabase). */
 export function useStock(dealerId: string | undefined) {
@@ -141,15 +141,23 @@ export function useStock(dealerId: string | undefined) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("dealer_products")
-        .select("product_id, out_of_stock_until, products(name, name_ta, unit)")
+        .select("product_id, out_of_stock_until, products(name, name_ta, unit, image_path, categories(name, name_ta, sort))")
         .eq("dealer_id", dealerId!);
       if (error) throw error;
       return (data ?? [])
         .map((r) => {
-          const p = r.products as unknown as { name: string; name_ta: string | null; unit: string };
-          return { product_id: r.product_id, out_of_stock_until: r.out_of_stock_until, name: p.name, name_ta: p.name_ta, unit: p.unit };
+          const p = r.products as unknown as { name: string; name_ta: string | null; unit: string; image_path: string | null; categories: { name: string; name_ta: string | null; sort: number } | null };
+          return {
+            product_id: r.product_id,
+            out_of_stock_until: r.out_of_stock_until,
+            name: p.name,
+            name_ta: p.name_ta,
+            unit: p.unit,
+            image_path: p.image_path,
+            category: p.categories ?? { name: "Other", name_ta: null, sort: 99 },
+          };
         })
-        .sort((a, b) => a.name.localeCompare(b.name));
+        .sort((a, b) => a.category.sort - b.category.sort || a.name.localeCompare(b.name));
     },
   });
 }

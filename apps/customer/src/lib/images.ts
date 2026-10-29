@@ -3,27 +3,27 @@ import { supabase } from "./supabase";
 
 /** Bundled cut-outs used until every product has an uploaded image. */
 export const bundled = {
-  allMeats: require("../../assets/images/all-meats.png") as ImageSourcePropType,
-  countryChicken: require("../../assets/images/country-chicken.png") as ImageSourcePropType,
-  broilerChicken: require("../../assets/images/broiler-chicken.png") as ImageSourcePropType,
-  mutton: require("../../assets/images/mutton.png") as ImageSourcePropType,
-  muttonBoneless: require("../../assets/images/mutton-boneless.png") as ImageSourcePropType,
-  eggsTray: require("../../assets/images/eggs-tray.png") as ImageSourcePropType,
-  farmEggs: require("../../assets/images/farm-eggs.png") as ImageSourcePropType,
-  countryEggs: require("../../assets/images/country-eggs.png") as ImageSourcePropType,
+  allMeats: require("@freshcut/assets/images/all-meats.png") as ImageSourcePropType,
+  countryChicken: require("@freshcut/assets/images/country-chicken.png") as ImageSourcePropType,
+  broilerChicken: require("@freshcut/assets/images/broiler-chicken.png") as ImageSourcePropType,
+  mutton: require("@freshcut/assets/images/mutton.png") as ImageSourcePropType,
+  muttonBoneless: require("@freshcut/assets/images/mutton-boneless.png") as ImageSourcePropType,
+  eggsTray: require("@freshcut/assets/images/eggs-tray.png") as ImageSourcePropType,
+  farmEggs: require("@freshcut/assets/images/farm-eggs.png") as ImageSourcePropType,
+  countryEggs: require("@freshcut/assets/images/country-eggs.png") as ImageSourcePropType,
   // chicken cuts
-  wholeChicken: require("../../assets/images/whole-chicken.png") as ImageSourcePropType,
-  curryCut: require("../../assets/images/curry-cut.png") as ImageSourcePropType,
-  skinlessCurryCut: require("../../assets/images/skinless-curry-cut.png") as ImageSourcePropType,
-  breastPiece: require("../../assets/images/breast-piece.png") as ImageSourcePropType,
-  legPiece: require("../../assets/images/leg-piece.png") as ImageSourcePropType,
-  wings: require("../../assets/images/wings.png") as ImageSourcePropType,
-  chickenBoneless: require("../../assets/images/chicken-boneless.png") as ImageSourcePropType,
+  wholeChicken: require("@freshcut/assets/images/whole-chicken.png") as ImageSourcePropType,
+  curryCut: require("@freshcut/assets/images/curry-cut.png") as ImageSourcePropType,
+  skinlessCurryCut: require("@freshcut/assets/images/skinless-curry-cut.png") as ImageSourcePropType,
+  breastPiece: require("@freshcut/assets/images/breast-piece.png") as ImageSourcePropType,
+  legPiece: require("@freshcut/assets/images/leg-piece.png") as ImageSourcePropType,
+  wings: require("@freshcut/assets/images/wings.png") as ImageSourcePropType,
+  chickenBoneless: require("@freshcut/assets/images/chicken-boneless.png") as ImageSourcePropType,
   // country chicken
-  countryHenWhole: require("../../assets/images/country-hen-whole.png") as ImageSourcePropType,
-  countryCockWhole: require("../../assets/images/country-cock-whole.png") as ImageSourcePropType,
-  countryHenCut: require("../../assets/images/country-hen-cut.png") as ImageSourcePropType,
-  countryCockCut: require("../../assets/images/country-cock-cut.png") as ImageSourcePropType,
+  countryHenWhole: require("@freshcut/assets/images/country-hen-whole.png") as ImageSourcePropType,
+  countryCockWhole: require("@freshcut/assets/images/country-cock-whole.png") as ImageSourcePropType,
+  countryHenCut: require("@freshcut/assets/images/country-hen-cut.png") as ImageSourcePropType,
+  countryCockCut: require("@freshcut/assets/images/country-cock-cut.png") as ImageSourcePropType,
 };
 
 /**

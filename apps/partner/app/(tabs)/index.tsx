@@ -33,10 +33,12 @@ export default function HomeScreen() {
   const latest = [...(orders.data ?? [])].sort((a, b) => rank[a.status] - rank[b.status])[0];
 
   const Stat = ({ icon, label, value, color, bg, onPress }: { icon: IconName; label: TKey; value: number | string; color: string; bg: string; onPress?: () => void }) => (
-    <Pressable onPress={onPress} disabled={!onPress} style={{ flex: 1, padding: 14, borderRadius: 18, backgroundColor: bg, gap: 6 }}>
-      <Icon name={icon} color={color} size={20} />
-      <Txt bold size={22} color={color}>{value}</Txt>
-      <Txt size={12} color={color} numberOfLines={1}>{t(label)}</Txt>
+    <Pressable onPress={onPress} disabled={!onPress} style={{ flex: 1, padding: 14, borderRadius: 18, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, gap: 8 }}>
+      <View style={{ width: 36, height: 36, borderRadius: 12, backgroundColor: bg, alignItems: "center", justifyContent: "center" }}>
+        <Icon name={icon} color={color} size={20} />
+      </View>
+      <Txt bold size={24}>{value}</Txt>
+      <Txt size={12} muted numberOfLines={1}>{t(label)}</Txt>
     </Pressable>
   );
 
@@ -45,12 +47,15 @@ export default function HomeScreen() {
       <Header title={t(greeting())} sub={me.data?.shop_name} />
       <ScrollView contentContainerStyle={{ padding: 16, paddingTop: 6, gap: 14, paddingBottom: 32 }}>
         {/* Shop switch */}
-        <View style={{ padding: 16, borderRadius: 22, backgroundColor: open ? c.successBg : c.surface2, flexDirection: "row", alignItems: "center", gap: 12 }}>
-          <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: open ? c.success : c.muted, alignItems: "center", justifyContent: "center" }}>
-            <Icon name="shop" color="#FFFFFF" size={22} />
+        <View style={{ padding: 16, borderRadius: 22, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, flexDirection: "row", alignItems: "center", gap: 12 }}>
+          <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: c.tint, alignItems: "center", justifyContent: "center" }}>
+            <Icon name="shop" color={c.primary} size={22} />
           </View>
           <View style={{ flex: 1 }}>
-            <Txt bold size={17} color={open ? c.success : c.muted}>{open ? t("shopOpen") : t("shopClosed")}</Txt>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+              <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: open ? c.success : c.muted }} />
+              <Txt bold size={17} color={open ? c.success : c.muted}>{open ? t("shopOpen") : t("shopClosed")}</Txt>
+            </View>
             <Txt size={12} muted numberOfLines={1}>{open ? t("openHint") : t("closedHint")}</Txt>
           </View>
           <Switch

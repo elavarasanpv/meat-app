@@ -7,7 +7,7 @@ import { Icon } from "./Icon";
 import { useT } from "@/i18n";
 import { fonts, useTheme } from "@/theme";
 
-const rider = require("../../assets/images/rider-arrived.png");
+const rider = require("@freshcut/assets/images/rider-arrived.png");
 const chime = require("../../assets/sounds/arrived.wav");
 
 type Props = {

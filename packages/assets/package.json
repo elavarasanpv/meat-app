@@ -1,0 +1,7 @@
+{
+  "name": "@freshcut/assets",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Product cut-outs and illustrations shared by the customer and partner apps",
+  "files": ["images"]
+}
