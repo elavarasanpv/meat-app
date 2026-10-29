@@ -123,8 +123,8 @@ export function OrderCard({ o, compact }: { o: DealerOrder; compact?: boolean })
           </View>
         ) : (
           <View style={{ flexDirection: "row", gap: 10 }}>
-            <Btn label={t("reject")} kind="soft" onPress={() => setMode("reject")} style={{ flex: 1 }} />
-            <Btn label={t("accept")} kind="success" big onPress={() => setMode("ready")} style={{ flex: 2 }} loading={accept.isPending} />
+            <Btn label={t("reject")} icon="x" kind="outlineDanger" big onPress={() => setMode("reject")} style={{ flex: 1 }} />
+            <Btn label={t("accept")} icon="check" kind="success" big onPress={() => setMode("ready")} style={{ flex: 1 }} loading={accept.isPending} />
           </View>
         )
       ) : null}

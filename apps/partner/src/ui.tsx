@@ -1,5 +1,6 @@
 import { ActivityIndicator, Pressable, Text, useColorScheme, type TextProps, type ViewStyle } from "react-native";
 import { palette } from "@/theme";
+import { Icon, type IconName } from "@/components/Icon";
 
 export function useC() {
   const scheme = useColorScheme() ?? "light";
@@ -26,18 +27,27 @@ export function Txt({ size = 15, bold, color, muted, style, ...rest }: TxtProps)
 type BtnProps = {
   label: string;
   onPress: () => void;
-  kind?: "primary" | "soft" | "outline" | "success" | "danger";
+  kind?: "primary" | "soft" | "outline" | "outlineDanger" | "success" | "danger";
   big?: boolean;
   loading?: boolean;
   disabled?: boolean;
+  /** Optional icon drawn before the label. */
+  icon?: IconName;
   style?: ViewStyle;
 };
 
 /** Big-thumb button for shop owners. */
-export function Btn({ label, onPress, kind = "primary", big, loading, disabled, style }: BtnProps) {
+export function Btn({ label, onPress, kind = "primary", big, loading, disabled, icon, style }: BtnProps) {
   const c = useC();
-  const bg = kind === "primary" ? c.primary : kind === "success" ? c.success : kind === "danger" ? c.danger : kind === "soft" ? c.surface2 : "transparent";
-  const fg = kind === "soft" ? c.ink : kind === "outline" ? c.primary : "#FFFFFF";
+  const outlined = kind === "outline" || kind === "outlineDanger";
+  const bg = kind === "primary" ? c.primary : kind === "success" ? c.success : kind === "danger" ? c.danger : kind === "soft" ? c.surface2 : c.surface;
+  const fg = kind === "soft" ? c.ink : kind === "outline" ? c.primary : kind === "outlineDanger" ? c.danger : "#FFFFFF";
+  const content = (
+    <>
+      {icon ? <Icon name={icon} color={fg} size={big ? 22 : 18} strokeWidth={2.6} /> : null}
+      <Txt bold size={big ? 17 : 15} color={fg} numberOfLines={1}>{label}</Txt>
+    </>
+  );
   const off = disabled || loading;
   return (
     <Pressable
@@ -49,17 +59,19 @@ export function Btn({ label, onPress, kind = "primary", big, loading, disabled, 
           height: big ? 58 : 48,
           borderRadius: big ? 29 : 24,
           paddingHorizontal: 18,
+          flexDirection: "row",
+          gap: 8,
           alignItems: "center",
           justifyContent: "center",
           backgroundColor: bg,
-          borderWidth: kind === "outline" ? 2 : 0,
-          borderColor: c.primary,
+          borderWidth: outlined ? 2 : 0,
+          borderColor: fg,
           opacity: off ? 0.55 : pressed ? 0.85 : 1,
         },
         style,
       ]}
     >
-      {loading ? <ActivityIndicator color={fg} /> : <Txt bold size={big ? 17 : 15} color={fg} numberOfLines={1}>{label}</Txt>}
+      {loading ? <ActivityIndicator color={fg} /> : content}
     </Pressable>
   );
 }
