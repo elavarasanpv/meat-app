@@ -21,6 +21,10 @@ const bundled = {
   countryCockWhole: require("@freshcut/assets/images/country-cock-whole.png") as ImageSourcePropType,
   countryHenCut: require("@freshcut/assets/images/country-hen-cut.png") as ImageSourcePropType,
   countryCockCut: require("@freshcut/assets/images/country-cock-cut.png") as ImageSourcePropType,
+  // live animals for group headers
+  animalCountryHen: require("@freshcut/assets/images/animal-country-hen.png") as ImageSourcePropType,
+  animalBroilerHen: require("@freshcut/assets/images/animal-broiler-hen.png") as ImageSourcePropType,
+  animalGoat: require("@freshcut/assets/images/animal-goat.png") as ImageSourcePropType,
 };
 
 /** Same name-matching as the customer app, so both apps show the same picture for a product. */
@@ -49,16 +53,16 @@ export function productImage(name: string, imagePath: string | null): ImageSourc
 export function subcategoryImage(name: string, imagePath: string | null | undefined): ImageSourcePropType | undefined {
   if (imagePath) return { uri: supabase.storage.from("product-images").getPublicUrl(imagePath).data.publicUrl };
   const n = name.toLowerCase();
-  if (n.includes("country")) return bundled.countryChicken;
-  if (n.includes("broiler") || n.includes("chicken")) return bundled.broilerChicken;
+  if (n.includes("country")) return bundled.animalCountryHen;
+  if (n.includes("broiler") || n.includes("chicken")) return bundled.animalBroilerHen;
   return undefined;
 }
 
-/** Picture for a category group header. */
+/** Picture for a category group header (the live animal, not the cut). */
 export function categoryImage(name: string): ImageSourcePropType | undefined {
   const n = name.toLowerCase();
-  if (n.includes("chicken")) return bundled.broilerChicken;
-  if (n.includes("mutton")) return bundled.mutton;
+  if (n.includes("chicken")) return bundled.animalBroilerHen;
+  if (n.includes("mutton")) return bundled.animalGoat;
   if (n.includes("egg")) return bundled.eggsTray;
   return undefined;
 }

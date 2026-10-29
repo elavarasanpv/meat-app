@@ -104,16 +104,18 @@ export function StockScreen({ dealerId }: { dealerId: string }) {
         const subs = [...g.subs.values()];
         return (
           <View key={key} style={{ gap: 12 }}>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 4 }}>
-              {img ? <Image source={img} resizeMode="contain" style={{ width: 34, height: 34 }} /> : null}
-              <Txt bold size={20} style={{ flex: 1 }}>{g.title}</Txt>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 4 }}>
+              <View style={{ width: 56, height: 56, borderRadius: 18, backgroundColor: c.tint, alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+                {img ? <Image source={img} resizeMode="contain" style={{ width: 50, height: 50 }} /> : null}
+              </View>
+              <Txt bold size={22} style={{ flex: 1 }}>{g.title}</Txt>
               <Txt size={12} muted>{inStock}/{all.length}</Txt>
             </View>
             {subs.map((sub, i) =>
               sub.title ? (
                 <View key={sub.title} style={{ gap: 8, marginTop: i > 0 ? 4 : 0 }}>
                   <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 6 }}>
-                    {sub.image ? <Image source={sub.image} resizeMode="contain" style={{ width: 26, height: 26 }} /> : null}
+                    {sub.image ? <Image source={sub.image} resizeMode="contain" style={{ width: 32, height: 32 }} /> : null}
                     <Txt bold size={14} muted>{sub.title}</Txt>
                     <View style={{ flex: 1, height: 1, backgroundColor: c.border }} />
                     <Txt size={12} muted>{sub.rows.filter((r) => stateOf(r.out_of_stock_until) === "in").length}/{sub.rows.length}</Txt>
