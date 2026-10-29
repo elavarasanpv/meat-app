@@ -1,5 +1,6 @@
 import { Tabs } from "expo-router";
 import { TabBar } from "@/components/TabBar";
+import { ScaleCamera } from "@/components/ScaleCamera";
 import { useDealerMe, useDealerRealtime, useSummary } from "@/hooks/useDealer";
 import { useC } from "@/ui";
 
@@ -10,6 +11,7 @@ export default function TabsLayout() {
   useDealerRealtime(me.data?.id);
   const newCount = summary.data?.newCount ?? 0;
   return (
+    <>
     <Tabs tabBar={(p) => <TabBar {...p} />} screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: c.ground } }}>
       <Tabs.Screen name="index" />
       <Tabs.Screen name="orders" options={{ tabBarBadge: newCount > 0 ? newCount : undefined }} />
@@ -17,5 +19,7 @@ export default function TabsLayout() {
       <Tabs.Screen name="stock" />
       <Tabs.Screen name="account" />
     </Tabs>
+    <ScaleCamera />
+    </>
   );
 }

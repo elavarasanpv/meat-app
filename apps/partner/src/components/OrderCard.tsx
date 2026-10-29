@@ -156,7 +156,7 @@ export function OrderCard({ o, compact }: { o: DealerOrder; compact?: boolean })
             const left = items.filter((i) => !i.photo_path).length;
             return (
               <Btn
-                label={left ? `${left} ${t("photosLeft")}` : t("markPacked")}
+                label={left ? `${left} ${t(left === 1 ? "photoLeft" : "photosLeft")}` : t("markPacked")}
                 icon={left ? "camera" : "check"}
                 kind="success"
                 big

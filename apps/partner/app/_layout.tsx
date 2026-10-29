@@ -46,7 +46,7 @@ function DealerGate() {
   const me = useDealerMe();
   const signOut = useAuth((s) => s.signOut);
 
-  if (me.isError) {
+  if (me.isError && !me.data) {
     const notDealer = me.error instanceof ApiError && me.error.status === 403;
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: c.ground, alignItems: "center", justifyContent: "center", padding: 32, gap: 16 }}>
