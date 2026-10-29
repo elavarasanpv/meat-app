@@ -45,6 +45,15 @@ export function productImage(name: string, imagePath: string | null): ImageSourc
   return undefined;
 }
 
+/** Picture for a sub-category header (Broiler chicken / Country chicken). */
+export function subcategoryImage(name: string, imagePath: string | null | undefined): ImageSourcePropType | undefined {
+  if (imagePath) return { uri: supabase.storage.from("product-images").getPublicUrl(imagePath).data.publicUrl };
+  const n = name.toLowerCase();
+  if (n.includes("country")) return bundled.countryChicken;
+  if (n.includes("broiler") || n.includes("chicken")) return bundled.broilerChicken;
+  return undefined;
+}
+
 /** Picture for a category group header. */
 export function categoryImage(name: string): ImageSourcePropType | undefined {
   const n = name.toLowerCase();

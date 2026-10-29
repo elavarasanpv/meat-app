@@ -1,7 +1,7 @@
 import { Image, Pressable, ScrollView, View } from "react-native";
 import { useSetStock, useStock, type StockRow } from "@/hooks/useDealer";
 import { useLang, useT, type TKey } from "@/i18n";
-import { categoryImage, productImage } from "@/lib/images";
+import { categoryImage, productImage, subcategoryImage } from "@/lib/images";
 import { Txt, useC } from "@/ui";
 
 /** 12 h keeps "out today" true through the evening, back on by morning. */
@@ -59,18 +59,23 @@ function Row({ row, onChange }: { row: StockRow; onChange: (s: State) => void })
   );
 }
 
-/** Products grouped by category (Chicken, Mutton, Eggs…), each with its picture and stock switch. */
+/** Products grouped by category, then sub-category (Chicken → Broiler / Country), each with its picture and stock switch. */
 export function StockScreen({ dealerId }: { dealerId: string }) {
   const c = useC();
   const lang = useLang((s) => s.lang);
   const stock = useStock(dealerId);
   const set = useSetStock();
+  const local = (g: { name: string; name_ta: string | null }) => (lang === "ta" && g.name_ta ? g.name_ta : g.name);
 
-  const groups = new Map<string, { title: string; rows: StockRow[] }>();
+  // category → sub-category (or "" for none) → rows, in catalogue order
+  const groups = new Map<string, { title: string; subs: Map<string, { title: string; image?: ReturnType<typeof subcategoryImage>; rows: StockRow[] }> }>();
   for (const row of stock.data ?? []) {
-    const key = row.category.name;
-    if (!groups.has(key)) groups.set(key, { title: lang === "ta" && row.category.name_ta ? row.category.name_ta : row.category.name, rows: [] });
-    groups.get(key)!.rows.push(row);
+    const ck = row.category.name;
+    if (!groups.has(ck)) groups.set(ck, { title: local(row.category), subs: new Map() });
+    const sk = row.subcategory?.name ?? "";
+    const subs = groups.get(ck)!.subs;
+    if (!subs.has(sk)) subs.set(sk, { title: row.subcategory ? local(row.subcategory) : "", image: row.subcategory ? subcategoryImage(row.subcategory.name, row.subcategory.image_path) : undefined, rows: [] });
+    subs.get(sk)!.rows.push(row);
   }
 
   const change = (row: StockRow, s: State) =>
@@ -79,26 +84,46 @@ export function StockScreen({ dealerId }: { dealerId: string }) {
       outOfStockUntil: s === "in" ? null : s === "today" ? new Date(Date.now() + OUT_TODAY_MS).toISOString() : FOREVER,
     });
 
+  const Card = ({ rows }: { rows: StockRow[] }) => (
+    <View style={{ borderRadius: 20, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, overflow: "hidden" }}>
+      {rows.map((row, i) => (
+        <View key={row.product_id}>
+          {i > 0 ? <View style={{ height: 1, backgroundColor: c.border, marginHorizontal: 12 }} /> : null}
+          <Row row={row} onChange={(s) => change(row, s)} />
+        </View>
+      ))}
+    </View>
+  );
+
   return (
-    <ScrollView contentContainerStyle={{ padding: 16, gap: 18, paddingBottom: 40 }}>
+    <ScrollView contentContainerStyle={{ padding: 16, gap: 22, paddingBottom: 40 }}>
       {[...groups.entries()].map(([key, g]) => {
         const img = categoryImage(key);
-        const out = g.rows.filter((r) => stateOf(r.out_of_stock_until) !== "in").length;
+        const all = [...g.subs.values()].flatMap((s) => s.rows);
+        const inStock = all.filter((r) => stateOf(r.out_of_stock_until) === "in").length;
+        const subs = [...g.subs.values()];
         return (
-          <View key={key} style={{ gap: 10 }}>
+          <View key={key} style={{ gap: 12 }}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 4 }}>
               {img ? <Image source={img} resizeMode="contain" style={{ width: 34, height: 34 }} /> : null}
-              <Txt bold size={18} style={{ flex: 1 }}>{g.title}</Txt>
-              <Txt size={12} muted>{g.rows.length - out}/{g.rows.length}</Txt>
+              <Txt bold size={20} style={{ flex: 1 }}>{g.title}</Txt>
+              <Txt size={12} muted>{inStock}/{all.length}</Txt>
             </View>
-            <View style={{ borderRadius: 20, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, overflow: "hidden" }}>
-              {g.rows.map((row, i) => (
-                <View key={row.product_id}>
-                  {i > 0 ? <View style={{ height: 1, backgroundColor: c.border, marginHorizontal: 12 }} /> : null}
-                  <Row row={row} onChange={(s) => change(row, s)} />
+            {subs.map((sub, i) =>
+              sub.title ? (
+                <View key={sub.title} style={{ gap: 8, marginTop: i > 0 ? 4 : 0 }}>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 6 }}>
+                    {sub.image ? <Image source={sub.image} resizeMode="contain" style={{ width: 26, height: 26 }} /> : null}
+                    <Txt bold size={14} muted>{sub.title}</Txt>
+                    <View style={{ flex: 1, height: 1, backgroundColor: c.border }} />
+                    <Txt size={12} muted>{sub.rows.filter((r) => stateOf(r.out_of_stock_until) === "in").length}/{sub.rows.length}</Txt>
+                  </View>
+                  <Card rows={sub.rows} />
                 </View>
-              ))}
-            </View>
+              ) : (
+                <Card key="_" rows={sub.rows} />
+              ),
+            )}
           </View>
         );
       })}
