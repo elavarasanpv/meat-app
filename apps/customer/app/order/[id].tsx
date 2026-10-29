@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from "react";
-import { Animated, Easing, Linking, Pressable, ScrollView, View, useWindowDimensions } from "react-native";
+import { useEffect, useState } from "react";
+import { Linking, Pressable, ScrollView, View, useWindowDimensions } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { ARRIVING_KM, CUSTOMER_CANCELLABLE, ORDER_STATUSES, etaMinutesRange, haversineKm, type OrderStatus } from "@freshcut/shared";
@@ -11,7 +11,7 @@ import { ErrorState, Skeleton } from "@/components/States";
 import { ArrivedPanel } from "@/components/ArrivedPanel";
 import { CancelSheet } from "@/components/CancelSheet";
 import { DeliveryInfoCard } from "@/components/DeliveryInfoCard";
-import { OrderProgress } from "@/components/OrderProgress";
+import { OrderJourney } from "@/components/OrderJourney";
 import { TrackingMap } from "@/components/TrackingMap";
 import { useRiderLocation } from "@/hooks/useTracking";
 import { useCancelOrder, useOrder, useOrderOtp } from "@/hooks/useOrders";
@@ -21,7 +21,6 @@ import { fonts, useTheme } from "@/theme";
 import { queryState } from "@/lib/network";
 
 /** The happy path shown as a timeline; side exits (cancelled etc.) are shown as a badge only. */
-const TIMELINE: OrderStatus[] = ["PLACED", "ACCEPTED", "PACKED", "OUT_FOR_DELIVERY", "DELIVERED"];
 const rank = (s: OrderStatus) => ORDER_STATUSES.indexOf(s);
 const TRACKABLE: OrderStatus[] = ["RIDER_ASSIGNED", "PICKED_UP", "OUT_FOR_DELIVERY"];
 const STALE_MS = 3 * 60_000;
@@ -189,7 +188,7 @@ export default function OrderDetailScreen() {
             <ErrorState title={queryState(order).failed ? undefined : t("orderNotFound")} onRetry={queryState(order).failed ? () => order.refetch() : undefined} />
           ) : null}
 
-          {showTimeline && o ? <OrderProgress status={o.status} justPlaced={placed === "1"} /> : null}
+          {showTimeline && o ? <OrderJourney status={o.status} justPlaced={placed === "1"} /> : null}
 
           {showOtp ? (
             <View style={{ padding: 16, borderRadius: 22, backgroundColor: c.tint, borderWidth: 1.5, borderColor: c.primary, flexDirection: "row", alignItems: "center", gap: 14 }}>
@@ -228,33 +227,6 @@ export default function OrderDetailScreen() {
                 </AppText>
               </View>
             </View>
-          ) : null}
-
-          {/* Timeline (pre-dispatch only) */}
-          {showTimeline ? (
-          <View style={card}>
-            <AppText variant="subtitle" numberOfLines={1} style={{ height: 24 }}>{t("orderStatus")}</AppText>
-            {TIMELINE.map((s, i) => {
-              const done = reached(s);
-              // "Next" = the step the shop/rider is working towards right now.
-              const next = !done && (i === 0 || reached(TIMELINE[i - 1]));
-              const when = o?.order_status_history.find((h) => h.to_status === s)?.created_at;
-              return (
-                <View key={s} style={{ flexDirection: "row", gap: 12, minHeight: 40 }}>
-                  <View style={{ alignItems: "center", width: 22 }}>
-                    <TimelineDot state={done ? "done" : next ? "next" : "todo"} />
-                    {i < TIMELINE.length - 1 ? <View style={{ width: 2, flex: 1, backgroundColor: done ? c.success : c.border, marginVertical: 2 }} /> : null}
-                  </View>
-                  <View style={{ flex: 1, paddingBottom: 10 }}>
-                    <AppText variant={done || next ? "bodyBold" : "body"} color={done ? c.ink : next ? c.price : c.muted} numberOfLines={1}>
-                      {t(`st_${s}` as TKey)}
-                    </AppText>
-                    {when ? <AppText variant="caption" muted numberOfLines={1}>{dateTime(when)}</AppText> : next ? <AppText variant="caption" color={c.price} numberOfLines={1}>{t("inProgress")}</AppText> : null}
-                  </View>
-                </View>
-              );
-            })}
-          </View>
           ) : null}
 
           {/* Delivery + bill: compact card while tracking, full cards otherwise */}
@@ -338,43 +310,4 @@ export default function OrderDetailScreen() {
       />
     </View>
   );
-}
-
-/** Timeline marker: green tick when done, pulsing orange ring for the step in progress, grey when upcoming. */
-function TimelineDot({ state }: { state: "done" | "next" | "todo" }) {
-  const { c } = useTheme();
-  const pulse = useRef(new Animated.Value(0)).current;
-  const scale = useRef(new Animated.Value(state === "done" ? 1 : 0)).current;
-  useEffect(() => {
-    if (state !== "next") return;
-    const loop = Animated.loop(Animated.sequence([
-      Animated.timing(pulse, { toValue: 1, duration: 900, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
-      Animated.timing(pulse, { toValue: 0, duration: 900, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
-    ]));
-    loop.start();
-    return () => loop.stop();
-  }, [state]);
-  // Tick springs in the moment a step completes (realtime update).
-  useEffect(() => {
-    if (state === "done") Animated.spring(scale, { toValue: 1, friction: 4, tension: 120, useNativeDriver: true }).start();
-  }, [state]);
-
-  if (state === "done") {
-    return (
-      <Animated.View style={{ width: 20, height: 20, borderRadius: 10, backgroundColor: c.success, alignItems: "center", justifyContent: "center", transform: [{ scale }] }}>
-        <Icon name="check" color="#FFFFFF" size={12} strokeWidth={3} />
-      </Animated.View>
-    );
-  }
-  if (state === "next") {
-    return (
-      <View style={{ width: 20, height: 20, alignItems: "center", justifyContent: "center" }}>
-        <Animated.View pointerEvents="none" style={{ position: "absolute", width: 20, height: 20, borderRadius: 10, backgroundColor: c.primary, opacity: pulse.interpolate({ inputRange: [0, 1], outputRange: [0.35, 0] }), transform: [{ scale: pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.9] }) }] }} />
-        <View style={{ width: 20, height: 20, borderRadius: 10, backgroundColor: c.surface, borderWidth: 2, borderColor: c.primary, alignItems: "center", justifyContent: "center" }}>
-          <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: c.primary }} />
-        </View>
-      </View>
-    );
-  }
-  return <View style={{ width: 20, height: 20, borderRadius: 10, backgroundColor: c.surface, borderWidth: 2, borderColor: c.border }} />;
 }
