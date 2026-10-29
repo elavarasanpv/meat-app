@@ -87,6 +87,14 @@ export const weighItemSchema = z.object({
   photoPath: z.string().min(1).max(500).optional(),
 });
 
+/** Photo of one packed item on the weighing scale (already uploaded to the order-proofs bucket). */
+export const itemPhotoSchema = z.object({
+  orderId: z.string().uuid(),
+  orderItemId: z.string().uuid(),
+  /** Storage path: <orderId>/<orderItemId>-<time>.jpg */
+  photoPath: z.string().min(1).max(500),
+});
+
 export const shopStateSchema = z.object({
   isOpen: z.boolean().optional(),
   /** ISO time the shop stays closed until; null clears it. */
@@ -115,6 +123,7 @@ export type DealerAcceptInput = z.infer<typeof dealerAcceptSchema>;
 export type DealerRejectInput = z.infer<typeof dealerRejectSchema>;
 export type ItemUnavailableInput = z.infer<typeof itemUnavailableSchema>;
 export type WeighItemInput = z.infer<typeof weighItemSchema>;
+export type ItemPhotoInput = z.infer<typeof itemPhotoSchema>;
 export type ShopStateInput = z.infer<typeof shopStateSchema>;
 export type StockInput = z.infer<typeof stockSchema>;
 export type DeliverOrderInput = z.infer<typeof deliverOrderSchema>;

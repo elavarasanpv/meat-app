@@ -14,6 +14,8 @@ export type DealerOrderItem = {
   notes: string | null;
   unavailable: boolean;
   shop_price_per_kg: number;
+  /** Scale photo already uploaded for this item (storage path), if any. */
+  photo_path: string | null;
   products: { name: string; name_ta: string | null; unit: "kg" | "piece" };
 };
 
@@ -91,6 +93,14 @@ export function useStartCutting() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (orderId: string) => api(`/dealer/orders/${orderId}/start-cutting`, { method: "POST" }),
+    onSettled: () => invalidate(qc),
+  });
+}
+
+export function useItemPhoto() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (p: { orderId: string; orderItemId: string; photoPath: string }) => api("/dealer/orders/item-photo", { method: "POST", body: p }),
     onSettled: () => invalidate(qc),
   });
 }

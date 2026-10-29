@@ -1,6 +1,6 @@
 import { BadRequestException, Body, Controller, Get, Headers, Param, Post } from "@nestjs/common";
 import { z } from "zod";
-import { dealerAcceptSchema, dealerRejectSchema, itemUnavailableSchema, shopStateSchema, stockSchema, weighItemSchema } from "@freshcut/shared";
+import { dealerAcceptSchema, dealerRejectSchema, itemPhotoSchema, itemUnavailableSchema, shopStateSchema, stockSchema, weighItemSchema } from "@freshcut/shared";
 import { SupabaseService } from "../supabase.service";
 import { requireUser } from "../auth";
 import { DealerService } from "./dealer.service";
@@ -84,7 +84,14 @@ export class DealerController {
     return this.dealer.weighItem(user.id, parse(weighItemSchema, body));
   }
 
-  /** POST /dealer/orders/:id/packed — final bill + ready for pickup. */
+  /** POST /dealer/orders/item-photo { orderId, orderItemId, photoPath } */
+  @Post("orders/item-photo")
+  async itemPhoto(@Headers("authorization") auth: string | undefined, @Body() body: unknown) {
+    const user = await requireUser(this.supabase, auth);
+    return this.dealer.itemPhoto(user.id, parse(itemPhotoSchema, body));
+  }
+
+  /** POST /dealer/orders/:id/packed — every item photographed → ready for pickup. */
   @Post("orders/:id/packed")
   async packed(@Headers("authorization") auth: string | undefined, @Param("id") id: string) {
     const user = await requireUser(this.supabase, auth);

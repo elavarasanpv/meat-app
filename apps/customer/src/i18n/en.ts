@@ -48,7 +48,7 @@ export const en = {
   notesLabel: "Special instructions",
   notesPlaceholder: "e.g. remove neck, keep liver separately",
   estTotal: "Estimated total",
-  weightNote: "Final bill is based on actual packed weight (±5%). You'll see the exact amount before paying.",
+  weightNote: "You pay exactly this amount. The shop weighs every item and shares a photo of the scale.",
   goToCart: "Go to cart",
   viewCart: "View cart",
   updateCart: "Update cart",
@@ -58,7 +58,7 @@ export const en = {
   // cart
   cartEmpty: "Your cart is empty",
   browseProducts: "Browse products",
-  itemTotal: "Items (estimated)",
+  itemTotal: "Items",
   deliveryFee: "Delivery",
   freeAbove: "FREE above ₹{n}",
   toPay: "To pay",

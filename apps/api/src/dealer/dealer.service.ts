@@ -1,5 +1,5 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
-import type { DealerAcceptInput, DealerRejectInput, ItemUnavailableInput, ShopStateInput, StockInput, WeighItemInput } from "@freshcut/shared";
+import type { DealerAcceptInput, DealerRejectInput, ItemPhotoInput, ItemUnavailableInput, ShopStateInput, StockInput, WeighItemInput } from "@freshcut/shared";
 import { DELIVERY_FEE, FREE_DELIVERY_ABOVE } from "@freshcut/shared";
 import { SupabaseService } from "../supabase.service";
 import { OrdersService } from "../orders/orders.service";
@@ -53,12 +53,20 @@ export class DealerService {
       .eq("outcome", "pending");
     const deadlines = new Map((pending ?? []).map((p) => [p.order_id, p.deadline_at]));
 
+    // Scale photo already taken for each item (latest per item).
+    const ids = (orders ?? []).map((o) => o.id);
+    const { data: proofs } = ids.length
+      ? await db.from("order_proofs").select("order_item_id, photo_path, created_at").in("order_id", ids).eq("type", "packed").order("created_at")
+      : { data: [] as { order_item_id: string | null; photo_path: string }[] };
+    const photoOf = new Map((proofs ?? []).filter((p) => p.order_item_id).map((p) => [p.order_item_id as string, p.photo_path]));
+
     return (orders ?? []).map((o) => ({
       ...o,
       accept_deadline: deadlines.get(o.id) ?? null,
       order_items: (o.order_items as Record<string, unknown>[]).map((it) => ({
         ...it,
         shop_price_per_kg: shopPrice.get(it.product_id as string) ?? Number(it.unit_price_per_kg),
+        photo_path: photoOf.get(it.id as string) ?? null,
       })),
     }));
   }
@@ -219,17 +227,48 @@ export class DealerService {
     return { orderItemId: item.id, actualQty: input.actualQty };
   }
 
-  /** All weighed → final bill from actual weights → PACKED (rider next). */
+  /**
+   * Photo of one packed item on the weighing scale — the shop's proof that at
+   * least the ordered weight was packed. A retake replaces the earlier photo.
+   */
+  async itemPhoto(profileId: string, input: ItemPhotoInput) {
+    const dealer = await this.resolveDealer(profileId);
+    const db = this.supabase.admin;
+    const order = await this.ownedOrder(input.orderId, dealer.id, ["PACKING"]);
+    const item = (order.order_items as { id: string; unavailable: boolean }[]).find((i) => i.id === input.orderItemId);
+    if (!item) throw new NotFoundException("Item not found on this order");
+    if (item.unavailable) throw new BadRequestException("Item was marked unavailable");
+    if (!input.photoPath.startsWith(`${input.orderId}/`)) throw new BadRequestException("Photo is not stored under this order");
+
+    await db.from("order_proofs").delete().eq("order_item_id", item.id).eq("type", "packed");
+    const { error } = await db.from("order_proofs").insert({
+      order_id: input.orderId,
+      order_item_id: item.id,
+      type: "packed",
+      photo_path: input.photoPath,
+      created_by: profileId,
+    });
+    if (error) throw new BadRequestException(error.message);
+    return { orderItemId: item.id, photoPath: input.photoPath };
+  }
+
+  /**
+   * Every item photographed on the scale → PACKED (rider next).
+   * The customer pays exactly what they saw: the bill is the ordered quantity
+   * at the checkout price (minus any item the shop could not supply).
+   */
   async packed(profileId: string, orderId: string) {
     const dealer = await this.resolveDealer(profileId);
     const db = this.supabase.admin;
     const order = await this.ownedOrder(orderId, dealer.id, ["PACKING"]);
 
-    const items = (order.order_items as { unavailable: boolean; actual_kg: number | null; unit_price_per_kg: number }[]).filter((i) => !i.unavailable);
-    const unweighed = items.filter((i) => i.actual_kg == null).length;
-    if (unweighed) throw new BadRequestException(`${unweighed} item(s) not weighed yet`);
+    const items = (order.order_items as { id: string; unavailable: boolean; requested_kg: number; unit_price_per_kg: number }[]).filter((i) => !i.unavailable);
+    const { data: proofs } = await db.from("order_proofs").select("order_item_id").eq("order_id", orderId).eq("type", "packed");
+    const shot = new Set((proofs ?? []).map((p) => p.order_item_id));
+    const missing = items.filter((i) => !shot.has(i.id)).length;
+    if (missing) throw new BadRequestException(`${missing} item(s) still need a photo on the scale`);
 
-    const itemsTotal = items.reduce((sum, i) => sum + Math.round(Number(i.unit_price_per_kg) * Number(i.actual_kg)), 0);
+    const itemsTotal = items.reduce((sum, i) => sum + Math.round(Number(i.unit_price_per_kg) * Number(i.requested_kg)), 0);
     const finalAmount = itemsTotal + (itemsTotal >= FREE_DELIVERY_ABOVE ? 0 : DELIVERY_FEE);
     await db.from("orders").update({ final_amount: finalAmount }).eq("id", orderId);
     const result = await this.orders.transition({ orderId, to: "PACKED", actorId: profileId });

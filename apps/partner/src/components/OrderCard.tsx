@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import { TextInput, View } from "react-native";
+import { View } from "react-native";
 import * as Haptics from "expo-haptics";
 import { DEALER_REJECT_REASONS } from "@freshcut/shared";
-import { useAccept, usePacked, useReject, useStartCutting, useWeigh, type DealerOrder, type DealerOrderItem } from "@/hooks/useDealer";
+import { useAccept, usePacked, useReject, useStartCutting, type DealerOrder, type DealerOrderItem } from "@/hooks/useDealer";
 import { useLang, useT, type TKey } from "@/i18n";
 import { Btn, Chip, Txt, useC } from "@/ui";
 import { Icon } from "./Icon";
+import { ProofRow } from "./ProofRow";
 
 const READY_CHOICES = [15, 30, 45, 60];
 
@@ -78,11 +79,8 @@ export function OrderCard({ o, compact }: { o: DealerOrder; compact?: boolean })
   const accept = useAccept();
   const reject = useReject();
   const cutting = useStartCutting();
-  const weigh = useWeigh();
   const packed = usePacked();
   const [mode, setMode] = useState<"none" | "ready" | "reject">("none");
-  const [weights, setWeights] = useState<Record<string, string>>({});
-  const itemName = useItemName();
 
   const items = o.order_items.filter((i) => !i.unavailable);
   const shopTotal = items.reduce((s, i) => s + Math.round(i.shop_price_per_kg * i.requested_kg), 0);
@@ -149,34 +147,25 @@ export function OrderCard({ o, compact }: { o: DealerOrder; compact?: boolean })
 
       {o.status === "PACKING" ? (
         <View style={{ gap: 10 }}>
-          <Txt size={13} muted>{t("weighNote")}</Txt>
-          {items.map((it) => {
-            const saved = it.actual_kg != null;
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <Icon name="camera" color={c.muted} size={16} />
+            <Txt size={13} muted style={{ flex: 1 }}>{t("weighNote")}</Txt>
+          </View>
+          {items.map((it) => <ProofRow key={it.id} orderId={o.id} item={it} />)}
+          {(() => {
+            const left = items.filter((i) => !i.photo_path).length;
             return (
-              <View key={it.id} style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-                <Txt size={14} style={{ flex: 1 }} numberOfLines={2}>{itemName(it)}</Txt>
-                <TextInput
-                  value={weights[it.id] ?? (it.actual_kg != null ? String(it.actual_kg) : "")}
-                  onChangeText={(v) => setWeights((w) => ({ ...w, [it.id]: v.replace(/[^0-9.]/g, "") }))}
-                  keyboardType="decimal-pad"
-                  placeholder={String(it.requested_kg)}
-                  placeholderTextColor={c.muted}
-                  allowFontScaling={false}
-                  style={{ width: 90, height: 46, borderRadius: 12, borderWidth: 1.5, borderColor: saved ? c.success : c.border, backgroundColor: c.surface, textAlign: "center", fontFamily: "Manrope_700Bold", fontSize: 16, color: c.ink }}
-                />
-                <Btn
-                  label={saved ? `✓ ${t("saved")}` : t("save")}
-                  kind={saved ? "soft" : "outline"}
-                  onPress={() => {
-                    const v = Number(weights[it.id]);
-                    if (v > 0) weigh.mutate({ orderId: o.id, orderItemId: it.id, actualQty: v });
-                  }}
-                  style={{ minWidth: 96 }}
-                />
-              </View>
+              <Btn
+                label={left ? `${left} ${t("photosLeft")}` : t("markPacked")}
+                icon={left ? "camera" : "check"}
+                kind="success"
+                big
+                onPress={() => { tap(); packed.mutate(o.id); }}
+                loading={packed.isPending}
+                disabled={left > 0}
+              />
             );
-          })}
-          <Btn label={t("markPacked")} kind="success" big onPress={() => { tap(); packed.mutate(o.id); }} loading={packed.isPending} disabled={items.some((i) => i.actual_kg == null)} />
+          })()}
         </View>
       ) : null}
 
