@@ -71,9 +71,9 @@ export default function HomeScreen() {
 
         {/* Stage counts */}
         <View style={{ flexDirection: "row", gap: 10 }}>
-          <Stat icon="inbox" label="newOrders" value={s?.newCount ?? 0} color={c.primary} bg={c.tint} onPress={() => router.push("/(tabs)/orders")} />
-          <Stat icon="cut" label="inProgress" value={s?.inProgressCount ?? 0} color={c.warning} bg={c.warningBg} onPress={() => router.push("/(tabs)/orders")} />
-          <Stat icon="scooter" label="readyPickup" value={s?.readyCount ?? 0} color={c.success} bg={c.successBg} onPress={() => router.push("/(tabs)/orders")} />
+          <Stat icon="inbox" label="newOrders" value={s?.newCount ?? 0} color={c.primary} bg={c.tint} onPress={() => router.push({ pathname: "/(tabs)/orders", params: { seg: "new", at: String(Date.now()) } })} />
+          <Stat icon="cut" label="inProgress" value={s?.inProgressCount ?? 0} color={c.warning} bg={c.warningBg} onPress={() => router.push({ pathname: "/(tabs)/orders", params: { seg: "progress", at: String(Date.now()) } })} />
+          <Stat icon="scooter" label="readyPickup" value={s?.readyCount ?? 0} color={c.success} bg={c.successBg} onPress={() => router.push({ pathname: "/(tabs)/orders", params: { seg: "ready", at: String(Date.now()) } })} />
         </View>
 
         {/* Today */}

@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useLocalSearchParams } from "expo-router";
 import { Pressable, ScrollView, View } from "react-native";
 import { Header } from "@/components/Header";
 import { Icon } from "@/components/Icon";
@@ -20,7 +21,12 @@ export default function OrdersScreen() {
   const t = useT();
   const me = useDealerMe();
   const orders = useDealerOrders(me.data?.id);
-  const [seg, setSeg] = useState<Seg>("new");
+  // Home's tiles open a specific segment (?seg=new|progress|ready).
+  const { seg: wanted, at } = useLocalSearchParams<{ seg?: Seg; at?: string }>();
+  const [seg, setSeg] = useState<Seg>(wanted ?? "new");
+  useEffect(() => {
+    if (wanted && SEGMENTS.some((x) => x.key === wanted)) setSeg(wanted);
+  }, [wanted, at]);
 
   const all = orders.data ?? [];
   const countOf = (s: Seg) => all.filter((o) => SEGMENTS.find((x) => x.key === s)!.statuses.includes(o.status)).length;
