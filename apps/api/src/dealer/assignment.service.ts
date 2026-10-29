@@ -50,10 +50,10 @@ export class AssignmentService implements OnModuleInit, OnModuleDestroy {
     const now = new Date().toISOString();
     const { data: rows } = await db
       .from("dealer_pincodes")
-      .select("dealer_id, dealers!inner(id, lat, lng, is_active, is_open, closed_until)")
+      .select("dealer_id, dealers!inner(id, profile_id, lat, lng, is_active, is_open, closed_until)")
       .eq("pincode", addr.pincode);
     const open = (rows ?? [])
-      .map((r) => r.dealers as unknown as { id: string; lat: number | null; lng: number | null; is_active: boolean; is_open: boolean; closed_until: string | null })
+      .map((r) => r.dealers as unknown as { id: string; profile_id: string; lat: number | null; lng: number | null; is_active: boolean; is_open: boolean; closed_until: string | null })
       .filter((d) => d.is_active && d.is_open && (!d.closed_until || d.closed_until <= now));
 
     // Already-tried shops are out
@@ -93,7 +93,7 @@ export class AssignmentService implements OnModuleInit, OnModuleDestroy {
     if (error) throw new Error(error.message);
     await db.from("orders").update({ dealer_id: dealer.id }).eq("id", orderId);
     if (order.status === "PLACED") {
-      await this.orders.transition({ orderId, to: "DEALER_ASSIGNED", actorId: dealer.id, note: "offered to shop" });
+      await this.orders.transition({ orderId, to: "DEALER_ASSIGNED", actorId: dealer.profile_id, note: "offered to shop" });
     }
     return { assigned: true, dealerId: dealer.id };
   }

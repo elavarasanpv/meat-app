@@ -83,7 +83,7 @@ export class OrdersService {
       .eq("status", from); // optimistic lock on current status
     if (updateError) throw new BadRequestException(updateError.message);
 
-    await db.from("order_status_history").insert({
+    const { error: historyError } = await db.from("order_status_history").insert({
       order_id: orderId,
       from_status: from,
       to_status: to,
@@ -92,6 +92,7 @@ export class OrdersService {
       lat,
       lng,
     });
+    if (historyError) console.error(`[orders] history insert failed for ${orderId}: ${historyError.message}`);
 
     return { orderId, from, to };
   }
