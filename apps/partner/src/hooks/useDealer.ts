@@ -32,20 +32,28 @@ export function useDealerMe() {
   return useQuery<DealerMe>({ queryKey: ["dealer", "me"], queryFn: () => api("/dealer/me"), retry: false });
 }
 
-/** The shop's open orders; realtime on `orders` plus a 15 s poll for safety. */
+/** The shop's open orders (15 s poll; `useDealerRealtime` refreshes instantly). */
 export function useDealerOrders(dealerId: string | undefined) {
-  const qc = useQueryClient();
-  const query = useQuery<DealerOrder[]>({
+  return useQuery<DealerOrder[]>({
     queryKey: ["dealer", "orders"],
     enabled: !!dealerId,
     refetchInterval: 15_000,
     queryFn: () => api("/dealer/orders"),
   });
+}
 
+/**
+ * One realtime subscription for the whole app (mount it once, in the tab
+ * layout): any change to this shop's orders refreshes orders, summary and
+ * history. Supabase refuses a second subscription on the same channel name,
+ * so this must not be called from individual screens.
+ */
+export function useDealerRealtime(dealerId: string | undefined) {
+  const qc = useQueryClient();
   useEffect(() => {
     if (!dealerId) return;
     const channel = supabase
-      .channel(`dealer-${dealerId}`)
+      .channel(`dealer-${dealerId}-${Date.now()}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "orders", filter: `dealer_id=eq.${dealerId}` }, () => {
         qc.invalidateQueries({ queryKey: ["dealer", "orders"] });
         qc.invalidateQueries({ queryKey: ["dealer", "summary"] });
@@ -56,8 +64,6 @@ export function useDealerOrders(dealerId: string | undefined) {
       supabase.removeChannel(channel);
     };
   }, [dealerId]);
-
-  return query;
 }
 
 function invalidate(qc: ReturnType<typeof useQueryClient>) {
