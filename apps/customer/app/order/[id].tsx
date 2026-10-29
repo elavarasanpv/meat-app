@@ -12,6 +12,7 @@ import { ArrivedPanel } from "@/components/ArrivedPanel";
 import { CancelSheet } from "@/components/CancelSheet";
 import { DeliveryInfoCard } from "@/components/DeliveryInfoCard";
 import { OrderJourney } from "@/components/OrderJourney";
+import { PlacedFlash } from "@/components/PlacedFlash";
 import { TrackingMap } from "@/components/TrackingMap";
 import { useRiderLocation } from "@/hooks/useTracking";
 import { useCancelOrder, useOrder, useOrderOtp } from "@/hooks/useOrders";
@@ -188,7 +189,7 @@ export default function OrderDetailScreen() {
             <ErrorState title={queryState(order).failed ? undefined : t("orderNotFound")} onRetry={queryState(order).failed ? () => order.refetch() : undefined} />
           ) : null}
 
-          {showTimeline && o ? <OrderJourney status={o.status} justPlaced={placed === "1"} /> : null}
+          {showTimeline && o ? <OrderJourney status={o.status} /> : null}
 
           {showOtp ? (
             <View style={{ padding: 16, borderRadius: 22, backgroundColor: c.tint, borderWidth: 1.5, borderColor: c.primary, flexDirection: "row", alignItems: "center", gap: 14 }}>
@@ -308,6 +309,8 @@ export default function OrderDetailScreen() {
           }
         }}
       />
+
+      {placed === "1" ? <PlacedFlash /> : null}
     </View>
   );
 }

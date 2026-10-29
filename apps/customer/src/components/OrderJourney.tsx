@@ -25,7 +25,7 @@ const PAD = 28; // road inset from the card edge
 const STOP = 52; // stop artwork size
 const MARK = 30; // marker size
 
-type Props = { status: OrderStatus; justPlaced?: boolean };
+type Props = { status: OrderStatus };
 
 /**
  * Horizontal order journey: a road with five stops (placed → shop → cutting
@@ -34,30 +34,13 @@ type Props = { status: OrderStatus; justPlaced?: boolean };
  * two-frame chop/ride when PNG frames are provided). All vector/tiny PNG,
  * nothing fetched — works the same on 2G.
  */
-export function OrderJourney({ status, justPlaced }: Props) {
+export function OrderJourney({ status }: Props) {
   const { c } = useTheme();
   const t = useT();
   const idx = STOP_OF[status] ?? 0;
   const [width, setWidth] = useState(0);
   const span = Math.max(0, width - PAD * 2);
   const xOf = (i: number) => PAD + (span * i) / (STOPS.length - 1);
-
-  // --- "Order placed!" burst, then the journey fades in
-  const [burst, setBurst] = useState(!!justPlaced);
-  const pop = useRef(new Animated.Value(0)).current;
-  const fade = useRef(new Animated.Value(justPlaced ? 0 : 1)).current;
-  useEffect(() => {
-    if (!justPlaced) return;
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-    Animated.sequence([
-      Animated.spring(pop, { toValue: 1, friction: 5, tension: 90, useNativeDriver: true }),
-      Animated.delay(1400),
-      Animated.timing(pop, { toValue: 0, duration: 220, easing: Easing.in(Easing.cubic), useNativeDriver: true }),
-    ]).start(() => {
-      setBurst(false);
-      Animated.timing(fade, { toValue: 1, duration: 320, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
-    });
-  }, []);
 
   // --- marker + road progress (0..4), animated on every stage change
   const pos = useRef(new Animated.Value(idx)).current;
@@ -93,16 +76,7 @@ export function OrderJourney({ status, justPlaced }: Props) {
 
   return (
     <View style={{ minHeight: 200 }}>
-      {burst ? (
-        <Animated.View style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0, alignItems: "center", justifyContent: "center", gap: 12, opacity: pop, transform: [{ scale: pop.interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] }) }] }}>
-          <View style={{ width: 84, height: 84, borderRadius: 42, backgroundColor: c.success, alignItems: "center", justifyContent: "center" }}>
-            <Icon name="check" color="#FFFFFF" size={44} strokeWidth={3} />
-          </View>
-          <AppText variant="title" color={c.successText} numberOfLines={1} style={{ fontSize: 22 }}>{t("orderPlaced")}</AppText>
-        </Animated.View>
-      ) : null}
-
-      <Animated.View onLayout={(e) => setWidth(e.nativeEvent.layout.width)} style={{ opacity: fade, borderRadius: 24, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, paddingTop: 18, paddingBottom: 16, gap: 10 }}>
+      <View onLayout={(e) => setWidth(e.nativeEvent.layout.width)} style={{ borderRadius: 24, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, paddingTop: 18, paddingBottom: 16, gap: 10 }}>
         {/* Road */}
         <View style={{ height: STOP + 34 }}>
           {width > 0 ? (
@@ -111,30 +85,32 @@ export function OrderJourney({ status, justPlaced }: Props) {
               <Animated.View style={{ position: "absolute", left: PAD, width: span, top: STOP + 6, height: 6, borderRadius: 3, backgroundColor: c.success, transform: [{ translateX: -span / 2 }, { scaleX: roadScale }, { translateX: span / 2 }] }} />
 
               {STOPS.map((s, i) => {
-                const done = i < idx;
+                const done = i < idx || i === 0;
                 const on = i === idx;
+                const next = i === idx + 1 || (idx === 0 && i === 1);
+                const live = on && !done ? true : next; // artwork that animates
                 const art = JOURNEY_ART[s];
                 const x = xOf(i);
                 return (
                   <View key={s} style={{ position: "absolute", left: x - STOP / 2, top: 0, width: STOP, alignItems: "center" }}>
                     {/* artwork above the road; current one bobs / flips frames */}
-                    <Animated.View style={{ width: STOP, height: STOP, alignItems: "center", justifyContent: "center", opacity: done || on ? 1 : 0.45, transform: on ? [{ translateY: bob.interpolate({ inputRange: [0, 1], outputRange: [0, -5] }) }, { scale: 1.12 }] : [] }}>
+                    <Animated.View style={{ width: STOP, height: STOP, alignItems: "center", justifyContent: "center", opacity: done || on || next ? 1 : 0.45, transform: live ? [{ translateY: bob.interpolate({ inputRange: [0, 1], outputRange: [0, -5] }) }, { scale: 1.1 }] : [] }}>
                       {art.frames?.length ? (
                         <>
-                          <Animated.Image source={art.frames[0]} style={{ position: "absolute", width: STOP, height: STOP, opacity: on && art.frames[1] ? flip.interpolate({ inputRange: [0, 0.5, 1], outputRange: [1, 0, 0] }) : 1 }} resizeMode="contain" />
-                          {on && art.frames[1] ? <Animated.Image source={art.frames[1]} style={{ position: "absolute", width: STOP, height: STOP, opacity: flip.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0, 1, 1] }) }} resizeMode="contain" /> : null}
+                          <Animated.Image source={art.frames[0]} style={{ position: "absolute", width: STOP, height: STOP, opacity: live && art.frames[1] ? flip.interpolate({ inputRange: [0, 0.5, 1], outputRange: [1, 0, 0] }) : 1 }} resizeMode="contain" />
+                          {live && art.frames[1] ? <Animated.Image source={art.frames[1]} style={{ position: "absolute", width: STOP, height: STOP, opacity: flip.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0, 1, 1] }) }} resizeMode="contain" /> : null}
                         </>
                       ) : (
-                        <View style={{ width: 44, height: 44, borderRadius: 16, backgroundColor: on ? c.tint : done ? c.successBg : c.surface2, alignItems: "center", justifyContent: "center" }}>
-                          <Icon name={art.icon} color={on ? c.primary : done ? c.success : c.muted} size={22} />
+                        <View style={{ width: 44, height: 44, borderRadius: 16, backgroundColor: done ? c.successBg : on || next ? c.tint : c.surface2, alignItems: "center", justifyContent: "center" }}>
+                          <Icon name={art.icon} color={done ? c.success : on || next ? c.primary : c.muted} size={22} />
                         </View>
                       )}
                     </Animated.View>
                     {/* stop dot on the road */}
-                    <View style={{ marginTop: 2, width: 14, height: 14, borderRadius: 7, backgroundColor: done ? c.success : c.surface, borderWidth: 2.5, borderColor: done ? c.success : on ? c.primary : c.border, alignItems: "center", justifyContent: "center" }}>
+                    <View style={{ marginTop: 2, width: 14, height: 14, borderRadius: 7, backgroundColor: done ? c.success : c.surface, borderWidth: 2.5, borderColor: done ? c.success : on || next ? c.primary : c.border, alignItems: "center", justifyContent: "center" }}>
                       {done ? <Icon name="check" color="#FFFFFF" size={8} strokeWidth={3.5} /> : null}
                     </View>
-                    <AppText variant="caption" color={on ? c.price : done ? c.ink : c.muted} numberOfLines={1} style={{ fontSize: 10, marginTop: 4, width: 64, textAlign: "center" }}>
+                    <AppText variant="caption" color={done ? c.ink : on || next ? c.price : c.muted} numberOfLines={1} style={{ fontSize: 10, marginTop: 4, width: 64, textAlign: "center" }}>
                       {t(`jr_${s}` as TKey)}
                     </AppText>
                   </View>
@@ -160,7 +136,7 @@ export function OrderJourney({ status, justPlaced }: Props) {
           <AppText variant="title" numberOfLines={1} style={{ fontSize: 18, lineHeight: 24 }}>{t(`jr_${cur}_title` as TKey)}</AppText>
           <AppText variant="caption" muted numberOfLines={2} style={{ marginTop: 2 }}>{t(`jr_${cur}_body` as TKey)}</AppText>
         </View>
-      </Animated.View>
+      </View>
     </View>
   );
 }
