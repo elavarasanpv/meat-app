@@ -16,12 +16,14 @@
         "backgroundColor": "#1C1715"
       },
       "permissions": [
+        "ACCESS_BACKGROUND_LOCATION",
         "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION",
-        "ACCESS_BACKGROUND_LOCATION",
+        "CAMERA",
         "FOREGROUND_SERVICE",
         "FOREGROUND_SERVICE_LOCATION",
-        "CAMERA"
+        "POST_NOTIFICATIONS",
+        "VIBRATE"
       ]
     },
     "plugins": [
@@ -41,7 +43,14 @@
           "cameraPermission": "FreshCut uses the camera for scale photos of packed orders and doorstep photos on deliveries."
         }
       ],
-      "expo-task-manager"
+      "expo-task-manager",
+      [
+        "expo-notifications",
+        {
+          "color": "#E4461F",
+          "defaultChannel": "orders"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

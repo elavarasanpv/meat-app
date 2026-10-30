@@ -1,7 +1,9 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
+import { RIDER_MAX_ACTIVE_ORDERS, RIDER_OFFER_RADIUS_KM, haversineKm } from "@freshcut/shared";
 import type { DealerAcceptInput, DealerRejectInput, ItemPhotoInput, ItemUnavailableInput, ShopStateInput, StockInput, WeighItemInput } from "@freshcut/shared";
 import { DELIVERY_FEE, FREE_DELIVERY_ABOVE } from "@freshcut/shared";
 import { SupabaseService } from "../supabase.service";
+import { PushService } from "../push/push.service";
 import { OrdersService } from "../orders/orders.service";
 import { AssignmentService } from "./assignment.service";
 
@@ -15,6 +17,7 @@ export class DealerService {
     private readonly supabase: SupabaseService,
     private readonly orders: OrdersService,
     private readonly assignment: AssignmentService,
+    private readonly push: PushService,
   ) {}
 
   /** The caller's dealer row, or 403. */
@@ -286,7 +289,49 @@ export class DealerService {
     const finalAmount = itemsTotal + (itemsTotal >= FREE_DELIVERY_ABOVE ? 0 : DELIVERY_FEE);
     await db.from("orders").update({ final_amount: finalAmount }).eq("id", orderId);
     const result = await this.orders.transition({ orderId, to: "PACKED", actorId: profileId });
+    void this.ringRiders(orderId, dealer.id, finalAmount);
     return { ...result, finalAmount };
+  }
+
+  /**
+   * A packed order is broadcast: ring every online rider near the shop who
+   * still has room (same rules as the rider's offer list). Never blocks Packed.
+   */
+  private async ringRiders(orderId: string, dealerId: string, amount: number) {
+    try {
+      const db = this.supabase.admin;
+      const [{ data: shop }, { data: o }, { data: riders }] = await Promise.all([
+        db.from("dealers").select("shop_name, lat, lng").eq("id", dealerId).single(),
+        db.from("orders").select("display_id, payment_mode").eq("id", orderId).single(),
+        db.from("delivery_partners").select("id, profile_id, rider_locations(lat, lng)").eq("is_online", true).eq("is_active", true),
+      ]);
+      if (!riders?.length) return;
+      const { data: busy } = await db
+        .from("orders")
+        .select("rider_id")
+        .in("rider_id", riders.map((r) => r.id))
+        .in("status", ["RIDER_ASSIGNED", "PICKED_UP", "OUT_FOR_DELIVERY", "DELIVERY_FAILED"]);
+      const load = new Map<string, number>();
+      for (const b of busy ?? []) load.set(b.rider_id as string, (load.get(b.rider_id as string) ?? 0) + 1);
+
+      const near = riders.filter((r) => {
+        if ((load.get(r.id) ?? 0) >= RIDER_MAX_ACTIVE_ORDERS) return false;
+        const loc = (Array.isArray(r.rider_locations) ? r.rider_locations[0] : r.rider_locations) as { lat: number; lng: number } | null;
+        if (!loc || shop?.lat == null || shop?.lng == null) return true; // no fix yet: let them see it
+        return haversineKm(loc, { lat: shop.lat, lng: shop.lng }) <= RIDER_OFFER_RADIUS_KM;
+      });
+      await this.push.toProfiles(
+        near.map((r) => r.profile_id),
+        {
+          title: `New delivery · ${shop?.shop_name ?? "FreshCut"}`,
+          body: o?.payment_mode === "prepaid_upi" ? `${o?.display_id} · paid online` : `${o?.display_id} · collect ₹${amount}`,
+          data: { kind: "offer", orderId },
+          channelId: "orders",
+        },
+      );
+    } catch (e) {
+      console.warn("[push] ringRiders", (e as Error).message);
+    }
   }
 
   /** Open/close the shop now, or close it until a date. */

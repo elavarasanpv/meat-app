@@ -1,6 +1,7 @@
 import { Injectable, OnModuleDestroy, OnModuleInit } from "@nestjs/common";
 import { haversineKm } from "@freshcut/shared";
 import { SupabaseService } from "../supabase.service";
+import { PushService } from "../push/push.service";
 import { OrdersService } from "../orders/orders.service";
 
 /** How long a shop has to answer before the order moves to the next one. */
@@ -21,6 +22,7 @@ export class AssignmentService implements OnModuleInit, OnModuleDestroy {
   constructor(
     private readonly supabase: SupabaseService,
     private readonly orders: OrdersService,
+    private readonly push: PushService,
   ) {}
 
   onModuleInit() {
@@ -95,6 +97,8 @@ export class AssignmentService implements OnModuleInit, OnModuleDestroy {
     if (order.status === "PLACED") {
       await this.orders.transition({ orderId, to: "DEALER_ASSIGNED", actorId: dealer.profile_id, note: "offered to shop" });
     }
+    // Ring the shop's phones (even with the app closed). Never blocks the offer.
+    void this.ringShop(orderId, dealer.profile_id);
     return { assigned: true, dealerId: dealer.id };
   }
 
@@ -120,6 +124,25 @@ export class AssignmentService implements OnModuleInit, OnModuleDestroy {
       }
     } finally {
       this.sweeping = false;
+    }
+  }
+
+  private async ringShop(orderId: string, profileId: string) {
+    try {
+      const { data: o } = await this.supabase.admin
+        .from("orders")
+        .select("display_id, order_items(id, unavailable)")
+        .eq("id", orderId)
+        .single();
+      const n = ((o?.order_items as { unavailable: boolean }[]) ?? []).filter((i) => !i.unavailable).length;
+      await this.push.toProfiles([profileId], {
+        title: `New order ${o?.display_id ?? ""}`.trim(),
+        body: `${n} item${n === 1 ? "" : "s"} · accept within ${ACCEPT_WINDOW_MIN} min`,
+        data: { kind: "new_order", orderId },
+        channelId: "orders",
+      });
+    } catch (e) {
+      console.warn("[push] ringShop", (e as Error).message);
     }
   }
 

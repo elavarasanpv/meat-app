@@ -16,6 +16,7 @@ const STRINGS = {
     // tabs
     // rider
     tabTasks: "Tasks",
+    pushChannelName: "New orders & deliveries",
     bgLocTitle: "Share location during deliveries",
     bgLocBody: "FreshCut uses your location while you're online — even with the screen off — so customers can follow your ride and your trip km are counted. On the next screen choose \"Allow all the time\".",
     gpsNotifTitle: "FreshCut — on duty",
@@ -204,6 +205,7 @@ const STRINGS = {
     notDealer: "இந்த எண் கடையாக பதிவு செய்யப்படவில்லை. ஆதரவை அழைக்கவும்.",
     // rider
     tabTasks: "டெலிவரி",
+    pushChannelName: "புதிய ஆர்டர்கள் & டெலிவரிகள்",
     bgLocTitle: "டெலிவரியின் போது இருப்பிடம் பகிர்வு",
     bgLocBody: "ஆன்லைனில் இருக்கும்போது — திரை அணைந்திருந்தாலும் — வாடிக்கையாளர் உங்கள் பயணத்தை பார்க்கவும் கி.மீ கணக்கிடவும் FreshCut உங்கள் இருப்பிடத்தை பயன்படுத்தும். அடுத்த திரையில் \"எப்போதும் அனுமதி\" தேர்வு செய்யவும்.",
     gpsNotifTitle: "FreshCut — பணியில்",

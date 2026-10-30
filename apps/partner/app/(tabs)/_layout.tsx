@@ -3,6 +3,7 @@ import { TabBar } from "@/components/TabBar";
 import { ScaleCamera } from "@/components/ScaleCamera";
 import { OfflineBanner } from "@/components/OfflineBanner";
 import { useDealerMe, useDealerRealtime, useSummary } from "@/hooks/useDealer";
+import { usePush } from "@/hooks/usePush";
 import { useC } from "@/ui";
 
 export default function TabsLayout() {
@@ -10,6 +11,7 @@ export default function TabsLayout() {
   const me = useDealerMe();
   const summary = useSummary(me.data?.id);
   useDealerRealtime(me.data?.id);
+  usePush("dealer");
   const newCount = summary.data?.newCount ?? 0;
   return (
     <>
