@@ -59,7 +59,7 @@ export function OfferSheet() {
           <>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
               <View style={{ width: 40, height: 40, borderRadius: 13, backgroundColor: c.tint, alignItems: "center", justifyContent: "center" }}>
-                <Icon name="scooter" color={c.primary} size={22} />
+                <Icon name="rider" color={c.primary} size={30} />
               </View>
               <View style={{ flex: 1 }}>
                 <Txt bold size={17}>{t("newOffer")}</Txt>

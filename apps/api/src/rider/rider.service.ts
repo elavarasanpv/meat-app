@@ -31,7 +31,7 @@ export class RiderService {
     const db = this.supabase.admin;
     const { data } = await db
       .from("delivery_partners")
-      .select("id, profile_id, vehicle, is_online, cash_balance, is_active")
+      .select("id, profile_id, vehicle, is_online, cash_balance, is_active, profiles(full_name, phone)")
       .eq("profile_id", profileId)
       .eq("is_active", true)
       .maybeSingle();
@@ -41,7 +41,15 @@ export class RiderService {
 
   async me(profileId: string) {
     const rider = await this.resolveRider(profileId);
-    return { id: rider.id, vehicle: rider.vehicle, isOnline: rider.is_online, cashBalance: Number(rider.cash_balance) };
+    const p = rider.profiles as unknown as { full_name: string | null; phone: string | null } | null;
+    return {
+      id: rider.id,
+      name: p?.full_name ?? null,
+      phone: p?.phone ? `+${p.phone}` : null,
+      vehicle: rider.vehicle,
+      isOnline: rider.is_online,
+      cashBalance: Number(rider.cash_balance),
+    };
   }
 
   /** Go online (starts a shift) or offline (ends it). */

@@ -34,11 +34,12 @@ export default function RiderProfile() {
       <ScrollView contentContainerStyle={{ padding: 16, gap: 14 }}>
         <View style={{ padding: 18, borderRadius: 22, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, flexDirection: "row", alignItems: "center", gap: 14 }}>
           <View style={{ width: 56, height: 56, borderRadius: 18, backgroundColor: c.primary, alignItems: "center", justifyContent: "center" }}>
-            <Icon name="scooter" color="#FFFFFF" size={28} />
+            <Icon name="rider" color="#FFFFFF" size={38} />
           </View>
           <View style={{ flex: 1 }}>
-            <Txt bold size={18} numberOfLines={1}>{t("riderApp")}</Txt>
+            <Txt bold size={18} numberOfLines={1}>{me.data?.name ?? t("riderApp")}</Txt>
             <Txt size={13} muted>{t("yourVehicle")}: {me.data?.vehicle ?? "—"}</Txt>
+            {me.data?.phone ? <Txt size={13} muted>{me.data.phone}</Txt> : null}
           </View>
         </View>
 

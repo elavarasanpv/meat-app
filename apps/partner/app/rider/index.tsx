@@ -5,9 +5,10 @@ import { Header } from "@/components/Header";
 import { Icon, type IconName } from "@/components/Icon";
 import { StopCard } from "@/components/StopCard";
 import { usePullRefreshKeys } from "@/hooks/usePullRefresh";
-import { useRiderMe, useRiderSummary, useSetOnline, useTasks } from "@/hooks/useRider";
+import { amountDue, useRiderMe, useRiderSummary, useSetOnline, useTasks } from "@/hooks/useRider";
+import { navigateTo } from "@/lib/maps";
 import { useT, type TKey } from "@/i18n";
-import { Txt, useC } from "@/ui";
+import { Btn, Txt, useC } from "@/ui";
 
 function greeting(): TKey {
   const h = new Date().getHours();
@@ -51,11 +52,11 @@ export default function RiderHome() {
 
   return (
     <View style={{ flex: 1 }}>
-      <Header title={t(greeting())} sub={me.data?.vehicle ?? t("riderApp")} />
+      <Header title={me.data?.name ? `${t(greeting())}, ${me.data.name.split(" ")[0]}` : t(greeting())} sub={me.data?.vehicle ?? t("riderApp")} />
       <ScrollView contentContainerStyle={{ padding: 16, paddingTop: 6, gap: 14, paddingBottom: 32 }} refreshControl={refresh}>
         <View style={{ padding: 16, borderRadius: 22, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, flexDirection: "row", alignItems: "center", gap: 12 }}>
           <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: c.tint, alignItems: "center", justifyContent: "center" }}>
-            <Icon name="scooter" color={c.primary} size={22} />
+            <Icon name="rider" color={c.primary} size={30} />
           </View>
           <View style={{ flex: 1 }}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
@@ -90,7 +91,26 @@ export default function RiderHome() {
             </Pressable>
           ) : null}
         </View>
-        {next ? (
+        {next && next.status === "RIDER_ASSIGNED" ? (
+          // Accepted but not collected yet: the next move is the shop, not the customer.
+          <View style={{ borderRadius: 22, borderWidth: 2, borderColor: c.primary, backgroundColor: c.surface, padding: 16, gap: 12 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+              <View style={{ width: 40, height: 40, borderRadius: 13, backgroundColor: c.tint, alignItems: "center", justifyContent: "center" }}>
+                <Icon name="shop" color={c.primary} size={22} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Txt bold size={16} numberOfLines={1}>{next.dealers?.shop_name ?? t("atShop")}</Txt>
+                <Txt size={13} muted numberOfLines={1}>
+                  {orders.filter((o) => o.status === "RIDER_ASSIGNED").map((o) => o.display_id).join(", ")} · ₹{orders.filter((o) => o.status === "RIDER_ASSIGNED").reduce((s2, o) => s2 + amountDue(o), 0)}
+                </Txt>
+              </View>
+            </View>
+            <View style={{ flexDirection: "row", gap: 10 }}>
+              <Btn label={t("navigate")} icon="navigate" kind="soft" onPress={() => navigateTo({ lat: next.dealers?.lat, lng: next.dealers?.lng })} style={{ flex: 1 }} />
+              <Btn label={t("atShop")} icon="box" onPress={() => router.push("/rider/tasks")} style={{ flex: 1 }} />
+            </View>
+          </View>
+        ) : next ? (
           <StopCard o={next} stop={trip?.trip_stops.find((x) => x.order_id === next.id)} canReturn={false} />
         ) : (
           <View style={{ padding: 28, borderRadius: 22, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, alignItems: "center", gap: 8 }}>

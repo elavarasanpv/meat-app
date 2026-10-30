@@ -6,7 +6,8 @@ import { OrdersService } from "../orders/orders.service";
 import { AssignmentService } from "./assignment.service";
 
 /** Statuses during which the shop is still working on the order. */
-const SHOP_ACTIVE = ["DEALER_ASSIGNED", "ACCEPTED", "PACKING", "PACKED"];
+/** Orders the shop still sees: from the offer until the rider collects it. */
+const SHOP_ACTIVE = ["DEALER_ASSIGNED", "ACCEPTED", "PACKING", "PACKED", "RIDER_ASSIGNED"];
 
 @Injectable()
 export class DealerService {
@@ -34,7 +35,7 @@ export class DealerService {
     const { data: orders, error } = await db
       .from("orders")
       .select(
-        "id, display_id, status, ready_by, est_amount, created_at, delivery_slots(starts_at, ends_at), order_items(id, product_id, requested_kg, actual_kg, size, notes, unavailable, unit_price_per_kg, products(name, name_ta, unit))",
+        "id, display_id, status, ready_by, est_amount, created_at, rider_id, delivery_slots(starts_at, ends_at), order_items(id, product_id, requested_kg, actual_kg, size, notes, unavailable, unit_price_per_kg, products(name, name_ta, unit))",
       )
       .eq("dealer_id", dealerId)
       .in("status", SHOP_ACTIVE)
@@ -60,8 +61,21 @@ export class DealerService {
       : { data: [] as { order_item_id: string | null; photo_path: string }[] };
     const photoOf = new Map((proofs ?? []).filter((p) => p.order_item_id).map((p) => [p.order_item_id as string, p.photo_path]));
 
-    return (orders ?? []).map((o) => ({
+    // Who is coming to collect: name, phone and vehicle of the assigned rider.
+    const riderIds = [...new Set((orders ?? []).map((o) => o.rider_id).filter(Boolean))] as string[];
+    const { data: riders } = riderIds.length
+      ? await db.from("delivery_partners").select("id, vehicle, profiles(full_name, phone)").in("id", riderIds)
+      : { data: [] as { id: string; vehicle: string | null; profiles: unknown }[] };
+    const riderOf = new Map(
+      (riders ?? []).map((r) => {
+        const p = r.profiles as unknown as { full_name: string | null; phone: string | null } | null;
+        return [r.id, { name: p?.full_name ?? null, phone: p?.phone ? `+${p.phone}` : null, vehicle: r.vehicle }];
+      }),
+    );
+
+    return (orders ?? []).map(({ rider_id, ...o }) => ({
       ...o,
+      rider: rider_id ? riderOf.get(rider_id) ?? null : null,
       accept_deadline: deadlines.get(o.id) ?? null,
       order_items: (o.order_items as Record<string, unknown>[]).map((it) => ({
         ...it,
@@ -99,7 +113,7 @@ export class DealerService {
     return {
       newCount: count(["DEALER_ASSIGNED"]),
       inProgressCount: count(["ACCEPTED", "PACKING"]),
-      readyCount: count(["PACKED"]),
+      readyCount: count(["PACKED", "RIDER_ASSIGNED"]),
       todayOrders: doneCount,
       todaySales: sales,
     };

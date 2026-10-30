@@ -19,10 +19,14 @@ export type DealerOrderItem = {
   products: { name: string; name_ta: string | null; unit: "kg" | "piece" };
 };
 
+export type RiderInfo = { name: string | null; phone: string | null; vehicle: string | null };
+
 export type DealerOrder = {
   id: string;
   display_id: string;
-  status: "DEALER_ASSIGNED" | "ACCEPTED" | "PACKING" | "PACKED";
+  status: "DEALER_ASSIGNED" | "ACCEPTED" | "PACKING" | "PACKED" | "RIDER_ASSIGNED";
+  /** Set once a rider has accepted the pickup. */
+  rider: RiderInfo | null;
   ready_by: string | null;
   accept_deadline: string | null;
   created_at: string;

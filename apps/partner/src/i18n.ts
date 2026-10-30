@@ -16,6 +16,8 @@ const STRINGS = {
     // tabs
     // rider
     tabTasks: "Tasks",
+    riderComing: "Rider on the way",
+    rider: "Rider",
     tabCash: "Cash",
     tabProfile: "Profile",
     riderApp: "FreshCut Rider",
@@ -183,6 +185,8 @@ const STRINGS = {
     notDealer: "இந்த எண் கடையாக பதிவு செய்யப்படவில்லை. ஆதரவை அழைக்கவும்.",
     // rider
     tabTasks: "டெலிவரி",
+    riderComing: "ரைடர் வருகிறார்",
+    rider: "ரைடர்",
     tabCash: "பணம்",
     tabProfile: "சுயவிவரம்",
     riderApp: "FreshCut Rider",

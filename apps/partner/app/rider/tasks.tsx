@@ -92,7 +92,7 @@ export default function TasksScreen() {
 
         {empty ? (
           <View style={{ padding: 28, borderRadius: 22, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, alignItems: "center", gap: 8, marginTop: 40 }}>
-            <Icon name="scooter" color={c.muted} size={30} />
+            <Icon name="rider" color={c.muted} size={48} />
             <Txt muted style={{ textAlign: "center" }}>{t("noTask")}</Txt>
           </View>
         ) : null}

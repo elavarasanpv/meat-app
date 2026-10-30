@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { View } from "react-native";
+import { Linking, View } from "react-native";
 import * as Haptics from "expo-haptics";
 import { DEALER_REJECT_REASONS } from "@freshcut/shared";
 import { useAccept, usePacked, useReject, useStartCutting, type DealerOrder, type DealerOrderItem } from "@/hooks/useDealer";
@@ -64,6 +64,7 @@ function StagePill({ status }: { status: DealerOrder["status"] }) {
     ACCEPTED: { key: "preparing", bg: c.infoBg, fg: c.info },
     PACKING: { key: "cutting", bg: c.warningBg, fg: c.warning },
     PACKED: { key: "ready", bg: c.successBg, fg: c.success },
+    RIDER_ASSIGNED: { key: "riderComing", bg: c.infoBg, fg: c.info },
   };
   const m = map[status];
   return (
@@ -168,9 +169,25 @@ export function OrderCard({ o, compact }: { o: DealerOrder; compact?: boolean })
       ) : null}
 
       {o.status === "PACKED" ? (
-        <View style={{ height: 48, borderRadius: 24, backgroundColor: c.successBg, flexDirection: "row", gap: 8, alignItems: "center", justifyContent: "center" }}>
-          <Icon name="scooter" color={c.success} size={20} />
+        <View style={{ height: 52, borderRadius: 26, backgroundColor: c.successBg, flexDirection: "row", gap: 10, alignItems: "center", justifyContent: "center" }}>
+          <Icon name="scooter" color={c.success} size={30} />
           <Txt bold size={15} color={c.success}>{t("waitingRider")}</Txt>
+        </View>
+      ) : null}
+
+      {o.status === "RIDER_ASSIGNED" && o.rider ? (
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 12, padding: 12, borderRadius: 18, backgroundColor: c.infoBg }}>
+          <View style={{ width: 48, height: 48, borderRadius: 16, backgroundColor: c.surface, alignItems: "center", justifyContent: "center" }}>
+            <Icon name="scooter" color={c.info} size={34} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Txt size={12} color={c.info}>{t("riderComing")}</Txt>
+            <Txt bold size={16} numberOfLines={1}>{o.rider.name ?? t("rider")}</Txt>
+            {o.rider.vehicle ? <Txt size={12} muted numberOfLines={1}>{o.rider.vehicle}</Txt> : null}
+          </View>
+          {o.rider.phone ? (
+            <Btn label={t("call")} icon="phone" kind="soft" onPress={() => Linking.openURL(`tel:${o.rider!.phone}`)} />
+          ) : null}
         </View>
       ) : null}
     </View>

@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { supabase } from "@/lib/supabase";
 
-export type RiderMe = { id: string; vehicle: string | null; isOnline: boolean; cashBalance: number };
+export type RiderMe = { id: string; name: string | null; phone: string | null; vehicle: string | null; isOnline: boolean; cashBalance: number };
 
 export type RiderOrderItem = {
   id: string;

@@ -32,7 +32,7 @@ export default function HomeScreen() {
 
   const s = summary.data;
   // Most urgent first: a new offer, then anything being prepared, then ready.
-  const rank: Record<string, number> = { DEALER_ASSIGNED: 0, ACCEPTED: 1, PACKING: 2, PACKED: 3 };
+  const rank: Record<string, number> = { DEALER_ASSIGNED: 0, ACCEPTED: 1, PACKING: 2, PACKED: 3, RIDER_ASSIGNED: 4 };
   const latest = [...(orders.data ?? [])].sort((a, b) => rank[a.status] - rank[b.status])[0];
   // Orders past their promised ready time (refreshed with the 15 s poll).
   const lateCount = (orders.data ?? []).filter((o) => o.ready_by && (o.status === "ACCEPTED" || o.status === "PACKING") && readyState(o.ready_by, Date.now()).phase === "late").length;

@@ -13,7 +13,7 @@ type Seg = "new" | "progress" | "ready";
 const SEGMENTS: { key: Seg; label: TKey; statuses: DealerOrder["status"][] }[] = [
   { key: "new", label: "segNew", statuses: ["DEALER_ASSIGNED"] },
   { key: "progress", label: "segProgress", statuses: ["ACCEPTED", "PACKING"] },
-  { key: "ready", label: "segReady", statuses: ["PACKED"] },
+  { key: "ready", label: "segReady", statuses: ["PACKED", "RIDER_ASSIGNED"] },
 ];
 
 /** Orders by stage: New (accept/reject) · In progress (cut, weigh, pack) · Ready (waiting for rider). */

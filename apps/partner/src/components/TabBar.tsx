@@ -13,7 +13,7 @@ const TABS: Record<string, { icon: IconName; label: TKey }> = {
   stock: { icon: "stock", label: "tabStock" },
   account: { icon: "shop", label: "tabAccount" },
   // rider mode
-  tasks: { icon: "scooter", label: "tabTasks" },
+  tasks: { icon: "rider", label: "tabTasks" },
   cash: { icon: "wallet", label: "tabCash" },
   profile: { icon: "user", label: "tabProfile" },
 };
