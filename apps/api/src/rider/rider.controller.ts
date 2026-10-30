@@ -2,6 +2,7 @@ import { BadRequestException, Body, Controller, ForbiddenException, Get, Headers
 import { z } from "zod";
 import { riderCashSubmitSchema, riderDeliverSchema, riderFailSchema, riderLocationBatchSchema, riderLocationSchema, riderPickupSchema } from "@freshcut/shared";
 import { RiderService } from "./rider.service";
+import { PushService } from "../push/push.service";
 import { SupabaseService } from "../supabase.service";
 import { requireUser } from "../auth";
 
@@ -13,6 +14,7 @@ export class RiderController {
   constructor(
     private readonly supabase: SupabaseService,
     private readonly rider: RiderService,
+    private readonly push: PushService,
   ) {}
 
   private parse<T>(schema: { safeParse: (b: unknown) => { success: boolean; data?: T; error?: { issues: { message: string }[] } } }, body: unknown): T {
@@ -200,6 +202,22 @@ export class RiderController {
     const { error } = await db.from("orders").update({ arrived_at: arrivedAt }).eq("id", order.id);
     if (error) throw new BadRequestException(error.message);
     await db.from("order_status_history").insert({ order_id: order.id, from_status: "OUT_FOR_DELIVERY", to_status: "OUT_FOR_DELIVERY", actor_id: user.id, note: "Rider arrived at the door" });
+    // Tell the customer (with the happy parcel jingle) even if their app is closed.
+    void db
+      .from("orders")
+      .select("customer_id, display_id")
+      .eq("id", order.id)
+      .single()
+      .then(({ data }) =>
+        data
+          ? this.push.toProfiles([data.customer_id], {
+              title: "Your FreshCut order is here!",
+              body: "Your rider is at the door. Keep your delivery code ready.",
+              data: { kind: "arrived", orderId: order.id },
+              channelId: "delivery",
+            })
+          : null,
+      );
     return { arrivedAt };
   }
 }

@@ -6,6 +6,7 @@ import { amountDue, useAcceptOffer, useOffers, useRejectOffer, useRiderMe, type 
 import { useLang, useT } from "@/i18n";
 import { Btn, Txt, useC } from "@/ui";
 import { Icon } from "./Icon";
+import { playOrderAlert } from "@/lib/sounds";
 
 /**
  * Broadcast offer popup, slid in from the top on any rider screen. Shows the
@@ -32,6 +33,7 @@ export function OfferSheet() {
     if (offer && !seen.current.has(offer.id)) {
       seen.current.add(offer.id);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
+      playOrderAlert();
     }
   }, [offer?.id]);
 

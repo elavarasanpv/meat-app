@@ -19,13 +19,14 @@ export const Notifications: typeof NotificationsT | null = pushAvailable ? requi
 
 /** Android channel the server targets ("orders"): max importance, sound, long vibration. */
 export const ORDERS_CHANNEL = "orders";
+// Android fixes a channel's sound when it is first created; to change the sound later, use a new channel id.
 
 // Show alerts even while the app is open (the offer popup also appears).
 Notifications?.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowBanner: true,
     shouldShowList: true,
-    shouldPlaySound: true,
+    shouldPlaySound: false, // in the foreground the app plays its own sound with the popup
     shouldSetBadge: false,
   }),
 });
@@ -35,7 +36,7 @@ async function ensureChannel(name: string) {
   await Notifications.setNotificationChannelAsync(ORDERS_CHANNEL, {
     name,
     importance: Notifications.AndroidImportance.MAX,
-    sound: "default",
+    sound: "freshcut_order.wav", // bundled via the expo-notifications plugin
     vibrationPattern: [0, 600, 300, 600, 300, 600],
     lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
     enableVibrate: true,

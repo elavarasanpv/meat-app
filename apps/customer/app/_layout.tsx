@@ -7,6 +7,7 @@ import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client
 import { createAsyncStoragePersister } from "@tanstack/query-async-storage-persister";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { OfflineBanner } from "@/components/OfflineBanner";
+import { PushBridge } from "@/components/PushBridge";
 import { bindOnlineManager } from "@/lib/network";
 import { useFonts } from "expo-font";
 import { Outfit_700Bold, Outfit_800ExtraBold } from "@expo-google-fonts/outfit";
@@ -68,6 +69,7 @@ export default function RootLayout() {
     <PersistQueryClientProvider client={queryClient} persistOptions={{ persister, maxAge: 24 * 60 * 60_000 }}>
       <StatusBar style={scheme === "dark" ? "light" : "dark"} />
       <OfflineBanner />
+      {session ? <PushBridge /> : null}
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: c.ground } }}>
         <Stack.Protected guard={!!session}>
           <Stack.Screen name="(tabs)" />

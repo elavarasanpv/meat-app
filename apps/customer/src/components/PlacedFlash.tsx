@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { playPlaced } from "@/lib/sounds";
 import { Animated, Easing, Modal, View } from "react-native";
 import * as Haptics from "expo-haptics";
 import { AppText } from "./AppText";
@@ -21,6 +22,7 @@ export function PlacedFlash({ onDone }: { onDone?: () => void }) {
 
   useEffect(() => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+    playPlaced();
     Animated.sequence([
       Animated.parallel([
         Animated.spring(pop, { toValue: 1, friction: 5, tension: 80, useNativeDriver: true }),

@@ -206,6 +206,7 @@ export const en = {
   minutes: "min",
   distance: "Distance",
   stopOf: "You're stop {n} of {total} · {before} delivery before yours",
+  pushChannelName: "Delivery updates",
   yourRider: "Your rider",
   callRider: "Call rider",
   call: "Call",

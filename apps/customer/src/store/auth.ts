@@ -18,6 +18,8 @@ export const useAuth = create<AuthState>((set) => ({
     return () => data.subscription.unsubscribe();
   },
   signOut: async () => {
+    // Stop delivery alerts on this phone for the account that's leaving.
+    await import("@/lib/push").then((m) => m.unregisterPush()).catch(() => {});
     await supabase.auth.signOut();
     set({ session: null });
   },

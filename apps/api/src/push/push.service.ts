@@ -8,8 +8,11 @@ export type PushMessage = {
   body: string;
   /** Read by the app when the notification is tapped (e.g. { kind: "offer", orderId }). */
   data?: Record<string, unknown>;
-  /** Android channel; "orders" is the loud ringing one the partner app creates. */
-  channelId?: "orders" | "default";
+  /**
+   * Android channel: "orders" is the partner app's loud chop-and-chime ring,
+   * "delivery" the customer app's happy parcel jingle.
+   */
+  channelId?: "orders" | "delivery" | "default";
 };
 
 /**

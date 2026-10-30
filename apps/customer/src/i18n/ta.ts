@@ -197,6 +197,7 @@ export const ta: Record<keyof typeof en, string> = {
   minutes: "நிமிடம்",
   distance: "தூரம்",
   stopOf: "நீங்கள் {total}-ல் {n}வது இடம் · உங்களுக்கு முன் {before} டெலிவரி",
+  pushChannelName: "டெலிவரி அறிவிப்புகள்",
   yourRider: "உங்கள் ரைடர்",
   callRider: "ரைடரை அழை",
   call: "அழை",

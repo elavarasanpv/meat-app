@@ -48,7 +48,10 @@
         "expo-notifications",
         {
           "color": "#E4461F",
-          "defaultChannel": "orders"
+          "defaultChannel": "orders",
+          "sounds": [
+            "./assets/sounds/freshcut_order.wav"
+          ]
         }
       ]
     ],

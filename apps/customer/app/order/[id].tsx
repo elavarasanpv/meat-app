@@ -21,6 +21,10 @@ import { dateTime, dayLabel, slotWindow } from "@/lib/format";
 import { useLocalName, useT, type TKey } from "@/i18n";
 import { fonts, useTheme } from "@/theme";
 import { queryState } from "@/lib/network";
+import { playArrived } from "@/lib/sounds";
+
+/** Orders whose arrival jingle already played in this app session. */
+const arrivedPlayed = new Set<string>();
 
 /** The happy path shown as a timeline; side exits (cancelled etc.) are shown as a badge only. */
 const rank = (s: OrderStatus) => ORDER_STATUSES.indexOf(s);
@@ -41,6 +45,14 @@ export default function OrderDetailScreen() {
   const otp = useOrderOtp(id);
   const queue = useRiderQueue(id, order.data?.status === "OUT_FOR_DELIVERY");
   const riderContact = useRiderContact(id, !!order.data?.rider_id);
+  // Rider reached the door while this screen is open: the happy "parcel is here" jingle, once.
+  useEffect(() => {
+    const od = order.data;
+    if (od?.arrived_at && od.status === "OUT_FOR_DELIVERY" && !arrivedPlayed.has(od.id)) {
+      arrivedPlayed.add(od.id);
+      playArrived();
+    }
+  }, [order.data?.arrived_at, order.data?.status]);
   const o = order.data;
   const tracking = useRiderLocation(id, o?.rider_id);
   const rider = tracking.data;

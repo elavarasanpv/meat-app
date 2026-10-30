@@ -20,13 +20,24 @@
       },
       "permissions": [
         "ACCESS_COARSE_LOCATION",
-        "ACCESS_FINE_LOCATION"
+        "ACCESS_FINE_LOCATION",
+        "POST_NOTIFICATIONS",
+        "VIBRATE"
       ]
     },
     "plugins": [
       "expo-router",
       "expo-font",
-      "expo-audio"
+      "expo-audio",
+      [
+        "expo-notifications",
+        {
+          "color": "#E4461F",
+          "sounds": [
+            "./assets/sounds/freshcut_arrived.wav"
+          ]
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
