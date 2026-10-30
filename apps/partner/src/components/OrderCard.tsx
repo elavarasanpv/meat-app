@@ -7,6 +7,7 @@ import { useLang, useT, type TKey } from "@/i18n";
 import { Btn, Chip, Txt, useC } from "@/ui";
 import { Icon } from "./Icon";
 import { ProofRow } from "./ProofRow";
+import { ReadyBy, readyState } from "./ReadyBy";
 
 const READY_CHOICES = [15, 30, 45, 60];
 
@@ -85,10 +86,11 @@ export function OrderCard({ o, compact }: { o: DealerOrder; compact?: boolean })
   const items = o.order_items.filter((i) => !i.unavailable);
   const shopTotal = items.reduce((s, i) => s + Math.round(i.shop_price_per_kg * i.requested_kg), 0);
   const isNew = o.status === "DEALER_ASSIGNED";
+  const late = !!o.ready_by && (o.status === "ACCEPTED" || o.status === "PACKING") && readyState(o.ready_by, Date.now()).phase === "late";
   const tap = () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
 
   return (
-    <View style={{ borderRadius: 22, borderWidth: isNew ? 2 : 1, borderColor: isNew ? c.primary : c.border, backgroundColor: c.surface, padding: 16, gap: 12 }}>
+    <View style={{ borderRadius: 22, borderWidth: isNew || late ? 2 : 1, borderColor: isNew ? c.primary : late ? c.danger : c.border, backgroundColor: c.surface, padding: 16, gap: 12 }}>
       <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
         <View style={{ flex: 1 }}>
           <Txt bold size={17}>{o.display_id}</Txt>
@@ -135,18 +137,14 @@ export function OrderCard({ o, compact }: { o: DealerOrder; compact?: boolean })
 
       {o.status === "ACCEPTED" ? (
         <View style={{ gap: 8 }}>
-          {o.ready_by ? (
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-              <Icon name="clock" color={c.muted} size={16} />
-              <Txt size={13} muted>{t("readyBy")} {clock(o.ready_by)}</Txt>
-            </View>
-          ) : null}
+          {o.ready_by ? <ReadyBy readyBy={o.ready_by} /> : null}
           <Btn label={t("startCutting")} big onPress={() => { tap(); cutting.mutate(o.id); }} loading={cutting.isPending} />
         </View>
       ) : null}
 
       {o.status === "PACKING" ? (
         <View style={{ gap: 10 }}>
+          {o.ready_by ? <ReadyBy readyBy={o.ready_by} /> : null}
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
             <Icon name="camera" color={c.muted} size={16} />
             <Txt size={13} muted style={{ flex: 1 }}>{t("weighNote")}</Txt>

@@ -6,6 +6,7 @@ import { usePullRefresh } from "@/hooks/usePullRefresh";
 import { Icon, type IconName } from "@/components/Icon";
 import { OrderCard } from "@/components/OrderCard";
 import { useDealerMe, useDealerOrders, useShopState, useSummary } from "@/hooks/useDealer";
+import { readyState } from "@/components/ReadyBy";
 import { useT, type TKey } from "@/i18n";
 import { Txt, useC } from "@/ui";
 
@@ -33,14 +34,17 @@ export default function HomeScreen() {
   // Most urgent first: a new offer, then anything being prepared, then ready.
   const rank: Record<string, number> = { DEALER_ASSIGNED: 0, ACCEPTED: 1, PACKING: 2, PACKED: 3 };
   const latest = [...(orders.data ?? [])].sort((a, b) => rank[a.status] - rank[b.status])[0];
+  // Orders past their promised ready time (refreshed with the 15 s poll).
+  const lateCount = (orders.data ?? []).filter((o) => o.ready_by && (o.status === "ACCEPTED" || o.status === "PACKING") && readyState(o.ready_by, Date.now()).phase === "late").length;
 
-  const Stat = ({ icon, label, value, color, bg, onPress }: { icon: IconName; label: TKey; value: number | string; color: string; bg: string; onPress?: () => void }) => (
-    <Pressable onPress={onPress} disabled={!onPress} style={{ flex: 1, padding: 14, borderRadius: 18, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, gap: 8 }}>
+  const Stat = ({ icon, label, value, color, bg, onPress, warn }: { icon: IconName; label: TKey; value: number | string; color: string; bg: string; onPress?: () => void; warn?: string }) => (
+    <Pressable onPress={onPress} disabled={!onPress} style={{ flex: 1, padding: 14, borderRadius: 18, backgroundColor: c.surface, borderWidth: warn ? 2 : 1, borderColor: warn ? c.danger : c.border, gap: 8 }}>
       <View style={{ width: 36, height: 36, borderRadius: 12, backgroundColor: bg, alignItems: "center", justifyContent: "center" }}>
         <Icon name={icon} color={color} size={icon === "cut" ? 24 : 20} />
       </View>
       <Txt bold size={24}>{value}</Txt>
       <Txt size={12} muted numberOfLines={1}>{t(label)}</Txt>
+      {warn ? <Txt bold size={12} color={c.danger} numberOfLines={1}>{warn}</Txt> : null}
     </Pressable>
   );
 
@@ -74,7 +78,7 @@ export default function HomeScreen() {
         {/* Stage counts */}
         <View style={{ flexDirection: "row", gap: 10 }}>
           <Stat icon="inbox" label="newOrders" value={s?.newCount ?? 0} color={c.primary} bg={c.tint} onPress={() => router.push({ pathname: "/(tabs)/orders", params: { seg: "new", at: String(Date.now()) } })} />
-          <Stat icon="cut" label="inProgress" value={s?.inProgressCount ?? 0} color={c.warning} bg={c.warningBg} onPress={() => router.push({ pathname: "/(tabs)/orders", params: { seg: "progress", at: String(Date.now()) } })} />
+          <Stat icon="cut" label="inProgress" value={s?.inProgressCount ?? 0} color={c.warning} bg={c.warningBg} warn={lateCount ? `${lateCount} ${t("late")}` : undefined} onPress={() => router.push({ pathname: "/(tabs)/orders", params: { seg: "progress", at: String(Date.now()) } })} />
           <Stat icon="scooter" label="readyPickup" value={s?.readyCount ?? 0} color={c.success} bg={c.successBg} onPress={() => router.push({ pathname: "/(tabs)/orders", params: { seg: "ready", at: String(Date.now()) } })} />
         </View>
 
