@@ -1,6 +1,6 @@
 import { BadRequestException, Body, Controller, ForbiddenException, Get, Headers, Param, Post } from "@nestjs/common";
 import { z } from "zod";
-import { riderCashSubmitSchema, riderDeliverSchema, riderFailSchema, riderLocationSchema, riderPickupSchema } from "@freshcut/shared";
+import { riderCashSubmitSchema, riderDeliverSchema, riderFailSchema, riderLocationBatchSchema, riderLocationSchema, riderPickupSchema } from "@freshcut/shared";
 import { RiderService } from "./rider.service";
 import { SupabaseService } from "../supabase.service";
 import { requireUser } from "../auth";
@@ -19,6 +19,13 @@ export class RiderController {
     const parsed = schema.safeParse(body);
     if (!parsed.success) throw new BadRequestException(parsed.error?.issues.map((i) => i.message).join("; "));
     return parsed.data as T;
+  }
+
+  /** POST /rider/locations { points: [{ lat, lng, heading?, speedKmh?, at }] } — batched GPS. */
+  @Post("locations")
+  async locations(@Headers("authorization") auth: string | undefined, @Body() body: unknown) {
+    const user = await requireUser(this.supabase, auth);
+    return this.rider.locations(user.id, this.parse(riderLocationBatchSchema, body));
   }
 
   /** GET /rider/me */

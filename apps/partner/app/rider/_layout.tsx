@@ -5,6 +5,8 @@ import { OfferSheet } from "@/components/OfferSheet";
 import { useRiderMe, useRiderRealtime, useTasks } from "@/hooks/useRider";
 import { useRiderGps } from "@/hooks/useRiderGps";
 import { useC } from "@/ui";
+import { GpsHint } from "@/components/GpsHint";
+import { ScaleCamera } from "@/components/ScaleCamera";
 
 /** Rider mode: Home · Tasks · History · Cash · Profile, plus the offer popup and GPS. */
 export default function RiderLayout() {
@@ -12,8 +14,9 @@ export default function RiderLayout() {
   const me = useRiderMe();
   const tasks = useTasks(me.data?.id);
   useRiderRealtime(me.data?.id);
-  useRiderGps(me.data?.isOnline);
   const active = tasks.data?.orders.length ?? 0;
+  const onTrip = (tasks.data?.orders ?? []).some((o) => o.status === "OUT_FOR_DELIVERY");
+  const gps = useRiderGps(me.data?.isOnline, onTrip);
   return (
     <>
       <Tabs tabBar={(p) => <TabBar {...p} />} screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: c.ground } }}>
@@ -24,7 +27,9 @@ export default function RiderLayout() {
         <Tabs.Screen name="profile" />
       </Tabs>
       <OfflineBanner />
+      <GpsHint mode={gps} />
       <OfferSheet />
+      <ScaleCamera />
     </>
   );
 }

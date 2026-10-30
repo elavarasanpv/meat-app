@@ -4,6 +4,7 @@ import * as Haptics from "expo-haptics";
 import { DELIVERY_FAIL_REASONS } from "@freshcut/shared";
 import { amountDue, useArrived, useContact, useDeliver, useFail, useReorder, useReturn, type RiderOrder, type TripStop } from "@/hooks/useRider";
 import { callNumber, navigateTo } from "@/lib/maps";
+import { useScaleCamera } from "@/store/camera";
 import { useLang, useT, type TKey } from "@/i18n";
 import { Btn, Chip, Txt, useC } from "@/ui";
 import { Icon } from "./Icon";
@@ -31,6 +32,8 @@ export function StopCard({ o, stop, canReturn, isNext = true }: { o: RiderOrder;
   const fail = useFail();
   const ret = useReturn();
   const reorder = useReorder();
+  const openCamera = useScaleCamera((s) => s.open);
+  const [doorPhoto, setDoorPhoto] = useState<string | null>(null);
   const [mode, setMode] = useState<"none" | "otp" | "fail" | "reorder">("none");
   const [otp, setOtp] = useState("");
   const [payment, setPayment] = useState<"cash" | "upi">("cash");
@@ -147,10 +150,17 @@ export function StopCard({ o, stop, canReturn, isNext = true }: { o: RiderOrder;
             </View>
           ) : mode === "fail" ? (
             <View style={{ gap: 10 }}>
+              <Btn
+                label={doorPhoto ? `✓ ${t("doorPhoto")}` : t("doorPhoto")}
+                icon="camera"
+                kind={doorPhoto ? "soft" : "primary"}
+                onPress={() => openCamera({ kind: "door", orderId: o.id, title: `${o.display_id} · ${t("doorPhoto")}`, onDone: setDoorPhoto })}
+              />
               <Txt bold size={15}>{t("whyFailed")}</Txt>
-              <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
+              {!doorPhoto ? <Txt size={12} muted>{t("doorPhotoHint")}</Txt> : null}
+              <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap", opacity: doorPhoto ? 1 : 0.45 }}>
                 {DELIVERY_FAIL_REASONS.map((r) => (
-                  <Chip key={r} label={t(`f_${r}` as TKey)} onPress={() => { tap(); fail.mutate({ orderId: o.id, reason: r }); }} />
+                  <Chip key={r} label={t(`f_${r}` as TKey)} onPress={() => { if (!doorPhoto) return; tap(); fail.mutate({ orderId: o.id, reason: r, photoPath: doorPhoto }); }} />
                 ))}
                 <Chip label={t("back")} onPress={() => setMode("none")} />
               </View>

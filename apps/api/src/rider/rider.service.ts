@@ -8,6 +8,7 @@ import {
   type RiderCashSubmitInput,
   type RiderDeliverInput,
   type RiderFailInput,
+  type RiderLocationBatchInput,
   type RiderPickupInput,
 } from "@freshcut/shared";
 import { OrdersService } from "../orders/orders.service";
@@ -73,6 +74,39 @@ export class RiderService {
       if (shift) await db.from("rider_shifts").update({ ended_at: new Date().toISOString() }).eq("id", shift.id);
     }
     return { isOnline: online };
+  }
+
+  /**
+   * Store a batch of GPS fixes: every point goes to the trail (tagged with the
+   * open trip), the newest becomes the live position the customer's map shows.
+   * Ignored when the rider is offline with nothing to deliver.
+   */
+  async locations(profileId: string, input: RiderLocationBatchInput) {
+    const rider = await this.resolveRider(profileId);
+    const db = this.supabase.admin;
+    if (!rider.is_online) {
+      const { count } = await db.from("orders").select("id", { count: "exact", head: true }).eq("rider_id", rider.id).in("status", RIDER_ACTIVE);
+      if (!count) return { stored: 0 };
+    }
+    const { data: trip } = await db.from("trips").select("id").eq("rider_id", rider.id).is("ended_at", null).maybeSingle();
+    const points = [...input.points].sort((a, b) => a.at.localeCompare(b.at));
+
+    const { error } = await db.from("rider_location_points").insert(
+      points.map((p) => ({ rider_id: rider.id, trip_id: trip?.id ?? null, lat: p.lat, lng: p.lng, speed_kmh: p.speedKmh ?? null, recorded_at: p.at })),
+    );
+    // The trail is a log; never fail live tracking because of it (e.g. before 0018 is applied).
+    if (error) console.error("[rider] trail insert", error.message);
+
+    const last = points[points.length - 1];
+    await db.from("rider_locations").upsert({
+      rider_id: rider.id,
+      lat: last.lat,
+      lng: last.lng,
+      heading: last.heading ?? null,
+      speed_kmh: last.speedKmh ?? null,
+      updated_at: new Date().toISOString(),
+    });
+    return { stored: points.length };
   }
 
   /**
@@ -474,6 +508,17 @@ export class RiderService {
 
   private async tripKm(tripId: string): Promise<number> {
     const db = this.supabase.admin;
+    // Road actually ridden, from the GPS trail (ignoring jitter under 15 m).
+    const { data: trail } = await db.from("rider_location_points").select("lat, lng").eq("trip_id", tripId).order("recorded_at");
+    if (trail && trail.length >= 2) {
+      let km = 0;
+      for (let i = 1; i < trail.length; i++) {
+        const step = haversineKm(trail[i - 1], trail[i]);
+        if (step >= 0.015) km += step;
+      }
+      if (km > 0.2) return Math.round(km * 10) / 10;
+    }
+    // No usable trail: straight lines shop → stops in delivered order.
     const { data: trip } = await db
       .from("trips")
       .select("dealer_id, dealers(lat, lng), trip_stops(actual_seq, orders(addresses(lat, lng)))")

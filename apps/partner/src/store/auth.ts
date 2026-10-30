@@ -18,6 +18,8 @@ export const useAuth = create<AuthState>((set) => ({
     return () => data.subscription.unsubscribe();
   },
   signOut: async () => {
+    // Stop rider GPS and send what's queued before the session goes away.
+    await import("@/lib/riderGps").then((m) => m.stopGps()).catch(() => {});
     await supabase.auth.signOut();
   },
 }));

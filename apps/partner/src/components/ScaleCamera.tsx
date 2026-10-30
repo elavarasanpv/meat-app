@@ -51,8 +51,13 @@ export function ScaleCamera() {
     setBusy(true);
     setError(null);
     try {
-      const path = await uploadProof(request.orderId, request.orderItemId, shot);
-      await save.mutateAsync({ orderId: request.orderId, orderItemId: request.orderItemId, photoPath: path });
+      if (request.kind === "door") {
+        const path = await uploadProof(request.orderId, "door", shot);
+        request.onDone(path);
+      } else {
+        const path = await uploadProof(request.orderId, request.orderItemId, shot);
+        await save.mutateAsync({ orderId: request.orderId, orderItemId: request.orderItemId, photoPath: path });
+      }
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
       close();
     } catch {
@@ -98,7 +103,7 @@ export function ScaleCamera() {
             <Image source={{ uri: shot.uri }} style={{ flex: 1 }} resizeMode="contain" />
             {Header}
             <View style={{ padding: 16, paddingBottom: insets.bottom + 16, gap: 10, backgroundColor: c.ground }}>
-              <Txt bold size={16}>{t("camCheck")}</Txt>
+              <Txt bold size={16}>{t(request?.kind === "door" ? "camDoorCheck" : "camCheck")}</Txt>
               {error ? <Txt size={13} color={c.danger}>{error}</Txt> : null}
               <View style={{ flexDirection: "row", gap: 10 }}>
                 <Btn label={t("retake")} icon="camera" kind="outline" big onPress={() => setShot(null)} disabled={busy} style={{ flex: 1 }} />
@@ -115,7 +120,7 @@ export function ScaleCamera() {
             <View pointerEvents="none" style={{ position: "absolute", left: 32, right: 32, top: "22%", bottom: "30%", borderRadius: 24, borderWidth: 3, borderColor: "rgba(255,255,255,0.85)", borderStyle: "dashed" }} />
             <View pointerEvents="none" style={{ position: "absolute", left: 24, right: 24, bottom: insets.bottom + 140, alignItems: "center" }}>
               <View style={{ paddingHorizontal: 14, paddingVertical: 8, borderRadius: 14, backgroundColor: "rgba(0,0,0,0.55)" }}>
-                <Txt bold size={14} color="#FFFFFF" style={{ textAlign: "center" }}>{t("camGuide")}</Txt>
+                <Txt bold size={14} color="#FFFFFF" style={{ textAlign: "center" }}>{t(request?.kind === "door" ? "camDoorGuide" : "camGuide")}</Txt>
               </View>
             </View>
             <View style={{ position: "absolute", left: 0, right: 0, bottom: insets.bottom + 28, alignItems: "center" }}>

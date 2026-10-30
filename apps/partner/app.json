@@ -6,14 +6,43 @@
     "version": "0.1.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
-    "platforms": ["android", "web"],
+    "platforms": [
+      "android",
+      "web"
+    ],
     "android": {
       "package": "com.freshcut.partner",
       "adaptiveIcon": {
         "backgroundColor": "#1C1715"
-      }
+      },
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "FOREGROUND_SERVICE",
+        "FOREGROUND_SERVICE_LOCATION",
+        "CAMERA"
+      ]
     },
-    "plugins": ["expo-router"],
+    "plugins": [
+      "expo-router",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "FreshCut uses your location to show nearby delivery offers and let customers follow your ride.",
+          "locationAlwaysAndWhenInUsePermission": "While you're online, FreshCut shares your location even with the screen off so customers can follow your ride and your trip km are counted.",
+          "isAndroidBackgroundLocationEnabled": true,
+          "isAndroidForegroundServiceEnabled": true
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "FreshCut uses the camera for scale photos of packed orders and doorstep photos on deliveries."
+        }
+      ],
+      "expo-task-manager"
+    ],
     "experiments": {
       "typedRoutes": true
     }

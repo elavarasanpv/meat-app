@@ -151,7 +151,7 @@ export function useDeliver() {
 export function useFail() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (p: { orderId: string; reason: string }) => api("/rider/fail", { method: "POST", body: p }),
+    mutationFn: (p: { orderId: string; reason: string; photoPath?: string }) => api("/rider/fail", { method: "POST", body: p }),
     onSettled: () => invalidate(qc),
   });
 }

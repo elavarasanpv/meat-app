@@ -85,6 +85,23 @@ export const riderCashSubmitSchema = z.object({
   amount: z.number().min(0).max(100000),
 });
 
+/** A batch of GPS fixes from the rider app (sent live, or buffered while offline). */
+export const riderLocationBatchSchema = z.object({
+  points: z
+    .array(
+      z.object({
+        lat: z.number().min(-90).max(90),
+        lng: z.number().min(-180).max(180),
+        heading: z.number().min(0).max(360).optional(),
+        speedKmh: z.number().min(0).max(200).optional(),
+        /** When the phone took the fix (ISO). */
+        at: z.string().datetime(),
+      }),
+    )
+    .min(1)
+    .max(300),
+});
+
 export const DEALER_REJECT_REASONS = ["out_of_stock", "closing", "too_busy", "other"] as const;
 
 export const dealerAcceptSchema = z.object({
@@ -144,6 +161,7 @@ export type PlaceOrderInput = z.infer<typeof placeOrderSchema>;
 export type AddressInput = z.infer<typeof addressInputSchema>;
 export type RiderLocationInput = z.infer<typeof riderLocationSchema>;
 export type RiderPickupInput = z.infer<typeof riderPickupSchema>;
+export type RiderLocationBatchInput = z.infer<typeof riderLocationBatchSchema>;
 export type RiderDeliverInput = z.infer<typeof riderDeliverSchema>;
 export type RiderFailInput = z.infer<typeof riderFailSchema>;
 export type RiderCashSubmitInput = z.infer<typeof riderCashSubmitSchema>;

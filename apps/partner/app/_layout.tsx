@@ -7,6 +7,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Manrope_500Medium, Manrope_700Bold, useFonts } from "@expo-google-fonts/manrope";
 import { ApiError } from "@/lib/api";
 import { bindOnlineManager, useIsOffline } from "@/lib/network";
+// Registers the background GPS task at app start (must happen before Android delivers locations).
+import "@/lib/riderGps";
 import { Icon } from "@/components/Icon";
 import { useAuth } from "@/store/auth";
 import { useDealerMe } from "@/hooks/useDealer";
