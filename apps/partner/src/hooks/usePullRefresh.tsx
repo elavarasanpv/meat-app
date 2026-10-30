@@ -1,5 +1,8 @@
 import { useCallback, useState } from "react";
-import { RefreshControl } from "react-native";
+import { Platform, RefreshControl } from "react-native";
+
+/** Pull this far (dp) before a refresh starts; iOS ignores it and uses its own gesture. */
+const PULL_DISTANCE = Platform.OS === "android" ? 90 : 0;
 import { useQueryClient } from "@tanstack/react-query";
 import { useC } from "@/ui";
 
@@ -20,5 +23,16 @@ export function usePullRefresh() {
       setRefreshing(false);
     }
   }, [qc]);
-  return <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[c.primary]} tintColor={c.primary} progressBackgroundColor={c.surface} />;
+  return (
+    <RefreshControl
+      refreshing={refreshing}
+      onRefresh={onRefresh}
+      colors={[c.primary]}
+      tintColor={c.primary}
+      progressBackgroundColor={c.surface}
+      // Android fires on a short tug by default; a bigger offset means the
+      // owner must pull a good way down before it triggers.
+      progressViewOffset={PULL_DISTANCE}
+    />
+  );
 }
