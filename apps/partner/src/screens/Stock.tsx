@@ -1,5 +1,6 @@
 import { Image, Pressable, ScrollView, View } from "react-native";
 import { useSetStock, useStock, type StockRow } from "@/hooks/useDealer";
+import { usePullRefresh } from "@/hooks/usePullRefresh";
 import { useLang, useT, type TKey } from "@/i18n";
 import { categoryImage, productImage, subcategoryImage } from "@/lib/images";
 import { Txt, useC } from "@/ui";
@@ -62,6 +63,7 @@ function Row({ row, onChange }: { row: StockRow; onChange: (s: State) => void })
 /** Products grouped by category, then sub-category (Chicken → Broiler / Country), each with its picture and stock switch. */
 export function StockScreen({ dealerId }: { dealerId: string }) {
   const c = useC();
+  const refresh = usePullRefresh();
   const lang = useLang((s) => s.lang);
   const stock = useStock(dealerId);
   const set = useSetStock();
@@ -96,7 +98,7 @@ export function StockScreen({ dealerId }: { dealerId: string }) {
   );
 
   return (
-    <ScrollView contentContainerStyle={{ padding: 16, gap: 22, paddingBottom: 40 }}>
+    <ScrollView contentContainerStyle={{ padding: 16, gap: 22, paddingBottom: 40 }} refreshControl={refresh}>
       {[...groups.entries()].map(([key, g]) => {
         const img = categoryImage(key);
         const all = [...g.subs.values()].flatMap((s) => s.rows);

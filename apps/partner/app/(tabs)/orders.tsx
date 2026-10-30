@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useLocalSearchParams } from "expo-router";
 import { Pressable, ScrollView, View } from "react-native";
 import { Header } from "@/components/Header";
+import { usePullRefresh } from "@/hooks/usePullRefresh";
 import { Icon } from "@/components/Icon";
 import { OrderCard } from "@/components/OrderCard";
 import { useDealerMe, useDealerOrders, type DealerOrder } from "@/hooks/useDealer";
@@ -18,6 +19,7 @@ const SEGMENTS: { key: Seg; label: TKey; statuses: DealerOrder["status"][] }[] =
 /** Orders by stage: New (accept/reject) · In progress (cut, weigh, pack) · Ready (waiting for rider). */
 export default function OrdersScreen() {
   const c = useC();
+  const refresh = usePullRefresh();
   const t = useT();
   const me = useDealerMe();
   const orders = useDealerOrders(me.data?.id);
@@ -53,7 +55,7 @@ export default function OrdersScreen() {
         })}
       </View>
 
-      <ScrollView contentContainerStyle={{ padding: 16, gap: 14, paddingBottom: 32 }}>
+      <ScrollView contentContainerStyle={{ padding: 16, gap: 14, paddingBottom: 32 }} refreshControl={refresh}>
         {list.length === 0 ? (
           <View style={{ padding: 40, alignItems: "center", gap: 8 }}>
             <Icon name="inbox" color={c.muted} size={30} />

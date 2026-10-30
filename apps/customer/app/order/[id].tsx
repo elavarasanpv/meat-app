@@ -16,6 +16,7 @@ import { PlacedFlash } from "@/components/PlacedFlash";
 import { TrackingMap } from "@/components/TrackingMap";
 import { useRiderLocation } from "@/hooks/useTracking";
 import { useCancelOrder, useOrder, useOrderOtp } from "@/hooks/useOrders";
+import { usePullRefresh } from "@/hooks/usePullRefresh";
 import { dateTime, dayLabel, slotWindow } from "@/lib/format";
 import { useLocalName, useT, type TKey } from "@/i18n";
 import { fonts, useTheme } from "@/theme";
@@ -29,6 +30,7 @@ const STALE_MS = 3 * 60_000;
 
 export default function OrderDetailScreen() {
   const { c } = useTheme();
+  const refresh = usePullRefresh([["orders"]]);
   const t = useT();
   const localName = useLocalName();
   const router = useRouter();
@@ -79,7 +81,12 @@ export default function OrderDetailScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: c.ground }}>
-      <ScrollView contentContainerStyle={{ paddingBottom: 32 }} stickyHeaderIndices={showTracking ? undefined : [0]}>
+      <ScrollView
+        contentContainerStyle={{ paddingBottom: 32 }}
+        stickyHeaderIndices={showTracking ? undefined : [0]}
+        // No pull on the live map: dragging the map would trigger it. The map screen refreshes itself.
+        refreshControl={showTracking ? undefined : refresh}
+      >
         {showTracking && o ? (
           <>
             {/* Map hero with floating controls */}

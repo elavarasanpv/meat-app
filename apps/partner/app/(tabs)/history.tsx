@@ -1,5 +1,6 @@
 import { ScrollView, View } from "react-native";
 import { Header } from "@/components/Header";
+import { usePullRefresh } from "@/hooks/usePullRefresh";
 import { Icon } from "@/components/Icon";
 import { useDealerMe, useHistory } from "@/hooks/useDealer";
 import { useLang, useT, type TKey } from "@/i18n";
@@ -12,6 +13,7 @@ function when(iso: string) {
 /** Finished orders with what the shop earned on each. */
 export default function HistoryScreen() {
   const c = useC();
+  const refresh = usePullRefresh();
   const t = useT();
   const lang = useLang((s) => s.lang);
   const me = useDealerMe();
@@ -21,7 +23,7 @@ export default function HistoryScreen() {
   return (
     <View style={{ flex: 1 }}>
       <Header title={t("tabHistory")} />
-      <ScrollView contentContainerStyle={{ padding: 16, gap: 10, paddingBottom: 32 }}>
+      <ScrollView contentContainerStyle={{ padding: 16, gap: 10, paddingBottom: 32 }} refreshControl={refresh}>
         {rows.length === 0 ? (
           <View style={{ padding: 40, alignItems: "center", gap: 8 }}>
             <Icon name="history" color={c.muted} size={30} />

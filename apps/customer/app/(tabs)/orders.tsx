@@ -7,6 +7,7 @@ import { Icon } from "@/components/Icon";
 import { StatusBadge } from "@/components/StatusBadge";
 import { EmptyState, ErrorState, ListSkeleton } from "@/components/States";
 import { useOrders } from "@/hooks/useOrders";
+import { usePullRefresh } from "@/hooks/usePullRefresh";
 import { dayLabel, slotWindow } from "@/lib/format";
 import { useT } from "@/i18n";
 import { useTheme } from "@/theme";
@@ -14,6 +15,7 @@ import { queryState } from "@/lib/network";
 
 export default function OrdersScreen() {
   const { c } = useTheme();
+  const refresh = usePullRefresh([["orders"]]);
   const t = useT();
   const router = useRouter();
   const orders = useOrders();
@@ -32,7 +34,7 @@ export default function OrdersScreen() {
       <View style={{ paddingHorizontal: 20, paddingTop: 8, height: 40, justifyContent: "center" }}>
         <AppText variant="title" numberOfLines={1}>{t("tabOrders")}</AppText>
       </View>
-      <ScrollView contentContainerStyle={{ padding: 20, paddingTop: 10, gap: 10 }}>
+      <ScrollView contentContainerStyle={{ padding: 20, paddingTop: 10, gap: 10 }} refreshControl={refresh}>
         {st.loading ? <ListSkeleton rows={4} height={84} /> : null}
         {st.failed ? <ErrorState onRetry={() => orders.refetch()} /> : null}
         {(orders.data ?? []).map((o) => (

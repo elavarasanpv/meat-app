@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Pressable, ScrollView, Switch, View } from "react-native";
 import { useRouter } from "expo-router";
 import { Header } from "@/components/Header";
+import { usePullRefresh } from "@/hooks/usePullRefresh";
 import { Icon, type IconName } from "@/components/Icon";
 import { OrderCard } from "@/components/OrderCard";
 import { useDealerMe, useDealerOrders, useShopState, useSummary } from "@/hooks/useDealer";
@@ -16,6 +17,7 @@ function greeting(): TKey {
 /** Home: shop switch, today's numbers, and the order that needs attention most. */
 export default function HomeScreen() {
   const c = useC();
+  const refresh = usePullRefresh();
   const t = useT();
   const router = useRouter();
   const me = useDealerMe();
@@ -45,7 +47,7 @@ export default function HomeScreen() {
   return (
     <View style={{ flex: 1 }}>
       <Header title={t(greeting())} sub={me.data?.shop_name} />
-      <ScrollView contentContainerStyle={{ padding: 16, paddingTop: 6, gap: 14, paddingBottom: 32 }}>
+      <ScrollView contentContainerStyle={{ padding: 16, paddingTop: 6, gap: 14, paddingBottom: 32 }} refreshControl={refresh}>
         {/* Shop switch */}
         <View style={{ padding: 16, borderRadius: 22, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, flexDirection: "row", alignItems: "center", gap: 12 }}>
           <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: c.tint, alignItems: "center", justifyContent: "center" }}>
