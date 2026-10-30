@@ -14,6 +14,13 @@ export const SLOT_WINDOWS: ReadonlyArray<readonly [number, number]> = [
 /** A slot must start at least this long after "now" to be offered. */
 export const SLOT_LEAD_MINUTES = 60;
 
+/** Riders within this many km of the shop see a packed order's offer. */
+export const RIDER_OFFER_RADIUS_KM = 5;
+/** A rider may carry at most this many undelivered orders at once. */
+export const RIDER_MAX_ACTIVE_ORDERS = 3;
+/** A later stop may jump the queue only if the detour costs the earlier customer less than this. */
+export const ON_THE_WAY_DETOUR_KM = 1.5;
+
 /** Minutes a dealer has to accept before the order is flagged for reassignment. */
 export const DEALER_ACCEPT_TIMEOUT_MIN = 5;
 

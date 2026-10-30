@@ -59,6 +59,32 @@ export const riderLocationSchema = z.object({
   speedKmh: z.number().min(0).max(200).optional(),
 });
 
+/** Reasons a rider may mark a stop as failed (after calling and waiting). */
+export const DELIVERY_FAIL_REASONS = ["no_answer", "refused", "wrong_address", "other"] as const;
+
+/** Pick up one or more RIDER_ASSIGNED orders at the same shop; starts a trip. */
+export const riderPickupSchema = z.object({
+  orderIds: z.array(z.string().uuid()).min(1).max(3),
+});
+
+/** Hand over one stop: the customer's OTP plus how they paid. */
+export const riderDeliverSchema = z.object({
+  orderId: z.string().uuid(),
+  otp: z.string().regex(/^\d{4}$/, "4-digit OTP"),
+  payment: z.enum(["cash", "upi"]),
+});
+
+export const riderFailSchema = z.object({
+  orderId: z.string().uuid(),
+  reason: z.enum(DELIVERY_FAIL_REASONS),
+  photoPath: z.string().max(500).optional(),
+});
+
+/** Day-end cash hand-over to the admin. */
+export const riderCashSubmitSchema = z.object({
+  amount: z.number().min(0).max(100000),
+});
+
 export const DEALER_REJECT_REASONS = ["out_of_stock", "closing", "too_busy", "other"] as const;
 
 export const dealerAcceptSchema = z.object({
@@ -117,6 +143,10 @@ export type DeliverySlotInput = z.infer<typeof deliverySlotSchema>;
 export type PlaceOrderInput = z.infer<typeof placeOrderSchema>;
 export type AddressInput = z.infer<typeof addressInputSchema>;
 export type RiderLocationInput = z.infer<typeof riderLocationSchema>;
+export type RiderPickupInput = z.infer<typeof riderPickupSchema>;
+export type RiderDeliverInput = z.infer<typeof riderDeliverSchema>;
+export type RiderFailInput = z.infer<typeof riderFailSchema>;
+export type RiderCashSubmitInput = z.infer<typeof riderCashSubmitSchema>;
 export type CancelOrderInput = z.infer<typeof cancelOrderSchema>;
 export type PackOrderInput = z.infer<typeof packOrderSchema>;
 export type DealerAcceptInput = z.infer<typeof dealerAcceptSchema>;
