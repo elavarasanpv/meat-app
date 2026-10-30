@@ -95,4 +95,6 @@ create policy "rider reads own shifts" on rider_shifts for select using (
 );
 
 grant select on rider_offers, trips, trip_stops, delivery_attempts, rider_shifts to authenticated;
+-- The API writes these tables with the service role, which has no default grant here.
+grant all on rider_offers, trips, trip_stops, delivery_attempts, rider_shifts to service_role;
 
