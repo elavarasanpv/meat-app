@@ -2,7 +2,7 @@ import Svg, { Circle, Path, Rect } from "react-native-svg";
 
 export type IconName =
   | "search" | "mic" | "bell" | "pin" | "chevronDown" | "back" | "sparkle"
-  | "home" | "orders" | "cart" | "phone" | "truck" | "logo" | "logout" | "clock" | "receipt" | "chevronUp" | "edit" | "trash" | "check" | "cut" | "scooter";
+  | "home" | "orders" | "cart" | "phone" | "truck" | "logo" | "logout" | "clock" | "receipt" | "chevronUp" | "edit" | "trash" | "check" | "cut" | "scooter" | "shop";
 
 type Props = { name: IconName; size?: number; color: string; strokeWidth?: number };
 
@@ -28,6 +28,13 @@ export function Icon({ name, size = 22, color, strokeWidth = 2.2 }: Props) {
       {name === "receipt" && (<><Path d="M6 3h12v18l-3-2-3 2-3-2-3 2z" {...p} /><Path d="M9 8h6" {...p} /><Path d="M9 12h6" {...p} /></>)}
       {name === "chevronUp" && <Path d="M6 15l6-6 6 6" {...p} />}
       {name === "check" && <Path d="M5 12.5l4.5 4.5L19 7.5" {...p} />}
+      {name === "shop" && (<>
+        <Path d="M3 9.5 4.5 5h15L21 9.5" {...p} />
+        <Path d="M3 9.5a2.25 2.25 0 0 0 4.5 0 2.25 2.25 0 0 0 4.5 0 2.25 2.25 0 0 0 4.5 0 2.25 2.25 0 0 0 4.5 0" {...p} />
+        <Path d="M4.5 12v8h15v-8" {...p} />
+        <Rect x={7} y={13.5} width={4.5} height={3.5} rx={0.8} {...p} />
+        <Path d="M14 20v-6h3.5v6" {...p} />
+      </>)}
       {name === "scooter" && (<><Circle cx={6} cy={17} r={3} {...p} /><Circle cx={18} cy={17} r={3} {...p} /><Path d="M6 17l3-8h5l1 4h3" {...p} /><Path d="M12 5h3l1 4" {...p} /><Path d="M9 9H5" {...p} /></>)}
       {name === "cut" && (<><Path d="M4 20l12-12 3 3-9 9z" {...p} /><Path d="M14 10l3-3 2 2" {...p} /><Path d="M4 20l1-3" {...p} /></>)}
       {name === "edit" && (<><Path d="M4 20h4l10-10-4-4L4 16z" {...p} /><Path d="M13 7l4 4" {...p} /></>)}

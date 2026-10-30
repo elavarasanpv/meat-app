@@ -10,7 +10,7 @@ export type JourneyStop = "placed" | "shop" | "cutting" | "packed" | "rider";
  */
 export const JOURNEY_ART: Record<JourneyStop, { icon: IconName; frames?: ImageSourcePropType[] }> = {
   placed: { icon: "receipt" },
-  shop: { icon: "logo" },
+  shop: { icon: "shop" },
   cutting: { icon: "cut" },
   packed: { icon: "cart" },
   rider: { icon: "scooter" },
