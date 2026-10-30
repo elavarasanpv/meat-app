@@ -104,6 +104,12 @@ const STRINGS = {
     support: "Call support",
     logout: "Log out",
     error: "Something went wrong. Try again.",
+    offlineTitle: "No internet",
+    offlineBody: "Showing the last orders we got. New orders will appear when you're back online.",
+    offlineStart: "Connect to the internet to load your shop.",
+    retry: "Retry",
+    serverTitle: "Can't reach FreshCut",
+    serverBody: "Your internet is fine; our server isn't answering. Retrying…",
   },
   ta: {
     appName: "FreshCut கடை",
@@ -200,6 +206,12 @@ const STRINGS = {
     support: "ஆதரவை அழை",
     logout: "வெளியேறு",
     error: "ஏதோ தவறு. மீண்டும் முயலவும்.",
+    offlineTitle: "இணையம் இல்லை",
+    offlineBody: "கடைசியாக வந்த ஆர்டர்களை காட்டுகிறது. இணையம் வந்ததும் புதிய ஆர்டர்கள் வரும்.",
+    offlineStart: "உங்கள் கடையை காட்ட இணையத்தை இணைக்கவும்.",
+    retry: "மீண்டும் முயல்",
+    serverTitle: "FreshCut-ஐ அடைய முடியவில்லை",
+    serverBody: "உங்கள் இணையம் சரி; எங்கள் சர்வர் பதிலளிக்கவில்லை. மீண்டும் முயல்கிறது…",
   },
 } as const;
 

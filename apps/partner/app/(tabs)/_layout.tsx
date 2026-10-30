@@ -1,6 +1,7 @@
 import { Tabs } from "expo-router";
 import { TabBar } from "@/components/TabBar";
 import { ScaleCamera } from "@/components/ScaleCamera";
+import { OfflineBanner } from "@/components/OfflineBanner";
 import { useDealerMe, useDealerRealtime, useSummary } from "@/hooks/useDealer";
 import { useC } from "@/ui";
 
@@ -19,6 +20,7 @@ export default function TabsLayout() {
       <Tabs.Screen name="stock" />
       <Tabs.Screen name="account" />
     </Tabs>
+    <OfflineBanner />
     <ScaleCamera />
     </>
   );
