@@ -51,7 +51,7 @@ export function useConnection(): "offline" | "server" | null {
   const [serverDown, setServerDown] = useState(false);
   useEffect(() => {
     const check = () => {
-      const qs = qc.getQueryCache().findAll({ queryKey: ["dealer"], type: "active" });
+      const qs = qc.getQueryCache().findAll({ type: "active", predicate: (q) => q.queryKey[0] === "dealer" || q.queryKey[0] === "rider" });
       // The newest result wins: a success after the last failure means the
       // server is back, even if a query that doesn't poll is still errored.
       const lastError = Math.max(0, ...qs.map((q) => (q.state.status === "error" ? q.state.errorUpdatedAt : 0)));

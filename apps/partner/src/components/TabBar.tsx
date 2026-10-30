@@ -12,6 +12,10 @@ const TABS: Record<string, { icon: IconName; label: TKey }> = {
   history: { icon: "history", label: "tabHistory" },
   stock: { icon: "stock", label: "tabStock" },
   account: { icon: "shop", label: "tabAccount" },
+  // rider mode
+  tasks: { icon: "scooter", label: "tabTasks" },
+  cash: { icon: "wallet", label: "tabCash" },
+  profile: { icon: "user", label: "tabProfile" },
 };
 
 /** Same pill tab bar as the customer app: tinted pill around icon + label, icon fills when selected. */

@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { View } from "react-native";
-import { Stack } from "expo-router";
+import { Stack, usePathname, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -10,6 +10,9 @@ import { bindOnlineManager, useIsOffline } from "@/lib/network";
 import { Icon } from "@/components/Icon";
 import { useAuth } from "@/store/auth";
 import { useDealerMe } from "@/hooks/useDealer";
+import { useRiderMe } from "@/hooks/useRider";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/lib/supabase";
 import { useLang, useT } from "@/i18n";
 import { Login } from "@/screens/Login";
 import { Btn, Txt, useC } from "@/ui";
@@ -44,7 +47,7 @@ export default function RootLayout() {
   );
 }
 
-/** Login → "not a shop" → the tabs. */
+/** Login → role (shop or rider) → the matching tabs. */
 function Gate() {
   const c = useC();
   const { session, ready, init } = useAuth();
@@ -56,7 +59,57 @@ function Gate() {
 
   if (!ready) return <View style={{ flex: 1, backgroundColor: c.ground }} />;
   if (!session) return <Login />;
-  return <DealerGate />;
+  return <RoleGate userId={session.user.id} />;
+}
+
+/** One app, two jobs: the profile's role decides which tabs this phone gets. */
+function RoleGate({ userId }: { userId: string }) {
+  const c = useC();
+  const role = useQuery({
+    queryKey: ["role", userId],
+    staleTime: Infinity,
+    queryFn: async () => {
+      const { data } = await supabase.from("profiles").select("role").eq("id", userId).maybeSingle();
+      return (data?.role as string | undefined) ?? "customer";
+    },
+  });
+  if (!role.data) return <View style={{ flex: 1, backgroundColor: c.ground }} />;
+  return role.data === "rider" ? <RiderGate /> : <DealerGate />;
+}
+
+function RiderGate() {
+  const c = useC();
+  const t = useT();
+  const me = useRiderMe();
+  const signOut = useAuth((s) => s.signOut);
+  const offline = useIsOffline();
+  const router = useRouter();
+  const pathname = usePathname();
+
+  // The rider's home is /rider; the dealer tabs sit at "/" and must not show.
+  useEffect(() => {
+    if (me.data && !pathname.startsWith("/rider")) router.replace("/rider");
+  }, [me.data, pathname]);
+
+  if (me.isError && !me.data) {
+    const notRider = me.error instanceof ApiError && me.error.status === 403;
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: c.ground, alignItems: "center", justifyContent: "center", padding: 32, gap: 14 }}>
+        {notRider ? (
+          <Txt bold size={18} style={{ textAlign: "center" }}>{t("notPartner")}</Txt>
+        ) : (
+          <>
+            <Txt bold size={20} style={{ textAlign: "center" }}>{t(offline ? "offlineTitle" : "serverTitle")}</Txt>
+            <Txt muted style={{ textAlign: "center" }}>{t(offline ? "offlineStart" : "serverBody")}</Txt>
+            <Btn label={t("retry")} big onPress={() => me.refetch()} loading={me.isFetching} style={{ alignSelf: "stretch" }} />
+          </>
+        )}
+        <Btn label={t("logout")} kind="soft" onPress={signOut} />
+      </SafeAreaView>
+    );
+  }
+  if (!me.data) return <View style={{ flex: 1, backgroundColor: c.ground }} />;
+  return <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: c.ground } }} />;
 }
 
 function DealerGate() {
@@ -71,7 +124,7 @@ function DealerGate() {
     if (notDealer) {
       return (
         <SafeAreaView style={{ flex: 1, backgroundColor: c.ground, alignItems: "center", justifyContent: "center", padding: 32, gap: 16 }}>
-          <Txt bold size={18} style={{ textAlign: "center" }}>{t("notDealer")}</Txt>
+          <Txt bold size={18} style={{ textAlign: "center" }}>{t("notPartner")}</Txt>
           <Btn label={t("logout")} kind="outline" onPress={signOut} />
         </SafeAreaView>
       );
