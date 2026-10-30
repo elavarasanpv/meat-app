@@ -199,6 +199,16 @@ export function useOrder(id: string | undefined) {
   });
 }
 
+/** This order's place in the rider's remaining stops (null when it's next or not on a trip). */
+export function useRiderQueue(id: string | undefined, live: boolean) {
+  return useQuery<{ position: number; total: number } | null>({
+    queryKey: ["orders", "queue", id],
+    enabled: !!id && live,
+    refetchInterval: 20_000,
+    queryFn: () => api(`/orders/${id}/queue`),
+  });
+}
+
 export function useOrderOtp(id: string | undefined) {
   return useQuery({
     queryKey: ["orders", "otp", id],

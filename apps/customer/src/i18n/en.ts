@@ -205,6 +205,7 @@ export const en = {
   arrivesIn: "Arrives in",
   minutes: "min",
   distance: "Distance",
+  stopOf: "You're stop {n} of {total} · {before} delivery before yours",
   yourRider: "Your rider",
   callRider: "Call rider",
   call: "Call",

@@ -39,7 +39,7 @@ export default function RiderHistory() {
                   <View key={x.order_id} style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
                     <Icon name={x.failed_at ? "x" : "check"} color={x.failed_at ? c.danger : c.success} size={16} strokeWidth={3} />
                     <Txt size={14} style={{ flex: 1 }}>{x.orders.display_id}</Txt>
-                    <Txt size={13} muted>{x.failed_at ? t("failed") : x.cash_collected ? `₹${x.cash_collected}` : t("paidOnline")}</Txt>
+                    <Txt size={13} muted>{x.failed_at ? t("failed") : x.cash_collected ? `₹${x.cash_collected}` : "UPI"}</Txt>
                   </View>
                 ))}
               </View>

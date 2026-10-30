@@ -30,6 +30,8 @@ export default function TasksScreen() {
   const toCollect = orders.filter((o) => o.status === "RIDER_ASSIGNED");
   const stopOf = (o: RiderOrder) => trip?.trip_stops.find((s) => s.order_id === o.id);
   const onTrip = orders.filter((o) => o.status !== "RIDER_ASSIGNED" && stopOf(o)).sort((a, b) => (stopOf(a)!.seq ?? 0) - (stopOf(b)!.seq ?? 0));
+  // Failed packets from a trip that has already closed still have to go back to the shop.
+  const toReturn = orders.filter((o) => o.status === "DELIVERY_FAILED" && !stopOf(o));
   const openStops = onTrip.filter((o) => o.status === "OUT_FOR_DELIVERY").length;
   // Failed packets go back only after every other stop is handled.
   const canReturn = openStops === 0;
@@ -43,7 +45,7 @@ export default function TasksScreen() {
     setPicking(new Set());
   }
 
-  const empty = !toCollect.length && !onTrip.length;
+  const empty = !toCollect.length && !onTrip.length && !toReturn.length;
 
   return (
     <View style={{ flex: 1 }}>
@@ -87,7 +89,17 @@ export default function TasksScreen() {
         ) : null}
 
         {onTrip.map((o) => (
-          <StopCard key={o.id} o={o} stop={stopOf(o)} canReturn={canReturn} />
+          <StopCard
+            key={o.id}
+            o={o}
+            stop={stopOf(o)}
+            canReturn={canReturn}
+            isNext={o.status !== "OUT_FOR_DELIVERY" || o.id === onTrip.find((x) => x.status === "OUT_FOR_DELIVERY")?.id}
+          />
+        ))}
+
+        {toReturn.map((o) => (
+          <StopCard key={o.id} o={o} canReturn />
         ))}
 
         {empty ? (

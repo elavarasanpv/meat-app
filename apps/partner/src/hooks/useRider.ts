@@ -182,6 +182,25 @@ export function useRiderHistory(riderId: string | undefined) {
   return useQuery<HistoryTrip[]>({ queryKey: ["rider", "history"], enabled: !!riderId, queryFn: () => api("/rider/history") });
 }
 
+export type CashView = {
+  inHand: number;
+  today: { orderId: string; displayId: string; deliveredAt: string; cash: number }[];
+  handovers: { date: string; expected: number; submitted: number | null; note: string | null; verified: boolean }[];
+};
+
+export function useRiderCash(riderId: string | undefined) {
+  return useQuery<CashView>({ queryKey: ["rider", "cash"], enabled: !!riderId, queryFn: () => api("/rider/cash") });
+}
+
+/** Deliver this stop next (reason is logged for the admin). */
+export function useReorder() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (p: { orderId: string; reason: string }) => api("/rider/reorder", { method: "POST", body: p }),
+    onSettled: () => invalidate(qc),
+  });
+}
+
 export function useCashSubmit() {
   const qc = useQueryClient();
   return useMutation({

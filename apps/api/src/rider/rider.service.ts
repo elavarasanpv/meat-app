@@ -4,6 +4,7 @@ import {
   RIDER_MAX_ACTIVE_ORDERS,
   RIDER_OFFER_RADIUS_KM,
   haversineKm,
+  sequenceStops,
   type RiderCashSubmitInput,
   type RiderDeliverInput,
   type RiderFailInput,
@@ -202,7 +203,7 @@ export class RiderService {
 
     const { data: orders } = await db
       .from("orders")
-      .select("id, status, rider_id, dealer_id, created_at")
+      .select("id, status, rider_id, dealer_id, created_at, dealers(lat, lng), addresses(lat, lng)")
       .in("id", input.orderIds);
     if (!orders || orders.length !== input.orderIds.length) throw new NotFoundException("Order not found");
     for (const o of orders) {
@@ -222,7 +223,17 @@ export class RiderService {
       .single();
     if (error) throw new BadRequestException(error.message);
 
-    const sorted = [...orders].sort((a, b) => a.created_at.localeCompare(b.created_at));
+    // Oldest customer first, unless a later one is on the way (shared rule).
+    const shop = orders[0].dealers as unknown as { lat: number | null; lng: number | null } | null;
+    const point = (o: (typeof orders)[number]) => {
+      const a = o.addresses as unknown as { lat: number | null; lng: number | null } | null;
+      return a?.lat != null && a?.lng != null ? { lat: a.lat, lng: a.lng } : null;
+    };
+    const order =
+      shop?.lat != null && shop?.lng != null
+        ? sequenceStops({ lat: shop.lat, lng: shop.lng }, orders.map((o) => ({ id: o.id, createdAt: o.created_at, point: point(o) })))
+        : [...orders].sort((a, b) => a.created_at.localeCompare(b.created_at)).map((o) => o.id);
+    const sorted = order.map((id) => orders.find((o) => o.id === id)!);
     await db.from("trip_stops").insert(sorted.map((o, i) => ({ trip_id: trip.id, order_id: o.id, seq: i + 1 })));
 
     for (const o of sorted) {
@@ -230,6 +241,36 @@ export class RiderService {
       await this.orders.transition({ orderId: o.id, to: "OUT_FOR_DELIVERY", actorId: rider.profile_id });
     }
     return { tripId: trip.id, stops: sorted.length };
+  }
+
+  /**
+   * "Deliver this next": move an open stop to the front of the remaining
+   * stops. A reason is required and kept on the stop for the admin's log.
+   */
+  async reorder(profileId: string, orderId: string, reason: string) {
+    const rider = await this.resolveRider(profileId);
+    const db = this.supabase.admin;
+    const { data: stop } = await db.from("trip_stops").select("id, trip_id, seq, delivered_at, failed_at").eq("order_id", orderId).maybeSingle();
+    if (!stop) throw new NotFoundException("Stop not found");
+    const { data: trip } = await db.from("trips").select("id, rider_id, ended_at").eq("id", stop.trip_id).single();
+    if (!trip || trip.rider_id !== rider.id || trip.ended_at) throw new ForbiddenException("Not your trip");
+    if (stop.delivered_at || stop.failed_at) throw new BadRequestException("Stop already handled");
+
+    const { data: open } = await db
+      .from("trip_stops")
+      .select("id, seq")
+      .eq("trip_id", stop.trip_id)
+      .is("delivered_at", null)
+      .is("failed_at", null)
+      .order("seq");
+    const first = open?.[0]?.seq ?? stop.seq;
+    if (first === stop.seq) return { moved: false };
+    // Shift the stops in between down by one, then put this one first.
+    for (const s of (open ?? []).filter((x) => x.seq >= first && x.seq < stop.seq).reverse()) {
+      await db.from("trip_stops").update({ seq: s.seq + 1 }).eq("id", s.id);
+    }
+    await db.from("trip_stops").update({ seq: first, reorder_reason: reason }).eq("id", stop.id);
+    return { moved: true };
   }
 
   /** OTP handover: verify, mark delivered, log cash on the stop and the rider. */
@@ -350,6 +391,42 @@ export class RiderService {
       .order("started_at", { ascending: false })
       .limit(50);
     return data ?? [];
+  }
+
+  /** Where the cash in hand came from today (order by order) and past hand-overs. */
+  async cash(profileId: string) {
+    const rider = await this.resolveRider(profileId);
+    const db = this.supabase.admin;
+    const dayStart = new Date();
+    dayStart.setHours(0, 0, 0, 0);
+    const [{ data: stops }, { data: subs }] = await Promise.all([
+      db
+        .from("trip_stops")
+        .select("order_id, delivered_at, cash_collected, trips!inner(rider_id), orders(display_id, payment_mode)")
+        .eq("trips.rider_id", rider.id)
+        .gte("delivered_at", dayStart.toISOString())
+        .order("delivered_at", { ascending: false }),
+      db
+        .from("cash_submissions")
+        .select("business_date, expected, submitted, mismatch_note, verified_by, created_at")
+        .eq("rider_id", rider.id)
+        .order("business_date", { ascending: false })
+        .limit(14),
+    ]);
+    return {
+      inHand: Number(rider.cash_balance),
+      today: (stops ?? []).map((x) => {
+        const o = x.orders as unknown as { display_id: string; payment_mode: string } | null;
+        return { orderId: x.order_id, displayId: o?.display_id ?? "", deliveredAt: x.delivered_at, cash: Number(x.cash_collected) };
+      }),
+      handovers: (subs ?? []).map((h) => ({
+        date: h.business_date,
+        expected: Number(h.expected),
+        submitted: h.submitted == null ? null : Number(h.submitted),
+        note: h.mismatch_note,
+        verified: !!h.verified_by,
+      })),
+    };
   }
 
   /** Day-end cash hand-over: records it for the admin and clears the balance. */

@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, Get, Headers, Param, Post } from "@nestjs/common";
+import { BadRequestException, Body, Controller, ForbiddenException, Get, Headers, Param, Post } from "@nestjs/common";
 import { z } from "zod";
 import { cancelOrderSchema, orderStatusSchema, placeOrderSchema, upcomingSlots } from "@freshcut/shared";
 import { OrdersService } from "./orders.service";
@@ -43,6 +43,30 @@ export class OrdersController {
     // Offer the order to the nearest open shop; a failure here never blocks checkout.
     await this.assignment.offer(result.orderId).catch((e) => console.error("[assign] offer", e));
     return result;
+  }
+
+  /**
+   * GET /orders/:id/queue — where this order sits in the rider's trip:
+   * { position: 2, total: 3 } means one delivery comes before it. null when
+   * the order isn't on a trip (or is already handled).
+   */
+  @Get(":id/queue")
+  async queue(@Headers("authorization") auth: string | undefined, @Param("id") id: string) {
+    const user = await requireUser(this.supabase, auth);
+    const db = this.supabase.admin;
+    const { data: order } = await db.from("orders").select("id, customer_id").eq("id", id).maybeSingle();
+    if (!order || order.customer_id !== user.id) throw new ForbiddenException("Not your order");
+    const { data: stop } = await db.from("trip_stops").select("trip_id, delivered_at, failed_at").eq("order_id", id).maybeSingle();
+    if (!stop || stop.delivered_at || stop.failed_at) return null;
+    const { data: open } = await db
+      .from("trip_stops")
+      .select("order_id, seq")
+      .eq("trip_id", stop.trip_id)
+      .is("delivered_at", null)
+      .is("failed_at", null)
+      .order("seq");
+    const position = (open ?? []).findIndex((s) => s.order_id === id) + 1;
+    return position > 0 ? { position, total: open!.length } : null;
   }
 
   /** POST /orders/:id/cancel — customer cancels their own order (only until the shop accepts). */

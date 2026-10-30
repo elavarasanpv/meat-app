@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { TextInput, View } from "react-native";
 import * as Haptics from "expo-haptics";
 import { DELIVERY_FAIL_REASONS } from "@freshcut/shared";
-import { amountDue, useArrived, useContact, useDeliver, useFail, useReturn, type RiderOrder, type TripStop } from "@/hooks/useRider";
+import { amountDue, useArrived, useContact, useDeliver, useFail, useReorder, useReturn, type RiderOrder, type TripStop } from "@/hooks/useRider";
 import { callNumber, navigateTo } from "@/lib/maps";
 import { useLang, useT, type TKey } from "@/i18n";
 import { Btn, Chip, Txt, useC } from "@/ui";
@@ -18,7 +18,10 @@ const clock = (iso: string) => new Date(iso).toLocaleTimeString("en-IN", { hour:
  * Actions follow the handover: Navigate / Call → I've arrived → Deliver (OTP
  * + how they paid) or, after the wait, Can't deliver → Return to shop.
  */
-export function StopCard({ o, stop, canReturn }: { o: RiderOrder; stop?: TripStop; canReturn: boolean }) {
+/** Reasons a rider may jump a stop ahead; kept on the stop for the admin. */
+const REORDER_REASONS = ["r_road", "r_customer_asked", "r_closer", "r_other"] as const;
+
+export function StopCard({ o, stop, canReturn, isNext = true }: { o: RiderOrder; stop?: TripStop; canReturn: boolean; isNext?: boolean }) {
   const c = useC();
   const t = useT();
   const lang = useLang((s) => s.lang);
@@ -27,7 +30,8 @@ export function StopCard({ o, stop, canReturn }: { o: RiderOrder; stop?: TripSto
   const deliver = useDeliver();
   const fail = useFail();
   const ret = useReturn();
-  const [mode, setMode] = useState<"none" | "otp" | "fail">("none");
+  const reorder = useReorder();
+  const [mode, setMode] = useState<"none" | "otp" | "fail" | "reorder">("none");
   const [otp, setOtp] = useState("");
   const [payment, setPayment] = useState<"cash" | "upi">("cash");
   const [otpError, setOtpError] = useState(false);
@@ -101,7 +105,19 @@ export function StopCard({ o, stop, canReturn }: { o: RiderOrder; stop?: TripSto
             <Btn label={t("call")} icon="phone" kind="soft" onPress={() => callNumber(contact.data?.phone)} disabled={!contact.data?.phone} style={{ flex: 1 }} />
           </View>
 
-          {!o.arrived_at ? (
+          {!isNext && mode !== "reorder" ? (
+            <Btn label={t("deliverNext")} icon="navigate" kind="outline" onPress={() => setMode("reorder")} />
+          ) : !isNext && mode === "reorder" ? (
+            <View style={{ gap: 8 }}>
+              <Txt bold size={15}>{t("whyReorder")}</Txt>
+              <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
+                {REORDER_REASONS.map((r) => (
+                  <Chip key={r} label={t(r)} onPress={() => { tap(); reorder.mutate({ orderId: o.id, reason: r.slice(2) }); setMode("none"); }} />
+                ))}
+                <Chip label={t("back")} onPress={() => setMode("none")} />
+              </View>
+            </View>
+          ) : !o.arrived_at ? (
             <Btn label={t("arrived")} icon="check" big onPress={() => { tap(); arrived.mutate(o.id); }} loading={arrived.isPending} />
           ) : mode === "otp" ? (
             <View style={{ gap: 10 }}>

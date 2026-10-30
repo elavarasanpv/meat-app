@@ -196,6 +196,7 @@ export const ta: Record<keyof typeof en, string> = {
   arrivesIn: "வந்து சேர",
   minutes: "நிமிடம்",
   distance: "தூரம்",
+  stopOf: "நீங்கள் {total}-ல் {n}வது இடம் · உங்களுக்கு முன் {before} டெலிவரி",
   yourRider: "உங்கள் ரைடர்",
   callRider: "ரைடரை அழை",
   call: "அழை",

@@ -15,7 +15,7 @@ import { OrderJourney } from "@/components/OrderJourney";
 import { PlacedFlash } from "@/components/PlacedFlash";
 import { TrackingMap } from "@/components/TrackingMap";
 import { useRiderLocation } from "@/hooks/useTracking";
-import { useCancelOrder, useOrder, useOrderOtp } from "@/hooks/useOrders";
+import { useCancelOrder, useOrder, useOrderOtp, useRiderQueue } from "@/hooks/useOrders";
 import { usePullRefresh } from "@/hooks/usePullRefresh";
 import { dateTime, dayLabel, slotWindow } from "@/lib/format";
 import { useLocalName, useT, type TKey } from "@/i18n";
@@ -39,6 +39,7 @@ export default function OrderDetailScreen() {
   const { id, placed } = useLocalSearchParams<{ id: string; placed?: string }>();
   const order = useOrder(id);
   const otp = useOrderOtp(id);
+  const queue = useRiderQueue(id, order.data?.status === "OUT_FOR_DELIVERY");
   const o = order.data;
   const tracking = useRiderLocation(id, o?.rider_id);
   const rider = tracking.data;
@@ -152,7 +153,11 @@ export default function OrderDetailScreen() {
                 </View>
                 <View style={{ flex: 1 }}>
                   <AppText variant="bodyBold" numberOfLines={1}>{t("yourRider")}</AppText>
-                  <AppText variant="caption" muted numberOfLines={1}>{t(`st_${o.status}` as TKey)}</AppText>
+                  <AppText variant="caption" muted numberOfLines={1}>
+                    {queue.data && queue.data.position > 1
+                      ? t("stopOf").replace("{n}", String(queue.data.position)).replace("{total}", String(queue.data.total)).replace("{before}", String(queue.data.position - 1))
+                      : t(`st_${o.status}` as TKey)}
+                  </AppText>
                 </View>
                 <Pressable
                   onPress={() => Linking.openURL("tel:+919999999999")}

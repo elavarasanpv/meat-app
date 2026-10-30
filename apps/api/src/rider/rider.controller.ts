@@ -73,6 +73,14 @@ export class RiderController {
     return this.rider.pickup(user.id, this.parse(riderPickupSchema, body));
   }
 
+  /** POST /rider/reorder { orderId, reason } — deliver this stop next (logged). */
+  @Post("reorder")
+  async reorder(@Headers("authorization") auth: string | undefined, @Body() body: unknown) {
+    const user = await requireUser(this.supabase, auth);
+    const { orderId, reason } = this.parse(z.object({ orderId: z.string().uuid(), reason: z.string().trim().min(2).max(200) }), body);
+    return this.rider.reorder(user.id, orderId, reason);
+  }
+
   /** POST /rider/deliver { orderId, otp, payment } */
   @Post("deliver")
   async deliver(@Headers("authorization") auth: string | undefined, @Body() body: unknown) {
@@ -114,6 +122,13 @@ export class RiderController {
   async history(@Headers("authorization") auth: string | undefined) {
     const user = await requireUser(this.supabase, auth);
     return this.rider.history(user.id);
+  }
+
+  /** GET /rider/cash — today's cash per order and past hand-overs. */
+  @Get("cash")
+  async cash(@Headers("authorization") auth: string | undefined) {
+    const user = await requireUser(this.supabase, auth);
+    return this.rider.cash(user.id);
   }
 
   /** POST /rider/cash-submit { amount } — day-end hand-over. */
