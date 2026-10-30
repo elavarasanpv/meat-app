@@ -150,7 +150,7 @@ export default function OrderDetailScreen() {
               {/* Rider strip */}
               <View style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: c.border }}>
                 <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: c.tint, alignItems: "center", justifyContent: "center" }}>
-                  <Icon name="scooter" color={c.primary} size={22} />
+                  <Icon name="scooter" color={c.primary} size={30} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <AppText variant="bodyBold" numberOfLines={1}>{t("yourRider")}</AppText>

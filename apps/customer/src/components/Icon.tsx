@@ -1,4 +1,8 @@
+import { Image } from "react-native";
 import Svg, { Circle, Path, Rect } from "react-native-svg";
+
+/** Delivery rider on a scooter — the same artwork as the rider app, tinted to any colour. */
+const RIDER = require("@freshcut/assets/images/icon-rider.png");
 
 export type IconName =
   | "search" | "mic" | "bell" | "pin" | "chevronDown" | "back" | "sparkle"
@@ -8,6 +12,7 @@ type Props = { name: IconName; size?: number; color: string; strokeWidth?: numbe
 
 /** Stroke icons drawn to match the design canvas (24×24 grid). */
 export function Icon({ name, size = 22, color, strokeWidth = 2.2 }: Props) {
+  if (name === "scooter") return <Image source={RIDER} style={{ width: size, height: size, tintColor: color }} resizeMode="contain" />;
   const p = { stroke: color, strokeWidth, fill: "none", strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24">
@@ -35,7 +40,6 @@ export function Icon({ name, size = 22, color, strokeWidth = 2.2 }: Props) {
         <Rect x={7} y={13.5} width={4.5} height={3.5} rx={0.8} {...p} />
         <Path d="M14 20v-6h3.5v6" {...p} />
       </>)}
-      {name === "scooter" && (<><Circle cx={6} cy={17} r={3} {...p} /><Circle cx={18} cy={17} r={3} {...p} /><Path d="M6 17l3-8h5l1 4h3" {...p} /><Path d="M12 5h3l1 4" {...p} /><Path d="M9 9H5" {...p} /></>)}
       {name === "cut" && (<><Path d="M4 20l12-12 3 3-9 9z" {...p} /><Path d="M14 10l3-3 2 2" {...p} /><Path d="M4 20l1-3" {...p} /></>)}
       {name === "edit" && (<><Path d="M4 20h4l10-10-4-4L4 16z" {...p} /><Path d="M13 7l4 4" {...p} /></>)}
       {name === "trash" && (<><Path d="M4 7h16" {...p} /><Path d="M9 7V4h6v3" {...p} /><Path d="M6 7l1 13h10l1-13" {...p} /><Path d="M10 11v6" {...p} /><Path d="M14 11v6" {...p} /></>)}
