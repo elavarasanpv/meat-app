@@ -69,6 +69,23 @@ export class OrdersController {
     return position > 0 ? { position, total: open!.length } : null;
   }
 
+  /**
+   * GET /orders/:id/rider-contact — who to call about this order's delivery.
+   * Today the rider's real number; later a masked number from the same
+   * endpoint, with no app change. null until a rider has accepted.
+   */
+  @Get(":id/rider-contact")
+  async riderContact(@Headers("authorization") auth: string | undefined, @Param("id") id: string) {
+    const user = await requireUser(this.supabase, auth);
+    const db = this.supabase.admin;
+    const { data: order } = await db.from("orders").select("id, customer_id, rider_id").eq("id", id).maybeSingle();
+    if (!order || order.customer_id !== user.id) throw new ForbiddenException("Not your order");
+    if (!order.rider_id) return null;
+    const { data: rider } = await db.from("delivery_partners").select("vehicle, profiles(full_name, phone)").eq("id", order.rider_id).maybeSingle();
+    const p = rider?.profiles as unknown as { full_name: string | null; phone: string | null } | null;
+    return { name: p?.full_name ?? null, phone: p?.phone ? `+${p.phone}` : null, vehicle: rider?.vehicle ?? null };
+  }
+
   /** POST /orders/:id/cancel — customer cancels their own order (only until the shop accepts). */
   @Post(":id/cancel")
   async cancel(@Headers("authorization") auth: string | undefined, @Param("id") id: string, @Body() body: unknown) {

@@ -209,6 +209,16 @@ export function useRiderQueue(id: string | undefined, live: boolean) {
   });
 }
 
+/** Phone to call the assigned rider — through the server, so it can be masked later. */
+export function useRiderContact(id: string | undefined, hasRider: boolean) {
+  return useQuery<{ name: string | null; phone: string | null; vehicle: string | null } | null>({
+    queryKey: ["orders", "rider-contact", id],
+    enabled: !!id && hasRider,
+    staleTime: 5 * 60_000,
+    queryFn: () => api(`/orders/${id}/rider-contact`),
+  });
+}
+
 export function useOrderOtp(id: string | undefined) {
   return useQuery({
     queryKey: ["orders", "otp", id],

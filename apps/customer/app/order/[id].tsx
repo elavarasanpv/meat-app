@@ -15,7 +15,7 @@ import { OrderJourney } from "@/components/OrderJourney";
 import { PlacedFlash } from "@/components/PlacedFlash";
 import { TrackingMap } from "@/components/TrackingMap";
 import { useRiderLocation } from "@/hooks/useTracking";
-import { useCancelOrder, useOrder, useOrderOtp, useRiderQueue } from "@/hooks/useOrders";
+import { useCancelOrder, useOrder, useOrderOtp, useRiderContact, useRiderQueue } from "@/hooks/useOrders";
 import { usePullRefresh } from "@/hooks/usePullRefresh";
 import { dateTime, dayLabel, slotWindow } from "@/lib/format";
 import { useLocalName, useT, type TKey } from "@/i18n";
@@ -40,6 +40,7 @@ export default function OrderDetailScreen() {
   const order = useOrder(id);
   const otp = useOrderOtp(id);
   const queue = useRiderQueue(id, order.data?.status === "OUT_FOR_DELIVERY");
+  const riderContact = useRiderContact(id, !!order.data?.rider_id);
   const o = order.data;
   const tracking = useRiderLocation(id, o?.rider_id);
   const rider = tracking.data;
@@ -109,7 +110,7 @@ export default function OrderDetailScreen() {
             </View>
 
             {arrived ? (
-              <ArrivedPanel amount={Number(o.final_amount ?? o.est_amount)} paymentMode={o.payment_mode} otp={otp.data ?? null} />
+              <ArrivedPanel amount={Number(o.final_amount ?? o.est_amount)} paymentMode={o.payment_mode} otp={otp.data ?? null} riderPhone={riderContact.data?.phone ?? undefined} />
             ) : (
             <View style={{ marginTop: -36, marginHorizontal: 16, padding: 18, borderRadius: 24, backgroundColor: c.surface, elevation: 8, shadowColor: "#000", shadowOpacity: 0.12, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, gap: 12 }}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
@@ -160,7 +161,8 @@ export default function OrderDetailScreen() {
                   </AppText>
                 </View>
                 <Pressable
-                  onPress={() => Linking.openURL("tel:+919999999999")}
+                  onPress={() => riderContact.data?.phone && Linking.openURL(`tel:${riderContact.data.phone}`)}
+                  disabled={!riderContact.data?.phone}
                   accessibilityRole="button"
                   accessibilityLabel={t("callRider")}
                   style={({ pressed }) => ({ height: 44, paddingHorizontal: 16, borderRadius: 22, backgroundColor: pressed ? c.primaryPressed : c.success, flexDirection: "row", alignItems: "center", gap: 8 })}

@@ -22,7 +22,7 @@ type Props = {
  * bounce, plays a doorbell chime + haptic once, and makes the two things the
  * customer needs obvious — the OTP to read out and the amount to pay.
  */
-export function ArrivedPanel({ amount, paymentMode, otp, riderPhone = "+919999999999" }: Props) {
+export function ArrivedPanel({ amount, paymentMode, otp, riderPhone }: Props) {
   const { c } = useTheme();
   const t = useT();
   const player = useAudioPlayer(chime);
@@ -107,7 +107,8 @@ export function ArrivedPanel({ amount, paymentMode, otp, riderPhone = "+91999999
         </View>
 
         <Pressable
-          onPress={() => Linking.openURL(`tel:${riderPhone}`)}
+          onPress={() => riderPhone && Linking.openURL(`tel:${riderPhone}`)}
+          disabled={!riderPhone}
           accessibilityRole="button"
           accessibilityLabel={t("callRider")}
           style={({ pressed }) => ({ height: 50, borderRadius: 25, backgroundColor: pressed ? c.primaryPressed : c.success, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10 })}
