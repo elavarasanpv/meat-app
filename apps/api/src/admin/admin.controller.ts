@@ -104,6 +104,12 @@ export class AdminController {
     return this.ops.listRiders();
   }
 
+  @Get("riders/:id/live")
+  async riderLive(@Headers("authorization") auth: string | undefined, @Param("id") id: string) {
+    await this.guard(auth);
+    return this.ops.riderLive(id);
+  }
+
   @Post("riders")
   async enrolRider(@Headers("authorization") auth: string | undefined, @Body() body: unknown) {
     const a = await this.guard(auth);

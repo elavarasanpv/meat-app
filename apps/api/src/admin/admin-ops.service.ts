@@ -446,6 +446,54 @@ export class AdminOpsService {
     return { id: riderId };
   }
 
+  /** Where a rider is right now, where they've been today, and what they're carrying. */
+  async riderLive(id: string) {
+    const db = this.db;
+    const IST = 5.5 * 3600_000;
+    const today0 = new Date(Math.floor((Date.now() + IST) / 86_400_000) * 86_400_000 - IST).toISOString();
+    const [{ data: r }, { data: loc }, { data: trail }, { data: orders }, { data: shift }] = await Promise.all([
+      db.from("delivery_partners").select("id, vehicle, is_online, cash_balance, profiles(full_name, phone)").eq("id", id).maybeSingle(),
+      db.from("rider_locations").select("lat, lng, heading, speed_kmh, updated_at").eq("rider_id", id).maybeSingle(),
+      db.from("rider_location_points").select("lat, lng, recorded_at").eq("rider_id", id).gte("recorded_at", today0).order("recorded_at").limit(2000),
+      db
+        .from("orders")
+        .select("id, display_id, status, est_amount, final_amount, pickup_lat, pickup_lng, profiles!orders_customer_id_fkey(full_name), addresses(address_text, pincode, lat, lng), dealers(shop_name, lat, lng)")
+        .eq("rider_id", id)
+        .in("status", ["RIDER_ASSIGNED", "PICKED_UP", "OUT_FOR_DELIVERY"])
+        .order("created_at"),
+      db.from("rider_shifts").select("started_at").eq("rider_id", id).is("ended_at", null).order("started_at", { ascending: false }).limit(1).maybeSingle(),
+    ]);
+    if (!r) throw new NotFoundException("Rider not found");
+    const p = r.profiles as unknown as Name;
+    const km = (trail ?? []).reduce((t, x, i, a) => (i ? t + hav(a[i - 1], x) : 0), 0);
+    return {
+      id: r.id,
+      name: p?.full_name ?? "Rider",
+      phone: p?.phone ?? null,
+      vehicle: r.vehicle,
+      isOnline: r.is_online,
+      cash: Number(r.cash_balance),
+      onlineSince: shift?.started_at ?? null,
+      position: loc ? { lat: loc.lat, lng: loc.lng, heading: loc.heading, speedKmh: loc.speed_kmh, at: loc.updated_at } : null,
+      trail: (trail ?? []).map((x) => [x.lat, x.lng] as [number, number]),
+      trailKm: Math.round(km * 10) / 10,
+      stops: (orders ?? []).map((o) => {
+        const a = o.addresses as unknown as { address_text: string; pincode: string; lat: number | null; lng: number | null } | null;
+        const d = o.dealers as unknown as { shop_name: string; lat: number | null; lng: number | null } | null;
+        return {
+          id: o.id,
+          displayId: o.display_id,
+          status: o.status,
+          amount: Number(o.final_amount ?? o.est_amount),
+          customer: (o.profiles as unknown as Name)?.full_name ?? "Customer",
+          address: a ? `${a.address_text} · ${a.pincode}` : null,
+          at: a?.lat != null && a?.lng != null ? { lat: a.lat, lng: a.lng } : null,
+          shop: d ? { name: d.shop_name, at: d.lat != null && d.lng != null ? { lat: d.lat, lng: d.lng } : null } : null,
+        };
+      }),
+    };
+  }
+
   // ───────────────────────────── cash ─────────────────────────────
 
   async cash() {
@@ -497,4 +545,12 @@ export class AdminOpsService {
     await this.audit.log(admin.id, "cash.verify", id, { submitted, received, note });
     return { verified: true, diff };
   }
+}
+
+function hav(a: { lat: number; lng: number }, b: { lat: number; lng: number }) {
+  const R = 6371;
+  const dLat = ((b.lat - a.lat) * Math.PI) / 180;
+  const dLng = ((b.lng - a.lng) * Math.PI) / 180;
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos((a.lat * Math.PI) / 180) * Math.cos((b.lat * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(h));
 }

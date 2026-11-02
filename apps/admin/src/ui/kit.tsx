@@ -179,3 +179,30 @@ export function Avatar({ name, size = 32, ring }: { name: string; size?: number;
     </span>
   );
 }
+
+/** Centred dialog over the page (full screen on phones). Esc closes it. */
+export function Modal({ title, sub, onClose, children, wide, aside }: { title: ReactNode; sub?: ReactNode; onClose: () => void; children: ReactNode; wide?: boolean; aside?: ReactNode }) {
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
+  }, [onClose]);
+  return (
+    <div className="fixed inset-0 z-40 flex items-end justify-center sm:items-center sm:p-6">
+      <div className="absolute inset-0 bg-ink/40 backdrop-blur-[2px]" onClick={onClose} />
+      <div className={`relative flex max-h-full w-full flex-col overflow-hidden rounded-t-2xl bg-surface shadow-2xl sm:rounded-2xl ${wide ? "sm:max-w-4xl" : "sm:max-w-xl"}`}>
+        <div className="flex items-start gap-3 border-b border-line px-5 py-3.5">
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-[16px] font-extrabold">{title}</div>
+            {sub && <div className="text-[12px] text-muted">{sub}</div>}
+          </div>
+          {aside}
+          <button aria-label="Close" onClick={onClose} className="rounded-lg border border-line p-1.5 text-muted hover:text-ink">
+            <IconX size={15} />
+          </button>
+        </div>
+        <div className="min-h-0 flex-1 overflow-y-auto">{children}</div>
+      </div>
+    </div>
+  );
+}
