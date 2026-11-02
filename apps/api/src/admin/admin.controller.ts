@@ -79,6 +79,12 @@ export class AdminController {
     return this.ops.listShops();
   }
 
+  @Get("shops/:id/stats")
+  async shopStats(@Headers("authorization") auth: string | undefined, @Param("id") id: string) {
+    await this.guard(auth);
+    return this.ops.shopStats(id);
+  }
+
   @Get("shops/:id")
   async shop(@Headers("authorization") auth: string | undefined, @Param("id") id: string) {
     await this.guard(auth);

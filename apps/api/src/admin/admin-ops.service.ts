@@ -381,6 +381,122 @@ export class AdminOpsService {
     return { id: dealerId };
   }
 
+  /** How a shop has performed over the last 30 days, plus its recent orders. */
+  async shopStats(id: string) {
+    const db = this.db;
+    const IST = 5.5 * 3600_000;
+    const DAYS = 30;
+    const today0 = Math.floor((Date.now() + IST) / 86_400_000) * 86_400_000 - IST;
+    const from = new Date(today0 - (DAYS - 1) * 86_400_000).toISOString();
+    const [{ data: shop }, { data: orders }, { data: offers }, { data: prices }] = await Promise.all([
+      db.from("dealers").select("id, shop_name, is_open, is_active, closed_until, created_at, profiles(full_name, phone), dealer_pincodes(pincode)").eq("id", id).maybeSingle(),
+      db
+        .from("orders")
+        .select("id, display_id, status, est_amount, final_amount, created_at, ready_by, profiles!orders_customer_id_fkey(full_name), order_items(product_id, requested_kg, unavailable, products(name, unit)), order_status_history(to_status, created_at)")
+        .eq("dealer_id", id)
+        .gte("created_at", from)
+        .order("created_at", { ascending: false }),
+      db.from("order_assignments").select("offered_at, responded_at, outcome").eq("dealer_id", id).gte("offered_at", from),
+      db.from("dealer_products").select("product_id, price_per_kg").eq("dealer_id", id),
+    ]);
+    if (!shop) throw new NotFoundException("Shop not found");
+    const cost = new Map((prices ?? []).map((p) => [p.product_id, Number(p.price_per_kg ?? 0)]));
+
+    const days = Array.from({ length: DAYS }, (_, i) => ({ date: new Date(today0 - (DAYS - 1 - i) * 86_400_000 + IST).toISOString().slice(0, 10), orders: 0, sales: 0 }));
+    let delivered = 0, cancelled = 0, failed = 0, sales = 0, spend = 0;
+    const prep: number[] = [];
+    let onTime = 0, timed = 0;
+    const products = new Map<string, { name: string; unit: string; qty: number; orders: number }>();
+    type H = { to_status: string; created_at: string };
+    type It = { product_id: string; requested_kg: number; unavailable: boolean; products: { name: string; unit: string } | null };
+
+    for (const o of orders ?? []) {
+      const idx = Math.floor((new Date(o.created_at).getTime() - (today0 - (DAYS - 1) * 86_400_000)) / 86_400_000);
+      const amount = Number(o.final_amount ?? o.est_amount);
+      if (days[idx]) days[idx].orders += 1;
+      if (o.status === "DELIVERED") {
+        delivered += 1;
+        sales += amount;
+        if (days[idx]) days[idx].sales += amount;
+        for (const it of o.order_items as unknown as It[]) {
+          if (it.unavailable) continue;
+          spend += (cost.get(it.product_id) ?? 0) * Number(it.requested_kg);
+        }
+      }
+      if (o.status === "CANCELLED" || o.status === "REFUNDED") cancelled += 1;
+      if (o.status === "DELIVERY_FAILED" || o.status === "RETURNED") failed += 1;
+      for (const it of o.order_items as unknown as It[]) {
+        if (it.unavailable || !it.products) continue;
+        const cur = products.get(it.product_id) ?? { name: it.products.name, unit: it.products.unit, qty: 0, orders: 0 };
+        cur.qty += Number(it.requested_kg);
+        cur.orders += 1;
+        products.set(it.product_id, cur);
+      }
+      const h = o.order_status_history as unknown as H[];
+      const acc = h.find((x) => x.to_status === "ACCEPTED");
+      const packed = h.find((x) => x.to_status === "PACKED");
+      if (acc && packed) {
+        prep.push((new Date(packed.created_at).getTime() - new Date(acc.created_at).getTime()) / 60000);
+        if (o.ready_by) {
+          timed += 1;
+          if (new Date(packed.created_at).getTime() <= new Date(o.ready_by).getTime() + 60_000) onTime += 1;
+        }
+      }
+    }
+    const offered = offers?.length ?? 0;
+    const accepted = (offers ?? []).filter((a) => a.outcome === "accepted");
+    const responseSecs = accepted.filter((a) => a.responded_at).map((a) => (new Date(a.responded_at!).getTime() - new Date(a.offered_at).getTime()) / 1000);
+    const avg = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null);
+    const p = shop.profiles as unknown as Name;
+    const now = Date.now();
+    return {
+      id: shop.id,
+      name: shop.shop_name,
+      owner: p?.full_name ?? null,
+      phone: p?.phone ?? null,
+      isActive: shop.is_active,
+      isOpen: shop.is_open && (!shop.closed_until || new Date(shop.closed_until).getTime() <= now),
+      since: shop.created_at,
+      pincodes: (shop.dealer_pincodes as { pincode: string }[]).map((x) => x.pincode),
+      totals: {
+        orders: orders?.length ?? 0,
+        delivered,
+        cancelled,
+        failed,
+        sales: Math.round(sales),
+        paidToShop: Math.round(spend),
+        margin: Math.round(sales - spend),
+      },
+      offers: {
+        offered,
+        accepted: accepted.length,
+        declined: (offers ?? []).filter((a) => a.outcome === "rejected").length,
+        missed: (offers ?? []).filter((a) => a.outcome === "timeout").length,
+        acceptRate: offered ? Math.round((accepted.length / offered) * 100) : null,
+        avgAcceptSecs: avg(responseSecs) == null ? null : Math.round(avg(responseSecs)!),
+      },
+      prep: {
+        // Median, so one order left sitting overnight doesn't skew it.
+        avgMinutes: prep.length ? Math.round([...prep].sort((a, b) => a - b)[Math.floor(prep.length / 2)]) : null,
+        fastest: prep.length ? Math.round(Math.min(...prep)) : null,
+        slowest: prep.length ? Math.round(Math.max(...prep)) : null,
+        onTimePct: timed ? Math.round((onTime / timed) * 100) : null,
+        counted: prep.length,
+      },
+      days,
+      topProducts: [...products.values()].sort((a, b) => b.qty - a.qty).slice(0, 5).map((x) => ({ ...x, qty: Math.round(x.qty * 10) / 10 })),
+      recent: (orders ?? []).slice(0, 15).map((o) => ({
+        id: o.id,
+        displayId: o.display_id,
+        status: o.status,
+        amount: Number(o.final_amount ?? o.est_amount),
+        createdAt: o.created_at,
+        customer: (o.profiles as unknown as Name)?.full_name ?? null,
+        items: (o.order_items as unknown as It[]).filter((i) => !i.unavailable).length,
+      })),
+    };
+  }
+
   // ───────────────────────────── riders ─────────────────────────────
 
   async listRiders() {

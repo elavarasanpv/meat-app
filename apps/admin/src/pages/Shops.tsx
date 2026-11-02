@@ -4,6 +4,7 @@ import { api } from "../lib/api";
 import { PageHeader } from "../shell/Shell";
 import { IconEdit, IconPhone, IconPlus } from "../ui/icons";
 import { MapPin, parseLatLng } from "../ui/MapPin";
+import { ShopDetail } from "./ShopDetail";
 import { TimePicker, formatTime } from "../ui/TimePicker";
 import { Btn, Chip, Drawer, Empty, ErrorBox, Field, Section, inputCls, inr, phone10 } from "../ui/kit";
 
@@ -47,6 +48,7 @@ const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", 
 export function Shops() {
   const shops = useQuery<Shop[]>({ queryKey: ["admin", "shops"], queryFn: () => api("/admin/shops"), refetchInterval: 30_000 });
   const [editing, setEditing] = useState<string | "new" | null>(null);
+  const [viewing, setViewing] = useState<string | null>(null);
 
   return (
     <div className="pb-6">
@@ -64,7 +66,14 @@ export function Shops() {
           <ErrorBox error={shops.error} />
         </div>
         {shops.data?.map((s) => (
-          <div key={s.id} className={`card ${s.isActive ? "" : "opacity-60"}`}>
+          <div
+            key={s.id}
+            role="button"
+            tabIndex={0}
+            onClick={() => setViewing(s.id)}
+            onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && e.target === e.currentTarget && (e.preventDefault(), setViewing(s.id))}
+            className={`card cursor-pointer outline-none transition hover:border-primary/40 hover:shadow-md focus-visible:border-primary ${s.isActive ? "" : "opacity-60"}`}
+          >
             <div className="flex items-start gap-2">
               <div className="min-w-0 flex-1">
                 <div className="truncate text-[15px] font-extrabold">{s.name}</div>
@@ -94,7 +103,7 @@ export function Shops() {
               </div>
               {!s.hasPin && <div className="font-bold text-warn">No map pin yet</div>}
             </div>
-            <div className="mt-3 flex gap-2">
+            <div className="mt-3 flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
               <Btn onClick={() => setEditing(s.id)}>
                 <IconEdit size={13} /> Edit
               </Btn>
@@ -103,6 +112,9 @@ export function Shops() {
                   <IconPhone size={13} /> Call
                 </a>
               )}
+              <button onClick={() => setViewing(s.id)} className="ml-auto text-[12px] font-extrabold text-primary">
+                View details →
+              </button>
             </div>
           </div>
         ))}
@@ -113,6 +125,7 @@ export function Shops() {
         )}
       </div>
       {editing && <ShopForm id={editing === "new" ? null : editing} onClose={() => setEditing(null)} />}
+      {viewing && <ShopDetail id={viewing} onClose={() => setViewing(null)} onEdit={() => (setViewing(null), setEditing(viewing))} />}
     </div>
   );
 }
