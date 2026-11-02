@@ -1,14 +1,14 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
-import rider from "@freshcut/assets/images/icon-rider.png";
-import goat from "@freshcut/assets/images/animal-goat.png";
-import hen from "@freshcut/assets/images/animal-country-hen.png";
+import shop from "@freshcut/assets/images/slide-shop.png";
+import rider from "@freshcut/assets/images/slide-rider.png";
+import tracking from "@freshcut/assets/images/slide-tracking.png";
 
 const SLIDES = [
-  { text: "Fresh meat, cut your way — at the door in minutes.", img: rider, alt: "Delivery rider", mask: true },
-  { text: "Every order weighed on the scale, with the photo to prove it.", img: goat, alt: "Goat" },
-  { text: "Country chicken, mutton and eggs from shops next door.", img: hen, alt: "Country hen" },
+  { text: "Shops, sales and margins at a glance, updated live.", img: shop, alt: "Butcher shop with a sales card" },
+  { text: "Know every rider: who's online, what they carry, how they're doing.", img: rider, alt: "Delivery partner with a profile card" },
+  { text: "Every order, from the shop's scale to the customer's door, live.", img: tracking, alt: "Rider on a scooter with live order tracking" },
 ];
 
 /** Split sign-in: warm panel with the brand story on the left, the form on the right. */
@@ -48,7 +48,8 @@ export function Login() {
               <img
                 src={SLIDES[slide].img}
                 alt={SLIDES[slide].alt}
-                className={`h-[300px] w-auto object-contain drop-shadow-[0_20px_30px_rgba(0,0,0,0.25)] ${SLIDES[slide].mask ? "brightness-0 invert" : ""}`}
+                key={slide}
+                className="max-h-[380px] w-full object-contain drop-shadow-[0_20px_30px_rgba(0,0,0,0.18)] animate-[fadein_.5s_ease]"
               />
             </div>
             <div className="mt-8 flex gap-2">

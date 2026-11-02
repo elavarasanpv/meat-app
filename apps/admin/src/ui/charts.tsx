@@ -92,3 +92,49 @@ export function FlowChart({
     </svg>
   );
 }
+
+/** Rounded bar chart (one bar per label), highlights the last bar. */
+export function Bars({ values, labels, color = "#E4461F", height = 110, format }: { values: number[]; labels: string[]; color?: string; height?: number; format?: (v: number) => string }) {
+  const max = Math.max(...values, 1);
+  return (
+    <div>
+      <div className="flex items-end gap-2" style={{ height }}>
+        {values.map((v, i) => {
+          const last = i === values.length - 1;
+          const h = Math.max(6, (v / max) * (height - 18));
+          return (
+            <div key={i} className="group relative flex flex-1 flex-col items-center justify-end">
+              {format && (
+                <div className="pointer-events-none absolute -top-6 hidden whitespace-nowrap rounded-md bg-ink px-1.5 py-0.5 text-[10px] font-bold text-white group-hover:block">{format(v)}</div>
+              )}
+              <div className="w-full max-w-[22px] rounded-md transition-all" style={{ height: h, background: color, opacity: last ? 1 : 0.35 }} />
+            </div>
+          );
+        })}
+      </div>
+      <div className="mt-1.5 flex gap-2">
+        {labels.map((l) => (
+          <div key={l} className="flex-1 text-center text-[10px] text-muted">{l}</div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** Donut with the share in the middle. */
+export function Donut({ pct, color = "#1E8A4F", size = 84, label }: { pct: number; color?: string; size?: number; label: string }) {
+  const r = (size - 12) / 2;
+  const c = 2 * Math.PI * r;
+  return (
+    <div className="relative" style={{ width: size, height: size }}>
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#F3ECE6" strokeWidth={10} />
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth={10} strokeLinecap="round" strokeDasharray={`${(c * pct) / 100} ${c}`} transform={`rotate(-90 ${size / 2} ${size / 2})`} />
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <span className="text-lg font-extrabold leading-none">{Math.round(pct)}%</span>
+        <span className="text-[10px] text-muted">{label}</span>
+      </div>
+    </div>
+  );
+}

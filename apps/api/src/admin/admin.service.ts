@@ -29,7 +29,7 @@ export class AdminService {
     const DEAD = ["CANCELLED", "RETURNED", "REFUNDED", "DELIVERY_FAILED"];
     const ACTIVE = ["PLACED", "DEALER_ASSIGNED", "ACCEPTED", "PACKING", "PACKED", "RIDER_ASSIGNED", "PICKED_UP", "OUT_FOR_DELIVERY"];
 
-    const [{ data: orders }, { data: riders }, { data: shops }, { data: recent }] = await Promise.all([
+    const [{ data: orders }, { data: riders }, { data: shops }, { data: recent }, { data: activeRows }] = await Promise.all([
       db
         .from("orders")
         .select("id, status, est_amount, final_amount, created_at, dealer_id, ready_by, order_items(product_id, requested_kg, unavailable)")
@@ -41,6 +41,12 @@ export class AdminService {
         .select("id, display_id, status, est_amount, final_amount, created_at, profiles!orders_customer_id_fkey(full_name, phone), dealers(shop_name)")
         .order("created_at", { ascending: false })
         .limit(8),
+      db
+        .from("orders")
+        .select("id, display_id, status, est_amount, final_amount, created_at, ready_by, dealer_id, profiles!orders_customer_id_fkey(full_name), dealers(shop_name), delivery_partners(profiles(full_name))")
+        .in("status", ["PLACED", "DEALER_ASSIGNED", "ACCEPTED", "PACKING", "PACKED", "RIDER_ASSIGNED", "PICKED_UP", "OUT_FOR_DELIVERY"])
+        .order("created_at", { ascending: false })
+        .limit(30),
     ]);
 
     // Shop (cost) price per dealer+product, to work out our margin.
@@ -58,10 +64,17 @@ export class AdminService {
     const stage: Record<string, number> = {};
     let late = 0;
     let unassigned = 0;
+    const week = { delivered: 0, failed: 0, cancelled: 0, open: 0 };
+    const perShop = new Map<string, number>();
     const now = Date.now();
     for (const o of orders ?? []) {
       const idx = Math.floor((new Date(o.created_at).getTime() + IST) / 86_400_000) - Math.floor((from.getTime() + IST) / 86_400_000);
       const dead = DEAD.includes(o.status);
+      if (o.status === "DELIVERED") week.delivered += 1;
+      else if (o.status === "CANCELLED" || o.status === "REFUNDED") week.cancelled += 1;
+      else if (o.status === "DELIVERY_FAILED" || o.status === "RETURNED") week.failed += 1;
+      else week.open += 1;
+      if (idx === 6 && !dead && o.dealer_id) perShop.set(o.dealer_id, (perShop.get(o.dealer_id) ?? 0) + 1);
       if (idx >= 0 && idx < 7 && !dead) {
         days[idx].orders += 1;
         days[idx].sales += Number(o.final_amount ?? o.est_amount);
@@ -90,7 +103,25 @@ export class AdminService {
         salesVsYesterday: pct(today.sales, yesterday.sales),
       },
       days: days.map((d) => ({ ...d, margin: d.sales - d.cost })),
+      week,
       stage,
+      shops: (shops ?? []).map((sh) => ({
+        id: sh.id,
+        name: sh.shop_name,
+        isOpen: sh.is_open && (!sh.closed_until || new Date(sh.closed_until).getTime() <= now),
+        todayOrders: perShop.get(sh.id) ?? 0,
+      })),
+      active: (activeRows ?? []).map((o) => ({
+        id: o.id,
+        displayId: o.display_id,
+        status: o.status,
+        amount: Number(o.final_amount ?? o.est_amount),
+        createdAt: o.created_at,
+        readyBy: o.ready_by,
+        customer: (o.profiles as unknown as { full_name: string | null } | null)?.full_name ?? null,
+        shop: (o.dealers as unknown as { shop_name: string } | null)?.shop_name ?? null,
+        rider: (o.delivery_partners as unknown as { profiles: { full_name: string | null } | null } | null)?.profiles?.full_name ?? null,
+      })),
       attention: { late, unassigned },
       onDuty: {
         ridersOnline: (riders ?? []).filter((r) => r.is_online).length,
