@@ -113,7 +113,7 @@ export function Riders() {
                 {r.carrying > 0 && <span className="md:hidden">carrying {r.carrying}</span>}
               </div>
               <div className={`hidden text-right text-[13px] font-extrabold tabular-nums md:block ${r.cash > 0 ? "text-primary" : "text-muted"}`}>{inr(r.cash)}</div>
-              <div className="col-span-2 flex items-center justify-end gap-1.5 md:col-span-1 md:opacity-0 md:transition md:group-hover:opacity-100 md:group-focus-within:opacity-100" onClick={(e) => e.stopPropagation()}>
+              <div className="col-span-2 flex items-center justify-end gap-1.5 md:col-span-1" onClick={(e) => e.stopPropagation()}>
                 {r.cash > 0 && <span className="mr-auto text-[12px] font-extrabold text-primary md:hidden">{inr(r.cash)}</span>}
                 <ActionBtn label="Watch live" onClick={() => setLive(r)}>
                   <IconMap size={14} />
