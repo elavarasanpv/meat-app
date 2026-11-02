@@ -1,0 +1,26 @@
+@import "tailwindcss";
+
+/* FreshCut palette, matching the apps. */
+@theme {
+  --color-primary: #e4461f;
+  --color-primary-dark: #b8361a;
+  --color-tint: #fde6df;
+  --color-ground: #fbf7f3;
+  --color-surface: #ffffff;
+  --color-surface-2: #f3ece6;
+  --color-line: #e8dfd8;
+  --color-ink: #1c1715;
+  --color-muted: #6e625b;
+  --color-ok: #1e8a4f;
+  --color-ok-bg: #ddf3e6;
+  --color-warn: #b4620a;
+  --color-warn-bg: #fbebd6;
+  --color-bad: #b8361a;
+  --font-sans: "Manrope", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+html {
+  background: var(--color-ground);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+}
