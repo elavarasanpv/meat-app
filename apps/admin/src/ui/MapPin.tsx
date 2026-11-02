@@ -3,11 +3,19 @@ import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from "react-lea
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
+import shopIcon from "@freshcut/assets/images/icon-shop.png";
+
+/** Shop marker: white pin with the orange shop icon, pointing at the spot. */
 const pin = L.divIcon({
   className: "",
-  html: '<div style="width:26px;height:26px;border-radius:50% 50% 50% 0;background:#E4461F;transform:rotate(-45deg);border:3px solid #fff;box-shadow:0 4px 10px rgba(0,0,0,.3)"></div>',
-  iconSize: [26, 26],
-  iconAnchor: [13, 26],
+  html: `<div style="position:relative;width:44px;height:54px">
+    <div style="position:absolute;left:0;top:0;width:44px;height:44px;border-radius:14px;background:#fff;border:2px solid #E4461F;box-shadow:0 6px 14px rgba(0,0,0,.28);display:flex;align-items:center;justify-content:center">
+      <img src="${shopIcon}" alt="" style="height:30px;width:auto" />
+    </div>
+    <div style="position:absolute;left:16px;top:38px;width:12px;height:12px;background:#fff;border-right:2px solid #E4461F;border-bottom:2px solid #E4461F;transform:rotate(45deg)"></div>
+  </div>`,
+  iconSize: [44, 54],
+  iconAnchor: [22, 52],
 });
 
 type LatLng = { lat: number; lng: number };
