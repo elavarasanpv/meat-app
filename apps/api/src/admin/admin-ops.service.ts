@@ -6,6 +6,8 @@ import { AssignmentService } from "../dealer/assignment.service";
 import { AdminService } from "./admin.service";
 import type { AdminUser } from "./admin.guard";
 
+/** A delivery taking longer than this from pickup to handover counts as late. */
+const RIDER_LATE_MIN = 45;
 const ACTIVE = ["PLACED", "DEALER_ASSIGNED", "ACCEPTED", "PACKING", "PACKED", "RIDER_ASSIGNED", "PICKED_UP", "OUT_FOR_DELIVERY"];
 const FILTERS: Record<string, string[]> = {
   active: ACTIVE,
@@ -560,6 +562,140 @@ export class AdminOpsService {
     if (error) throw new BadRequestException(error.message);
     await this.audit.log(admin.id, id ? "rider.update" : "rider.enrol", riderId, { name: input.name, phone: input.phone, vehicle: input.vehicle, active: input.isActive });
     return { id: riderId };
+  }
+
+  /**
+   * A rider's last 30 days: offers taken or turned down, how long deliveries
+   * took (pickup → handover), failures and why, km, online hours and cash.
+   */
+  async riderStats(id: string) {
+    const db = this.db;
+    const IST = 5.5 * 3600_000;
+    const DAYS = 30;
+    const LATE_MIN = RIDER_LATE_MIN;
+    const today0 = Math.floor((Date.now() + IST) / 86_400_000) * 86_400_000 - IST;
+    const start = today0 - (DAYS - 1) * 86_400_000;
+    const from = new Date(start).toISOString();
+    const [{ data: r }, { data: offers }, { data: trips }, { data: attempts }, { data: shifts }, { data: subs }] = await Promise.all([
+      db.from("delivery_partners").select("id, vehicle, is_online, is_active, cash_balance, created_at, profiles(full_name, phone)").eq("id", id).maybeSingle(),
+      db.from("rider_offers").select("order_id, outcome, created_at").eq("rider_id", id).gte("created_at", from),
+      db
+        .from("trips")
+        .select("id, started_at, ended_at, total_km, dealers(shop_name), trip_stops(order_id, seq, actual_seq, reorder_reason, delivered_at, failed_at, returned_at, cash_collected, orders(display_id, final_amount, est_amount))")
+        .eq("rider_id", id)
+        .gte("started_at", from)
+        .order("started_at", { ascending: false }),
+      db.from("delivery_attempts").select("reason").eq("rider_id", id).gte("created_at", from),
+      db.from("rider_shifts").select("started_at, ended_at").eq("rider_id", id).gte("started_at", from),
+      db.from("cash_submissions").select("business_date, expected, submitted, mismatch_note, verified_by").eq("rider_id", id).gte("business_date", from.slice(0, 10)).order("business_date", { ascending: false }),
+    ]);
+    if (!r) throw new NotFoundException("Rider not found");
+
+    // How long after the order was packed the rider grabbed it.
+    const wonIds = (offers ?? []).filter((o) => o.outcome === "won").map((o) => o.order_id);
+    const { data: packed } = wonIds.length
+      ? await db.from("order_status_history").select("order_id, created_at").in("order_id", wonIds).eq("to_status", "PACKED")
+      : { data: [] as { order_id: string; created_at: string }[] };
+    const packedAt = new Map((packed ?? []).map((p) => [p.order_id, new Date(p.created_at).getTime()]));
+    const grabSecs = (offers ?? [])
+      .filter((o) => o.outcome === "won" && packedAt.has(o.order_id))
+      .map((o) => (new Date(o.created_at).getTime() - packedAt.get(o.order_id)!) / 1000)
+      .filter((x) => x >= 0);
+
+    type S = { order_id: string; seq: number; actual_seq: number | null; reorder_reason: string | null; delivered_at: string | null; failed_at: string | null; returned_at: string | null; cash_collected: number; orders: { display_id: string; final_amount: number | null; est_amount: number } | null };
+    const days = Array.from({ length: DAYS }, (_, i) => ({ date: new Date(start + i * 86_400_000 + IST).toISOString().slice(0, 10), delivered: 0, failed: 0, km: 0 }));
+    const dayOf = (iso: string) => days[Math.floor((new Date(iso).getTime() - start) / 86_400_000)];
+    const durations: number[] = [];
+    let delivered = 0, failed = 0, returned = 0, reordered = 0, km = 0, cash = 0, late = 0;
+    for (const t of trips ?? []) {
+      km += Number(t.total_km ?? 0);
+      const d0 = dayOf(t.started_at);
+      if (d0) d0.km += Number(t.total_km ?? 0);
+      for (const st of t.trip_stops as unknown as S[]) {
+        if (st.reorder_reason) reordered += 1;
+        if (st.returned_at) returned += 1;
+        cash += Number(st.cash_collected ?? 0);
+        if (st.delivered_at) {
+          delivered += 1;
+          const d = dayOf(st.delivered_at);
+          if (d) d.delivered += 1;
+          const mins = (new Date(st.delivered_at).getTime() - new Date(t.started_at).getTime()) / 60000;
+          durations.push(mins);
+          if (mins > LATE_MIN) late += 1;
+        } else if (st.failed_at) {
+          failed += 1;
+          const d = dayOf(st.failed_at);
+          if (d) d.failed += 1;
+        }
+      }
+    }
+    const reasons: Record<string, number> = {};
+    for (const a of attempts ?? []) reasons[a.reason] = (reasons[a.reason] ?? 0) + 1;
+    const now = Date.now();
+    const onlineHours = (shifts ?? []).reduce((t, s) => t + ((s.ended_at ? new Date(s.ended_at).getTime() : now) - new Date(s.started_at).getTime()) / 3600_000, 0);
+    const sorted = [...durations].sort((a, b) => a - b);
+    const median = sorted.length ? sorted[Math.floor(sorted.length / 2)] : null;
+    const count = (o: string) => (offers ?? []).filter((x) => x.outcome === o).length;
+    const taken = count("won");
+    const declined = count("rejected");
+    const lost = count("lost");
+    const p = r.profiles as unknown as Name;
+
+    return {
+      id: r.id,
+      name: p?.full_name ?? "Rider",
+      since: r.created_at,
+      lateAfterMin: LATE_MIN,
+      offers: {
+        responded: taken + declined + lost,
+        accepted: taken,
+        declined,
+        lost,
+        acceptRate: taken + declined ? Math.round((taken / (taken + declined)) * 100) : null,
+        avgGrabSecs: grabSecs.length ? Math.round(grabSecs.reduce((a, b) => a + b, 0) / grabSecs.length) : null,
+      },
+      deliveries: {
+        delivered,
+        failed,
+        returned,
+        reordered,
+        late,
+        onTimePct: delivered ? Math.round(((delivered - late) / delivered) * 100) : null,
+        successPct: delivered + failed ? Math.round((delivered / (delivered + failed)) * 100) : null,
+        typicalMin: median == null ? null : Math.round(median),
+        slowestMin: sorted.length ? Math.round(sorted[sorted.length - 1]) : null,
+        failReasons: reasons,
+      },
+      work: {
+        trips: trips?.length ?? 0,
+        km: Math.round(km * 10) / 10,
+        onlineHours: Math.round(onlineHours * 10) / 10,
+        cashCollected: Math.round(cash),
+        cashInHand: Number(r.cash_balance),
+        handovers: (subs ?? []).length,
+        mismatches: (subs ?? []).filter((x) => x.mismatch_note).length,
+      },
+      days: days.map((d) => ({ ...d, km: Math.round(d.km * 10) / 10 })),
+      trips: (trips ?? []).slice(0, 12).map((t) => {
+        const stops = t.trip_stops as unknown as S[];
+        return {
+          id: t.id,
+          startedAt: t.started_at,
+          endedAt: t.ended_at,
+          km: t.total_km == null ? null : Number(t.total_km),
+          shop: (t.dealers as unknown as { shop_name: string } | null)?.shop_name ?? null,
+          stops: stops
+            .sort((a, b) => (a.actual_seq ?? a.seq) - (b.actual_seq ?? b.seq))
+            .map((s) => ({
+              orderId: s.order_id,
+              displayId: s.orders?.display_id ?? "",
+              outcome: s.delivered_at ? "delivered" : s.returned_at ? "returned" : s.failed_at ? "failed" : "open",
+              minutes: s.delivered_at ? Math.round((new Date(s.delivered_at).getTime() - new Date(t.started_at).getTime()) / 60000) : null,
+              reordered: !!s.reorder_reason,
+            })),
+        };
+      }),
+    };
   }
 
   /** Where a rider is right now, where they've been today, and what they're carrying. */
