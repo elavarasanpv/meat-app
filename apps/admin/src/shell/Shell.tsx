@@ -5,19 +5,21 @@ import type { AdminMe } from "../auth/Gate";
 import { useAlerts, type Alert } from "../lib/alerts";
 import { Avatar, ago, useDismiss } from "../ui/kit";
 import {
-  IconAlert,
+  IconBan,
   IconBell,
   IconCash,
   IconChevronDown,
   IconGrid,
   IconHistory,
-  IconInfo,
+  IconPackage,
   IconLogout,
   IconOrders,
+  IconClock,
   IconRider,
   IconSearch,
   IconSettings,
   IconShop,
+  IconShopOff,
   IconUser,
 } from "../ui/icons";
 
@@ -155,34 +157,46 @@ function TopBar({ me }: { me: AdminMe }) {
   );
 }
 
-const KIND_ICON = { urgent: IconAlert, warn: IconAlert, info: IconInfo } as const;
-export const SEVERITY = {
-  urgent: { dot: "bg-bad", icon: "bg-tint text-bad", label: "Urgent" },
-  warn: { dot: "bg-warn", icon: "bg-warn-bg text-warn", label: "Needs action" },
-  info: { dot: "bg-[#2F6FD1]", icon: "bg-[#DFEAFB] text-[#2F6FD1]", label: "Update" },
-} as const;
+/** One look per alert type: its own icon, colour and short label. */
+export const KIND: Record<Alert["kind"], { Icon: typeof IconShop; icon: string; chip: string; dot: string; label: string }> = {
+  no_shop: { Icon: IconShop, icon: "bg-[#FDE2E2] text-[#C62828]", chip: "bg-[#FDE2E2] text-[#C62828]", dot: "bg-[#C62828]", label: "No shop" },
+  late: { Icon: IconClock, icon: "bg-[#FBEBD6] text-[#B4620A]", chip: "bg-[#FBEBD6] text-[#B4620A]", dot: "bg-[#B4620A]", label: "Running late" },
+  waiting_rider: { Icon: IconRider, icon: "bg-[#E8E5FA] text-[#5B4BC9]", chip: "bg-[#E8E5FA] text-[#5B4BC9]", dot: "bg-[#5B4BC9]", label: "Needs a rider" },
+  cash_count: { Icon: IconCash, icon: "bg-[#DDF3E6] text-[#1E8A4F]", chip: "bg-[#DDF3E6] text-[#1E8A4F]", dot: "bg-[#1E8A4F]", label: "Cash to count" },
+  failed: { Icon: IconPackage, icon: "bg-[#FBEAF0] text-[#B23A5C]", chip: "bg-[#FBEAF0] text-[#B23A5C]", dot: "bg-[#B23A5C]", label: "Delivery failed" },
+  cancelled: { Icon: IconBan, icon: "bg-[#EDEAE6] text-[#6E625B]", chip: "bg-[#EDEAE6] text-[#6E625B]", dot: "bg-[#6E625B]", label: "Cancelled" },
+  shop_declined: { Icon: IconShopOff, icon: "bg-[#DFEAFB] text-[#2F6FD1]", chip: "bg-[#DFEAFB] text-[#2F6FD1]", dot: "bg-[#2F6FD1]", label: "Shop declined" },
+};
 
 export function AlertRow({ a, fresh, onClick, compact }: { a: Alert; fresh: boolean; onClick?: () => void; compact?: boolean }) {
-  const I = KIND_ICON[a.severity];
-  const s = SEVERITY[a.severity];
+  const k = KIND[a.kind];
   return (
     <Link to={a.link} onClick={onClick} className={`flex gap-3 rounded-xl px-3 transition hover:bg-surface-2/70 ${compact ? "py-2" : "py-2.5"} ${fresh ? "bg-tint/30" : ""}`}>
-      <span className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${s.icon}`}>
-        <I size={15} />
+      <span className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${k.icon}`}>
+        <k.Icon size={17} />
       </span>
       <span className="min-w-0 flex-1">
         <span className="flex items-center gap-1.5">
           <span className="truncate text-[12.5px] font-extrabold">{a.title}</span>
-          {(a.open || fresh) && <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${s.dot}`} />}
+          {(a.open || fresh) && <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${k.dot}`} />}
         </span>
         <span className={`block text-[11.5px] text-muted ${compact ? "truncate" : ""}`}>{a.body}</span>
-        <span className="mt-0.5 block text-[10.5px] text-muted/80">
-          {a.open ? `${s.label} · ` : ""}
-          {ago(a.at)}
+        <span className="mt-1 flex items-center gap-1.5 text-[10.5px] text-muted/80">
+          <span className={`rounded-md px-1.5 py-px text-[10px] font-extrabold ${k.chip}`}>{k.label}</span>
+          {a.open && a.severity === "urgent" && <span className="font-bold text-[#C62828]">Urgent</span>}
+          <span>{ago(a.at)}</span>
         </span>
       </span>
     </Link>
   );
+}
+
+function summary(open: number, fresh: number) {
+  if (!open && !fresh) return "You're all caught up";
+  const parts = [];
+  if (open) parts.push(`${open} need${open === 1 ? "s" : ""} action`);
+  if (fresh) parts.push(`${fresh} new update${fresh === 1 ? "" : "s"}`);
+  return parts.join(" · ");
 }
 
 function BellMenu() {
@@ -211,7 +225,7 @@ function BellMenu() {
           <div className="flex items-center justify-between border-b border-line px-4 py-3">
             <div>
               <div className="text-[14px] font-extrabold">Notifications</div>
-              <div className="text-[11px] text-muted">{unread ? `${unread} need your attention` : "You're all caught up"}</div>
+              <div className="text-[11px] text-muted">{summary(alerts.filter((a) => a.open).length, alerts.filter(isNew).length)}</div>
             </div>
             {alerts.some((a) => isNew(a)) && (
               <button onClick={markSeen} className="text-[11.5px] font-bold text-primary">

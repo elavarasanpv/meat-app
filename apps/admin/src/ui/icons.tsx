@@ -93,3 +93,12 @@ export const IconAlert = ({ size, className }: P) => (
 export const IconInfo = ({ size, className }: P) => (
   <svg {...base(size, className)}><circle cx="12" cy="12" r="8.5" /><path d="M12 11v5M12 8v.01" /></svg>
 );
+export const IconBan = ({ size, className }: P) => (
+  <svg {...base(size, className)}><circle cx="12" cy="12" r="8.5" /><path d="M6 6l12 12" /></svg>
+);
+export const IconShopOff = ({ size, className }: P) => (
+  <svg {...base(size, className)}><path d="M3 9.5 4.5 5h15L21 9.5" /><path d="M4.5 12v8h15v-8" /><path d="M8 13l8 5M16 13l-8 5" /></svg>
+);
+export const IconPackage = ({ size, className }: P) => (
+  <svg {...base(size, className)}><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z" /><path d="M4 7.5l8 4.5 8-4.5M12 12v9" /></svg>
+);
