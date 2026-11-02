@@ -312,7 +312,7 @@ export default function OrderDetailScreen() {
 
           {placed === "1" ? <Button label={t("backHome")} variant="outline" icon="home" onPress={() => router.replace("/(tabs)")} /> : null}
 
-          <Button label={t("getHelp")} variant="outline" icon="phone" onPress={() => router.push(`/support/new?orderId=${id}`)} />
+          <Button label={t("getHelp")} variant="outline" icon="chat" onPress={() => router.push(`/support/new?orderId=${id}`)} />
 
           {canCancel ? (
             <View style={{ gap: 6, alignItems: "center" }}>

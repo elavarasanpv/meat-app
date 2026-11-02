@@ -54,7 +54,7 @@ function Tab({ name, label, focused, onPress, badge }: { name: TabIconName; labe
           style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0, borderRadius: 20, backgroundColor: c.tint, opacity: t, transform: [{ scale: t.interpolate({ inputRange: [0, 1], outputRange: [0.85, 1] }) }] }}
         />
         <Animated.View style={{ transform: [{ scale: t.interpolate({ inputRange: [0, 1], outputRange: [1, 1.12] }) }] }}>
-          <TabIcon name={name} focused={focused} color={color} pill={false} />
+          <TabIcon name={name} focused={focused} color={color} pill={false} size={name === "help" ? 30 : 24} />
         </Animated.View>
         {/* regular and bold labels stacked; cross-fade so the weight change is animated */}
         <View style={{ height: 16, marginTop: 2, alignItems: "center", justifyContent: "center" }}>

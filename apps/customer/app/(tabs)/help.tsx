@@ -48,7 +48,7 @@ export default function HelpScreen() {
 
         <View style={{ flexDirection: "row", gap: 10 }}>
           <Button label={t("supportCall")} icon="phone" size="sm" style={{ flex: 1 }} onPress={() => Linking.openURL(`tel:${SUPPORT_PHONE}`)} />
-          <Button label={t("supportWhatsApp")} variant="outline" size="sm" style={{ flex: 1 }} onPress={() => Linking.openURL(`https://wa.me/${SUPPORT_PHONE.replace("+", "")}`)} />
+          <Button label={t("supportWhatsApp")} variant="outline" icon="chat" size="sm" style={{ flex: 1 }} onPress={() => Linking.openURL(`https://wa.me/${SUPPORT_PHONE.replace("+", "")}`)} />
         </View>
         <AppText variant="caption" muted style={{ marginTop: -8, textAlign: "center" }}>{t("supportHours")}</AppText>
 

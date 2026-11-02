@@ -63,19 +63,19 @@ function CartGlyph({ color, filled, size, knock }: GlyphProps & { knock: string 
   );
 }
 
-function HelpGlyph({ color, filled, size }: GlyphProps) {
-  const sw = 2.2;
+/**
+ * Help = chat: a big front bubble with text lines over a solid bubble behind
+ * it. A ring in the background colour separates the two so it reads clearly
+ * even at tab-bar size.
+ */
+function HelpGlyph({ color, filled, size, knock }: GlyphProps & { knock: string }) {
+  const front = "M5 1.8h10a3.6 3.6 0 0 1 3.6 3.6v5.8A3.6 3.6 0 0 1 15 14.8H9.3l-4.4 3.8v-3.8A3.6 3.6 0 0 1 1.4 11.2V5.4A3.6 3.6 0 0 1 5 1.8z";
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24">
-      <Path d="M4.5 13a7.5 7.5 0 0 1 15 0" fill="none" stroke={color} strokeWidth={sw} strokeLinecap="round" />
-      <Path
-        d="M4.5 13h3v6h-1a2 2 0 0 1-2-2zM19.5 13h-3v6h1a2 2 0 0 0 2-2z"
-        fill={filled ? color : "none"}
-        stroke={color}
-        strokeWidth={sw}
-        strokeLinejoin="round"
-      />
-      <Path d="M16.5 19v1a2 2 0 0 1-2 2H12" fill="none" stroke={color} strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round" />
+      <Path d="M10.5 8.2H19a3.6 3.6 0 0 1 3.6 3.6v5a3.6 3.6 0 0 1-3.6 3.6h-.2v3.2l-4.2-3.2h-3.1a3.6 3.6 0 0 1-3.6-3.6v-5a3.6 3.6 0 0 1 3.6-3.6z" fill={color} />
+      <Path d={front} fill={knock} stroke={knock} strokeWidth={5} strokeLinejoin="round" />
+      <Path d={front} fill={filled ? color : knock} stroke={color} strokeWidth={2.3} strokeLinejoin="round" />
+      <Path d="M5.6 6.6h8.8M5.6 10.2h5.4" stroke={filled ? knock : color} strokeWidth={2.3} strokeLinecap="round" />
     </Svg>
   );
 }
@@ -96,7 +96,7 @@ export function TabIcon({ name, focused, color, size = 24, pill = true }: { name
   }, [focused]);
 
   return (
-    <View style={{ width: pill ? 56 : size + 4, height: pill ? 34 : size + 4, alignItems: "center", justifyContent: "center" }}>
+    <View style={{ width: pill ? 56 : size + 4, height: pill ? 34 : 28, alignItems: "center", justifyContent: "center", overflow: "visible" }}>
       {pill ? (
         <Animated.View
           pointerEvents="none"
@@ -104,7 +104,7 @@ export function TabIcon({ name, focused, color, size = 24, pill = true }: { name
         />
       ) : null}
       <Animated.View style={{ opacity: t.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }) }}>
-        <G color={color} filled={false} size={size} knock={c.tint} />
+        <G color={color} filled={false} size={size} knock={c.surface} />
       </Animated.View>
       <Animated.View style={{ position: "absolute", opacity: t, transform: [{ scale: t.interpolate({ inputRange: [0, 1], outputRange: [0.85, 1] }) }] }}>
         <G color={color} filled size={size} knock={c.tint} />
