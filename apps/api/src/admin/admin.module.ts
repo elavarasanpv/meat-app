@@ -5,10 +5,11 @@ import { SupabaseService } from "../supabase.service";
 import { AdminOpsService } from "./admin-ops.service";
 import { AdminAccountService } from "./admin-account.service";
 import { DealerModule } from "../dealer/dealer.module";
+import { SupportModule } from "../support/support.module";
 import { OrdersService } from "../orders/orders.service";
 
 @Module({
-  imports: [DealerModule],
+  imports: [DealerModule, SupportModule],
   controllers: [AdminController],
   providers: [AdminService, AdminOpsService, AdminAccountService, OrdersService, SupabaseService],
   exports: [AdminService],

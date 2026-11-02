@@ -13,6 +13,7 @@ import {
 } from "@freshcut/shared";
 import { OrdersService } from "../orders/orders.service";
 import { SupabaseService } from "../supabase.service";
+import { SupportService } from "../support/support.service";
 
 /** Orders a rider is still responsible for. */
 const RIDER_ACTIVE = ["RIDER_ASSIGNED", "PICKED_UP", "OUT_FOR_DELIVERY", "DELIVERY_FAILED"];
@@ -26,6 +27,7 @@ const ORDER_SELECT =
 export class RiderService {
   constructor(
     private readonly supabase: SupabaseService,
+    private readonly support: SupportService,
     private readonly orders: OrdersService,
   ) {}
 
@@ -359,6 +361,7 @@ export class RiderService {
     });
     await this.orders.transition({ orderId: order.id, to: "DELIVERY_FAILED", actorId: rider.profile_id, note: input.reason });
     await this.closeStop(rider.id, order.id, { failed_at: new Date().toISOString() });
+    void this.support.autoTicketFailedDelivery(order.id, input.reason);
     return { failed: true };
   }
 

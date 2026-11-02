@@ -1,8 +1,9 @@
 import { BadRequestException, Body, Controller, Delete, Get, Headers, Param, Patch, Post, Query } from "@nestjs/common";
-import { adminInviteSchema, adminProfileSchema, adminCancelSchema, adminCashVerifySchema, adminReassignShopSchema, adminRiderSchema, adminShopSchema } from "@freshcut/shared";
+import { ticketResolveSchema, ticketReplySchema, adminInviteSchema, adminProfileSchema, adminCancelSchema, adminCashVerifySchema, adminReassignShopSchema, adminRiderSchema, adminShopSchema } from "@freshcut/shared";
 import type { ZodTypeAny, z } from "zod";
 import { AdminOpsService } from "./admin-ops.service";
 import { AdminAccountService } from "./admin-account.service";
+import { SupportService } from "../support/support.service";
 import { SupabaseService } from "../supabase.service";
 import { AdminService } from "./admin.service";
 import { requireAdmin } from "./admin.guard";
@@ -14,6 +15,7 @@ export class AdminController {
     private readonly admin: AdminService,
     private readonly ops: AdminOpsService,
     private readonly account: AdminAccountService,
+    private readonly support: SupportService,
   ) {}
 
   private guard(auth: string | undefined) {
@@ -146,6 +148,44 @@ export class AdminController {
     const a = await this.guard(auth);
     const v = parse(adminCashVerifySchema, body);
     return this.ops.verifyCash(a, id, v.received, v.note);
+  }
+
+  // ── support ──
+  @Get("support")
+  async supportList(@Headers("authorization") auth: string | undefined, @Query("filter") filter?: string) {
+    await this.guard(auth);
+    return this.support.adminList(filter);
+  }
+
+  @Get("support/:id")
+  async supportThread(@Headers("authorization") auth: string | undefined, @Param("id") id: string) {
+    await this.guard(auth);
+    const ticket = await this.support.thread(null, id);
+    const order = ticket.orderId ? await this.ops.orderDetail(ticket.orderId).catch(() => null) : null;
+    return { ...ticket, orderDetail: order };
+  }
+
+  @Post("support/:id/reply")
+  async supportReply(@Headers("authorization") auth: string | undefined, @Param("id") id: string, @Body() body: unknown) {
+    const a = await this.guard(auth);
+    return this.support.adminReply(a, id, parse(ticketReplySchema, body).body);
+  }
+
+  @Post("support/:id/resolve")
+  async supportResolve(@Headers("authorization") auth: string | undefined, @Param("id") id: string, @Body() body: unknown) {
+    const a = await this.guard(auth);
+    const v = parse(ticketResolveSchema, body);
+    const r = await this.support.resolve(a, id, v);
+    await this.admin.log(a.id, "support.resolve", id, { ...v });
+    return r;
+  }
+
+  @Post("support/:id/close")
+  async supportClose(@Headers("authorization") auth: string | undefined, @Param("id") id: string) {
+    const a = await this.guard(auth);
+    const r = await this.support.close(a, id);
+    await this.admin.log(a.id, "support.close", id);
+    return r;
   }
 
   // ── alerts, account, team, activity ──

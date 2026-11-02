@@ -12,7 +12,7 @@ const RIDER_WAIT_ALERT_MIN = 10;
 
 export type Alert = {
   id: string;
-  kind: "no_shop" | "late" | "waiting_rider" | "cash_count" | "failed" | "cancelled" | "shop_declined";
+  kind: "no_shop" | "late" | "waiting_rider" | "cash_count" | "failed" | "cancelled" | "shop_declined" | "ticket";
   severity: "urgent" | "warn" | "info";
   open: boolean; // still needs someone to act
   title: string;
@@ -39,7 +39,7 @@ export class AdminAccountService {
     const db = this.db;
     const now = Date.now();
     const dayAgo = new Date(now - 24 * 3600_000).toISOString();
-    const [{ data: live }, { data: subs }, { data: attempts }, { data: cancelled }, { data: declined }] = await Promise.all([
+    const [{ data: live }, { data: subs }, { data: attempts }, { data: cancelled }, { data: declined }, { data: tickets }] = await Promise.all([
       db
         .from("orders")
         .select("id, display_id, status, dealer_id, ready_by, created_at, updated_at, dealers(shop_name)")
@@ -48,6 +48,7 @@ export class AdminAccountService {
       db.from("delivery_attempts").select("id, reason, created_at, orders(id, display_id)").gte("created_at", dayAgo),
       db.from("orders").select("id, display_id, cancel_reason, updated_at").eq("status", "CANCELLED").gte("updated_at", dayAgo),
       db.from("order_assignments").select("id, outcome, reason, responded_at, orders(id, display_id), dealers(shop_name)").in("outcome", ["rejected", "timeout"]).gte("offered_at", dayAgo),
+      db.from("tickets").select("id, type, body, created_at, profiles!tickets_customer_id_fkey(full_name)").eq("status", "open").order("created_at").limit(20),
     ]);
 
     const out: Alert[] = [];
@@ -81,6 +82,10 @@ export class AdminAccountService {
       if (!o) continue;
       const shop = (d.dealers as unknown as { shop_name: string } | null)?.shop_name ?? "A shop";
       out.push({ id: `shop_declined:${d.id}`, kind: "shop_declined", severity: "info", open: false, title: `${shop} ${d.outcome === "timeout" ? "missed" : "declined"} ${o.display_id}`, body: d.outcome === "timeout" ? "No answer in 5 minutes; offered to the next shop." : `Reason: ${(d.reason ?? "not given").replace(/_/g, " ")}.`, at: d.responded_at ?? new Date().toISOString(), link: `/orders?id=${o.id}` });
+    }
+    for (const t of tickets ?? []) {
+      const who = (t.profiles as unknown as { full_name: string | null } | null)?.full_name ?? "A customer";
+      out.push({ id: `ticket:${t.id}`, kind: "ticket", severity: "warn", open: true, title: `Support: ${who}`, body: (t.body ?? "").slice(0, 110), at: t.created_at, link: `/support?id=${t.id}` });
     }
     const rank = { urgent: 0, warn: 1, info: 2 };
     return out.sort((a, b) => Number(b.open) - Number(a.open) || rank[a.severity] - rank[b.severity] || b.at.localeCompare(a.at));

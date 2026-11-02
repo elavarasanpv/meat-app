@@ -221,3 +221,34 @@ export const adminInviteSchema = z.object({
   note: z.string().trim().max(80).optional(),
   appUrl: z.string().url(),
 });
+
+// ───────────────────────── support ─────────────────────────
+export const TICKET_TYPES = ["missing_item", "quality", "late", "rider_behaviour", "charged_wrong", "other"] as const;
+export type TicketType = (typeof TICKET_TYPES)[number];
+
+export const createTicketSchema = z.object({
+  orderId: z.string().uuid().optional(),
+  orderItemId: z.string().uuid().optional(),
+  type: z.enum([...TICKET_TYPES, "delivery_failed", "app_issue", "cash_dispute"]),
+  body: z.string().trim().min(5, "Tell us a little more").max(1000),
+  photoBase64: z.string().max(1_500_000).optional(), // ~1 MB JPEG
+});
+export type CreateTicketInput = z.infer<typeof createTicketSchema>;
+
+export const ticketReplySchema = z.object({
+  body: z.string().trim().min(1).max(1000),
+  photoBase64: z.string().max(1_500_000).optional(),
+});
+
+export const ticketResolveSchema = z.object({
+  resolution: z.enum(["credit", "refund_upi", "apology", "none"]),
+  fault: z.enum(["shop", "rider", "freshcut", "customer", "none"]),
+  amount: z.number().positive().max(100_000).optional(),
+  note: z.string().trim().max(500).optional(),
+});
+export type TicketResolveInput = z.infer<typeof ticketResolveSchema>;
+
+/** Auto-credit: missing-item claims up to this much, with a photo, settle instantly. */
+export const AUTO_CREDIT_MAX = 100;
+/** …but only once per customer per this many days. */
+export const AUTO_CREDIT_COOLDOWN_DAYS = 7;

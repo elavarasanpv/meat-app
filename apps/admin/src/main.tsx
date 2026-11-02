@@ -14,6 +14,7 @@ import { Riders } from "./pages/Riders";
 import { Cash } from "./pages/Cash";
 import { Notifications } from "./pages/Notifications";
 import { Settings } from "./pages/Settings";
+import { Support } from "./pages/Support";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 15_000 } },
@@ -33,6 +34,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
               <Route path="/shops" element={<Shops />} />
               <Route path="/riders" element={<Riders />} />
               <Route path="/cash" element={<Cash />} />
+              <Route path="/support" element={<Support />} />
               <Route path="/notifications" element={<Notifications />} />
               <Route path="/settings" element={<Settings />} />
             </Route>

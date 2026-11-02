@@ -102,3 +102,6 @@ export const IconShopOff = ({ size, className }: P) => (
 export const IconPackage = ({ size, className }: P) => (
   <svg {...base(size, className)}><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z" /><path d="M4 7.5l8 4.5 8-4.5M12 12v9" /></svg>
 );
+export const IconChat = ({ size, className }: P) => (
+  <svg {...base(size, className)}><path d="M21 11.5a8.5 8.5 0 0 1-12.4 7.6L3 21l1.9-5.6A8.5 8.5 0 1 1 21 11.5z" /><path d="M8 10.5h8M8 14h5" /></svg>
+);

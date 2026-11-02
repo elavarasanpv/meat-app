@@ -8,6 +8,7 @@ import {
   IconBan,
   IconBell,
   IconCash,
+  IconChat,
   IconChevronDown,
   IconGrid,
   IconHistory,
@@ -32,6 +33,7 @@ const SECTIONS: { title: string; items: { to: string; label: string; Icon: typeo
       { to: "/shops", label: "Shops", Icon: IconShop },
       { to: "/riders", label: "Riders", Icon: IconRider },
       { to: "/cash", label: "Cash", Icon: IconCash },
+      { to: "/support", label: "Support", Icon: IconChat },
     ],
   },
   {
@@ -165,6 +167,7 @@ export const KIND: Record<Alert["kind"], { Icon: typeof IconShop; icon: string; 
   cash_count: { Icon: IconCash, icon: "bg-[#DDF3E6] text-[#1E8A4F]", chip: "bg-[#DDF3E6] text-[#1E8A4F]", dot: "bg-[#1E8A4F]", label: "Cash to count" },
   failed: { Icon: IconPackage, icon: "bg-[#FBEAF0] text-[#B23A5C]", chip: "bg-[#FBEAF0] text-[#B23A5C]", dot: "bg-[#B23A5C]", label: "Delivery failed" },
   cancelled: { Icon: IconBan, icon: "bg-[#EDEAE6] text-[#6E625B]", chip: "bg-[#EDEAE6] text-[#6E625B]", dot: "bg-[#6E625B]", label: "Cancelled" },
+  ticket: { Icon: IconChat, icon: "bg-[#FDE6DF] text-[#E4461F]", chip: "bg-[#FDE6DF] text-[#E4461F]", dot: "bg-[#E4461F]", label: "Support" },
   shop_declined: { Icon: IconShopOff, icon: "bg-[#DFEAFB] text-[#2F6FD1]", chip: "bg-[#DFEAFB] text-[#2F6FD1]", dot: "bg-[#2F6FD1]", label: "Shop declined" },
 };
 
