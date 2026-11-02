@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
 import { PageHeader } from "../shell/Shell";
@@ -338,41 +338,91 @@ function ShopForm({ id, onClose }: { id: string | null; onClose: () => void }) {
                   {items.every((p) => p.id in form.prices) ? "Untick all" : "Tick all"}
                 </button>
               </div>
-              {items.map((p) => {
-                const on = p.id in form.prices;
-                const cost = Number(form.prices[p.id]);
-                const margin = on && cost > 0 ? p.sellingPrice - cost : null;
-                return (
-                  <div key={p.id} className="flex items-center gap-2 border-b border-line px-3 py-1.5 text-[12.5px] last:border-0">
-                    <input
-                      type="checkbox"
-                      checked={on}
-                      onChange={(e) => {
-                        const next = { ...form.prices };
-                        if (e.target.checked) next[p.id] = "";
-                        else delete next[p.id];
-                        set({ prices: next });
-                      }}
-                    />
-                    <span className="min-w-0 flex-1 truncate">
-                      {p.name} <span className="text-muted">· sells {inr(p.sellingPrice)}/{p.unit === "piece" ? "pc" : p.unit}</span>
-                    </span>
-                    {on && (
-                      <>
-                        <span className={`w-20 text-right text-[11px] font-bold ${margin == null ? "text-muted" : margin < 0 ? "text-bad" : "text-ok"}`}>{margin == null ? "" : `margin ${inr(margin)}`}</span>
-                        <div className="flex w-24 items-center rounded-md border border-line focus-within:border-primary">
-                          <span className="pl-1.5 text-muted">₹</span>
-                          <input className="w-full bg-transparent px-1 py-1 text-right text-[12.5px] outline-none" inputMode="decimal" value={form.prices[p.id]} onChange={(e) => set({ prices: { ...form.prices, [p.id]: e.target.value.replace(/[^\d.]/g, "") } })} placeholder="shop ₹" />
-                        </div>
-                      </>
-                    )}
-                  </div>
-                );
-              })}
+              {items.map((p) => (
+                <ProductRow
+                  key={p.id}
+                  p={p}
+                  price={form.prices[p.id]}
+                  onToggle={(on) => {
+                    const next = { ...form.prices };
+                    if (on) next[p.id] = "";
+                    else delete next[p.id];
+                    set({ prices: next });
+                  }}
+                  onPrice={(v) => set({ prices: { ...form.prices, [p.id]: v } })}
+                />
+              ))}
             </div>
           ))}
         </div>
       </Section>
     </Drawer>
+  );
+}
+
+/**
+ * One product in the shop form. The row keeps the same height ticked or not
+ * (the price area is always reserved), so ticking never shifts the list.
+ */
+function ProductRow({ p, price, onToggle, onPrice }: { p: Catalog["products"][number]; price: string | undefined; onToggle: (on: boolean) => void; onPrice: (v: string) => void }) {
+  const on = price !== undefined;
+  const unit = p.unit === "piece" ? "pc" : p.unit;
+  const cost = Number(price);
+  const hasCost = on && price !== "" && cost > 0;
+  const margin = hasCost ? p.sellingPrice - cost : 0;
+  const pct = hasCost ? Math.round((margin / p.sellingPrice) * 100) : 0;
+  const inputRef = useRef<HTMLInputElement>(null);
+  const toggle = () => {
+    onToggle(!on);
+    if (!on) requestAnimationFrame(() => inputRef.current?.focus());
+  };
+
+  return (
+    <div
+      role="checkbox"
+      aria-checked={on}
+      tabIndex={0}
+      onClick={toggle}
+      onKeyDown={(e) => {
+        if ((e.key === " " || e.key === "Enter") && e.target === e.currentTarget) {
+          e.preventDefault();
+          toggle();
+        }
+      }}
+      className={`flex h-[64px] cursor-pointer select-none items-center gap-3 border-b border-line px-3 outline-none transition-colors last:border-0 focus-visible:bg-tint/40 ${on ? "bg-tint/35" : "hover:bg-surface-2/60"}`}
+    >
+      <span className={`flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-[5px] border-2 transition-colors ${on ? "border-primary bg-primary text-white" : "border-line bg-surface"}`}>
+        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" className={on ? "opacity-100" : "opacity-0"}>
+          <path d="M5 12.5l4.5 4.5L19 7.5" />
+        </svg>
+      </span>
+      <div className="min-w-0 flex-1">
+        <div className={`truncate text-[13px] ${on ? "font-extrabold" : "font-bold"}`}>{p.name}</div>
+        <div className="truncate text-[11.5px] text-muted">
+          Customer pays <span className="font-bold text-ink">{inr(p.sellingPrice)}</span> / {unit}
+        </div>
+      </div>
+      <div className={`w-[132px] shrink-0 sm:w-[150px] ${on ? "" : "invisible max-sm:hidden"}`} onClick={(e) => e.stopPropagation()}>
+        <label className="block">
+          <span className="sr-only">Shop price for {p.name}, rupees per {unit}</span>
+          <div className={`flex h-8 items-center rounded-lg border bg-surface transition focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/15 ${on && !hasCost ? "border-warn/60" : "border-line"}`}>
+            <span className="flex h-full items-center rounded-l-lg border-r border-line bg-surface-2 px-2 text-[12.5px] font-extrabold text-ink">₹</span>
+            <input
+              ref={inputRef}
+              tabIndex={on ? 0 : -1}
+              className="w-full min-w-0 bg-transparent px-2 text-right text-[13px] font-bold tabular-nums outline-none placeholder:font-normal placeholder:text-muted/60"
+              inputMode="decimal"
+              value={price ?? ""}
+              onChange={(e) => onPrice(e.target.value.replace(/[^\d.]/g, "").replace(/(\..*)\./g, "$1"))}
+              placeholder="Shop price"
+            />
+            <span className="pr-2 text-[11px] text-muted">/{unit}</span>
+          </div>
+        </label>
+        <div className={`mt-0.5 h-4 text-right text-[10.5px] font-bold ${!hasCost ? "text-warn" : margin < 0 ? "text-bad" : "text-ok"}`}>
+          {!hasCost ? "Enter what we pay the shop" : margin < 0 ? `Loss ${inr(-margin)} per ${unit}` : `Margin ${inr(margin)} (${pct}%)`}
+        </div>
+      </div>
+    </div>
   );
 }
