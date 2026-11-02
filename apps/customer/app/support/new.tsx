@@ -115,7 +115,7 @@ export default function NewTicketScreen() {
           }}
           style={{ flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: photo ? c.tint : c.surface, borderRadius: radius.input, borderWidth: 1, borderStyle: photo ? "solid" : "dashed", borderColor: photo ? c.primary : c.border, padding: 12 }}
         >
-          <Icon name={photo ? "check" : "edit"} color={photo ? c.primary : c.muted} size={18} />
+          <Icon name={photo ? "check" : "camera"} color={photo ? c.primary : c.muted} size={18} />
           <View style={{ flex: 1 }}>
             <AppText variant="subtitle" color={photo ? c.primary : undefined}>{photo ? t("photoAdded") : t("addPhoto")}</AppText>
             {!photo && <AppText variant="caption" muted>{t("photoHelps")}</AppText>}

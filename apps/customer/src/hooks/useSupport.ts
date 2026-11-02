@@ -55,11 +55,14 @@ export function useReplyTicket(id: string) {
   });
 }
 
-/** Pick a photo from the gallery, shrink it and return base64 JPEG (null = cancelled). */
+/**
+ * Take a live photo with the camera (no gallery, so it's a picture of this
+ * pack, now), shrink it and return base64 JPEG. null = cancelled or no permission.
+ */
 export async function pickPhotoBase64(): Promise<string | null> {
-  const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+  const perm = await ImagePicker.requestCameraPermissionsAsync();
   if (!perm.granted) return null;
-  const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: "images", quality: 1 });
+  const res = await ImagePicker.launchCameraAsync({ mediaTypes: "images", quality: 0.8, cameraType: ImagePicker.CameraType.back });
   if (res.canceled || !res.assets[0]) return null;
   const a = res.assets[0];
   const MAX = 1024;

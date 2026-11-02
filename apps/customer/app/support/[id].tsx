@@ -84,7 +84,7 @@ export default function TicketScreen() {
             hitSlop={8}
             style={{ width: 40, height: 40, borderRadius: 14, backgroundColor: photo ? c.tint : c.surface2, alignItems: "center", justifyContent: "center" }}
           >
-            <Icon name={photo ? "check" : "edit"} color={photo ? c.primary : c.muted} size={18} />
+            <Icon name={photo ? "check" : "camera"} color={photo ? c.primary : c.muted} size={18} />
           </Pressable>
           <TextInput
             value={body}

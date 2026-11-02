@@ -37,6 +37,13 @@
             "./assets/sounds/freshcut_arrived.wav"
           ]
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "FreshCut uses the camera so you can show us a photo of your order when something is wrong.",
+          "photosPermission": false
+        }
       ]
     ],
     "experiments": {
