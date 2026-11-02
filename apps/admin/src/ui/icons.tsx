@@ -54,3 +54,15 @@ export const IconArrowUp = ({ size, className }: P) => (
 export const IconMap = ({ size, className }: P) => (
   <svg {...base(size, className)}><path d="M12 21s-7-6-7-11a7 7 0 0 1 14 0c0 5-7 11-7 11z" /><circle cx="12" cy="10" r="2.5" /></svg>
 );
+export const IconPlus = ({ size, className }: P) => (
+  <svg {...base(size, className)}><path d="M12 5v14M5 12h14" /></svg>
+);
+export const IconPhone = ({ size, className }: P) => (
+  <svg {...base(size, className)}><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z" /></svg>
+);
+export const IconEdit = ({ size, className }: P) => (
+  <svg {...base(size, className)}><path d="M4 20h4L19 9l-4-4L4 16z" /><path d="M13.5 6.5l4 4" /></svg>
+);
+export const IconChevron = ({ size, className }: P) => (
+  <svg {...base(size, className)}><path d="M9 6l6 6-6 6" /></svg>
+);

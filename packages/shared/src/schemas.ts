@@ -175,3 +175,42 @@ export type ItemPhotoInput = z.infer<typeof itemPhotoSchema>;
 export type ShopStateInput = z.infer<typeof shopStateSchema>;
 export type StockInput = z.infer<typeof stockSchema>;
 export type DeliverOrderInput = z.infer<typeof deliverOrderSchema>;
+
+// ───────────────────────── admin ─────────────────────────
+/** Indian mobile number, 10 digits (a leading +91/91/0 is stripped). */
+export const indianMobileSchema = z
+  .string()
+  .transform((s) => s.replace(/\D/g, "").replace(/^(91|0)(?=\d{10}$)/, ""))
+  .pipe(z.string().regex(/^[6-9]\d{9}$/, "Enter a 10-digit mobile number"));
+
+const hhmm = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Use HH:MM");
+
+export const adminShopSchema = z.object({
+  phone: indianMobileSchema,
+  ownerName: z.string().trim().min(2).max(80),
+  shopName: z.string().trim().min(2).max(80),
+  fssaiNo: z.string().trim().max(20).optional().nullable(),
+  lat: z.number().min(-90).max(90),
+  lng: z.number().min(-180).max(180),
+  pincodes: z.array(z.string().regex(/^[1-9]\d{5}$/)).min(1, "Pick at least one pincode"),
+  openWindows: z.array(z.tuple([hhmm, hhmm])).min(1).max(4),
+  weeklyOff: z.number().int().min(0).max(6).nullable(),
+  products: z.array(z.object({ productId: z.string().uuid(), pricePerKg: z.number().positive().max(100000) })),
+  isActive: z.boolean().optional(),
+});
+export type AdminShopInput = z.infer<typeof adminShopSchema>;
+
+export const adminRiderSchema = z.object({
+  phone: indianMobileSchema,
+  name: z.string().trim().min(2).max(80),
+  vehicle: z.string().trim().max(20).optional().nullable(),
+  isActive: z.boolean().optional(),
+});
+export type AdminRiderInput = z.infer<typeof adminRiderSchema>;
+
+export const adminCancelSchema = z.object({ reason: z.string().trim().min(3).max(200) });
+export const adminReassignShopSchema = z.object({ dealerId: z.string().uuid().optional() });
+export const adminCashVerifySchema = z.object({
+  received: z.number().min(0).max(1_000_000),
+  note: z.string().trim().max(200).optional(),
+});

@@ -142,7 +142,7 @@ export function Dashboard() {
               const st = STATUS[o.status] ?? { label: o.status, tone: "info" as const };
               const late = o.readyBy && ["ACCEPTED", "PACKING"].includes(o.status) && new Date(o.readyBy).getTime() < Date.now();
               return (
-                <div key={o.id} className="flex items-center gap-3 py-2 text-[12px]">
+                <Link key={o.id} to={`/orders?id=${o.id}`} className="-mx-2 flex items-center gap-3 rounded-lg px-2 py-2 text-[12px] hover:bg-surface-2/60">
                   <div className="min-w-0 flex-1">
                     <div className="truncate font-bold">{o.displayId} <span className="font-normal text-muted">· {o.customer ?? "Customer"}</span></div>
                     <div className="truncate text-[11px] text-muted">{o.shop ?? "No shop yet"}{o.rider ? ` · ${o.rider}` : ""} · {when(o.createdAt)}</div>
@@ -150,7 +150,7 @@ export function Dashboard() {
                   <span className={`chip ${late ? "bg-bad text-white" : tone(st.tone)}`}>{late ? "Late" : st.label}</span>
                   <span className="w-20 text-right text-[11px] text-muted">{o.readyBy ? `ready ${clock(o.readyBy)}` : "—"}</span>
                   <span className="w-16 text-right font-extrabold">{inr(o.amount)}</span>
-                </div>
+                </Link>
               );
             })}
             {d && !d.active.length && <div className="py-6 text-center text-[12px] text-muted">Nothing in progress right now.</div>}

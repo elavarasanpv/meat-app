@@ -26,8 +26,8 @@ const TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
   DEALER_ASSIGNED: ["ACCEPTED", "DEALER_ASSIGNED", "CANCELLED"], // re-assign allowed
   ACCEPTED: ["PACKING", "CANCELLED"],
   PACKING: ["PACKED", "CANCELLED"],
-  PACKED: ["RIDER_ASSIGNED"],
-  RIDER_ASSIGNED: ["PICKED_UP", "RIDER_ASSIGNED"], // re-assign allowed
+  PACKED: ["RIDER_ASSIGNED", "CANCELLED"], // admin may cancel before a rider takes it
+  RIDER_ASSIGNED: ["PICKED_UP", "RIDER_ASSIGNED", "PACKED"], // re-assign allowed; admin release → back to PACKED
   PICKED_UP: ["OUT_FOR_DELIVERY"],
   OUT_FOR_DELIVERY: ["DELIVERED", "DELIVERY_FAILED"],
   DELIVERED: ["REFUNDED"],
