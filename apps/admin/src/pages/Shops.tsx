@@ -4,6 +4,7 @@ import { api } from "../lib/api";
 import { PageHeader } from "../shell/Shell";
 import { IconEdit, IconPhone, IconPlus } from "../ui/icons";
 import { MapPin, parseLatLng } from "../ui/MapPin";
+import { TimePicker, formatTime } from "../ui/TimePicker";
 import { Btn, Chip, Drawer, Empty, ErrorBox, Field, Section, inputCls, inr, phone10 } from "../ui/kit";
 
 type Shop = {
@@ -80,7 +81,7 @@ export function Shops() {
             </div>
             <div className="mt-3 space-y-1 text-[12px]">
               <div className="text-muted">
-                <span className="font-bold text-ink">Hours</span> {s.hours.map((w) => w.join("–")).join(", ")}
+                <span className="font-bold text-ink">Hours</span> {s.hours.map((w) => `${formatTime(w[0])}–${formatTime(w[1])}`).join(", ")}
                 {s.weeklyOff != null && ` · off ${DAYS[s.weeklyOff]}`}
               </div>
               <div className="flex flex-wrap gap-1">
@@ -295,9 +296,9 @@ function ShopForm({ id, onClose }: { id: string | null; onClose: () => void }) {
         <div className="space-y-2">
           {form.openWindows.map((w, i) => (
             <div key={i} className="flex items-center gap-2">
-              <input type="time" className={`${inputCls} w-32`} value={w[0]} onChange={(e) => set({ openWindows: form.openWindows.map((x, j) => (j === i ? [e.target.value, x[1]] : x)) })} />
+              <TimePicker label="Opens at" value={w[0]} onChange={(v) => set({ openWindows: form.openWindows.map((x, j) => (j === i ? [v, x[1]] : x)) })} />
               <span className="text-muted">to</span>
-              <input type="time" className={`${inputCls} w-32`} value={w[1]} onChange={(e) => set({ openWindows: form.openWindows.map((x, j) => (j === i ? [x[0], e.target.value] : x)) })} />
+              <TimePicker label="Closes at" value={w[1]} onChange={(v) => set({ openWindows: form.openWindows.map((x, j) => (j === i ? [x[0], v] : x)) })} />
               {form.openWindows.length > 1 && (
                 <button className="text-[12px] font-bold text-bad" onClick={() => set({ openWindows: form.openWindows.filter((_, j) => j !== i) })}>
                   Remove
