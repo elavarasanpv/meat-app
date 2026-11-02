@@ -311,17 +311,6 @@ function ShopForm({ id, onClose }: { id: string | null; onClose: () => void }) {
                 + Add a time window
               </button>
             )}
-            <label className="ml-auto flex items-center gap-2 text-[12.5px]">
-              Weekly off
-              <select className={`${inputCls} w-36`} value={form.weeklyOff ?? ""} onChange={(e) => set({ weeklyOff: e.target.value === "" ? null : Number(e.target.value) })}>
-                <option value="">None</option>
-                {DAYS.map((d, i) => (
-                  <option key={d} value={i}>
-                    {d}
-                  </option>
-                ))}
-              </select>
-            </label>
           </div>
         </div>
       </Section>
