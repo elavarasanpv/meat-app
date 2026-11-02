@@ -10,6 +10,7 @@
     "test": "echo 'no tests yet'"
   },
   "dependencies": {
+    "@freshcut/assets": "workspace:*",
     "@freshcut/shared": "workspace:*",
     "@supabase/supabase-js": "^2.47.0",
     "@tanstack/react-query": "^5.62.0",

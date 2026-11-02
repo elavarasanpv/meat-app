@@ -10,6 +10,13 @@ export class AdminController {
     private readonly admin: AdminService,
   ) {}
 
+  /** GET /admin/dashboard — today's numbers, 7-day series, recent orders, who's on duty. */
+  @Get("dashboard")
+  async dashboard(@Headers("authorization") auth: string | undefined) {
+    await requireAdmin(this.supabase, auth);
+    return this.admin.dashboard();
+  }
+
   /** GET /admin/me — 200 with the admin's identity, or 403 for everyone else. */
   @Get("me")
   async me(@Headers("authorization") auth: string | undefined) {

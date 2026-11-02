@@ -17,6 +17,9 @@ importers:
 
   apps/admin:
     dependencies:
+      '@freshcut/assets':
+        specifier: workspace:*
+        version: link:../../packages/assets
       '@freshcut/shared':
         specifier: workspace:*
         version: link:../../packages/shared
