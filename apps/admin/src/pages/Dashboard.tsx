@@ -75,7 +75,7 @@ export function Dashboard() {
         </div>
       )}
 
-      <div className="grid gap-4 px-4 pt-4 md:px-6 lg:grid-cols-3">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-4 px-4 pt-4 md:px-6 lg:grid-cols-3">
         {/* Row 1 */}
         <section className="card">
           <div className="flex items-start justify-between">

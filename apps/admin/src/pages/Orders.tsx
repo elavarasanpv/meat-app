@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
@@ -57,7 +57,13 @@ const PAY: Record<string, string> = { cod: "Cash", upi_on_delivery: "UPI at door
 export function Orders() {
   const [params, setParams] = useSearchParams();
   const [filter, setFilter] = useState<Filter>((params.get("filter") as Filter) ?? "active");
-  const [q, setQ] = useState("");
+  const [q, setQ] = useState(params.get("q") ?? "");
+  const urlQ = params.get("q");
+  const urlFilter = params.get("filter") as Filter | null;
+  useEffect(() => {
+    if (urlQ != null) setQ(urlQ);
+    if (urlFilter) setFilter(urlFilter);
+  }, [urlQ, urlFilter]);
   const openId = params.get("id");
   const list = useQuery<Row[]>({
     queryKey: ["admin", "orders", filter, q],

@@ -66,3 +66,30 @@ export const IconEdit = ({ size, className }: P) => (
 export const IconChevron = ({ size, className }: P) => (
   <svg {...base(size, className)}><path d="M9 6l6 6-6 6" /></svg>
 );
+export const IconUser = ({ size, className }: P) => (
+  <svg {...base(size, className)}><circle cx="12" cy="8" r="4" /><path d="M4 20a8 8 0 0 1 16 0" /></svg>
+);
+export const IconUsers = ({ size, className }: P) => (
+  <svg {...base(size, className)}><circle cx="9" cy="8" r="3.5" /><path d="M2.5 19a6.5 6.5 0 0 1 13 0" /><path d="M16 4.5a3.5 3.5 0 0 1 0 7" /><path d="M18 13.5a6.5 6.5 0 0 1 3.5 5.5" /></svg>
+);
+export const IconLock = ({ size, className }: P) => (
+  <svg {...base(size, className)}><rect x="4.5" y="10.5" width="15" height="10" rx="2.5" /><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3" /></svg>
+);
+export const IconSliders = ({ size, className }: P) => (
+  <svg {...base(size, className)}><path d="M4 7h10M18 7h2M4 17h4M12 17h8" /><circle cx="16" cy="7" r="2" /><circle cx="10" cy="17" r="2" /></svg>
+);
+export const IconHistory = ({ size, className }: P) => (
+  <svg {...base(size, className)}><path d="M3.5 12a8.5 8.5 0 1 0 2.5-6" /><path d="M3.5 4v4h4" /><path d="M12 8v4l3 2" /></svg>
+);
+export const IconChevronDown = ({ size, className }: P) => (
+  <svg {...base(size, className)}><path d="M6 9l6 6 6-6" /></svg>
+);
+export const IconCopy = ({ size, className }: P) => (
+  <svg {...base(size, className)}><rect x="8.5" y="8.5" width="11" height="11" rx="2.5" /><path d="M15.5 8.5V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v7.5a2 2 0 0 0 2 2h2.5" /></svg>
+);
+export const IconAlert = ({ size, className }: P) => (
+  <svg {...base(size, className)}><path d="M12 4 2.5 20h19z" /><path d="M12 10v4.5M12 17.5v.01" /></svg>
+);
+export const IconInfo = ({ size, className }: P) => (
+  <svg {...base(size, className)}><circle cx="12" cy="12" r="8.5" /><path d="M12 11v5M12 8v.01" /></svg>
+);

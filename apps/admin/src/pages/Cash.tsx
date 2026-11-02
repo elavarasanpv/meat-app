@@ -30,7 +30,7 @@ export function Cash() {
       <div className="px-4 pt-3 md:px-6">
         <ErrorBox error={q.error} />
       </div>
-      <div className="grid gap-4 px-4 pt-3 md:px-6 lg:grid-cols-[1fr_1.4fr]">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-4 px-4 pt-3 md:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
         <section className="card">
           <div className="card-title">Cash in hand</div>
           <div className="card-sub">Collected today and not yet handed over</div>

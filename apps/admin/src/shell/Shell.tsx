@@ -1,7 +1,25 @@
-import { NavLink, Outlet, useOutletContext } from "react-router-dom";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Link, NavLink, Outlet, useLocation, useNavigate, useOutletContext } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import type { AdminMe } from "../auth/Gate";
-import { IconBell, IconCash, IconGrid, IconLogout, IconOrders, IconRider, IconSearch, IconSettings, IconShop } from "../ui/icons";
+import { useAlerts, type Alert } from "../lib/alerts";
+import { Avatar, ago, useDismiss } from "../ui/kit";
+import {
+  IconAlert,
+  IconBell,
+  IconCash,
+  IconChevronDown,
+  IconGrid,
+  IconHistory,
+  IconInfo,
+  IconLogout,
+  IconOrders,
+  IconRider,
+  IconSearch,
+  IconSettings,
+  IconShop,
+  IconUser,
+} from "../ui/icons";
 
 const SECTIONS: { title: string; items: { to: string; label: string; Icon: typeof IconGrid }[] }[] = [
   { title: "Dashboard", items: [{ to: "/", label: "Overview", Icon: IconGrid }] },
@@ -14,28 +32,35 @@ const SECTIONS: { title: string; items: { to: string; label: string; Icon: typeo
       { to: "/cash", label: "Cash", Icon: IconCash },
     ],
   },
+  {
+    title: "Account",
+    items: [
+      { to: "/notifications", label: "Notifications", Icon: IconBell },
+      { to: "/settings", label: "Settings", Icon: IconSettings },
+    ],
+  },
 ];
-const TABS = SECTIONS.flatMap((s) => s.items);
+const TABS = SECTIONS.slice(0, 2).flatMap((s) => s.items);
 
 /** The admin's display name: profile name, else the part of the email before @. */
 export function displayName(me: AdminMe) {
   if (me.name) return me.name;
-  const local = me.email.split("@")[0].replace(/[._-]+/g, " ");
-  return local.charAt(0).toUpperCase() + local.slice(1);
+  const local = me.email.split("@")[0].replace(/[._-]+/g, " ").replace(/\d+$/, "");
+  return (local.charAt(0).toUpperCase() + local.slice(1)).trim() || "Admin";
 }
 
-/** Compact frame: dark sidebar with sections (laptop), slim header, bottom tabs (phone). */
+/** Compact frame: dark sidebar with sections (laptop), top bar, bottom tabs (phone). */
 export function Shell() {
   const me = useOutletContext<AdminMe>();
-  const name = displayName(me);
+  const { unread } = useAlerts();
   return (
     <div className="min-h-screen md:flex">
-      <aside className="hidden w-56 shrink-0 flex-col bg-ink text-white md:flex">
+      <aside className="sticky top-0 hidden h-screen w-56 shrink-0 flex-col bg-ink text-white md:flex">
         <div className="flex items-center gap-2 px-5 py-5">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-sm font-extrabold">F</div>
           <span className="text-[17px] font-extrabold tracking-tight">FreshCut</span>
         </div>
-        <nav className="flex-1 px-3">
+        <nav className="flex-1 overflow-y-auto px-3">
           {SECTIONS.map((s) => (
             <div key={s.title} className="mb-4">
               <div className="px-3 pb-1.5 text-[10px] font-extrabold uppercase tracking-[0.12em] text-white/40">{s.title}</div>
@@ -49,7 +74,8 @@ export function Shell() {
                   }
                 >
                   <Icon size={17} />
-                  {label}
+                  <span className="flex-1">{label}</span>
+                  {to === "/notifications" && unread > 0 && <span className="rounded-full bg-primary px-1.5 text-[10.5px] font-extrabold text-white">{unread}</span>}
                 </NavLink>
               ))}
             </div>
@@ -61,28 +87,7 @@ export function Shell() {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-10 flex items-center gap-2 border-b border-line bg-ground/90 px-4 py-2.5 backdrop-blur md:px-6">
-          <label className="hidden flex-1 items-center gap-2 rounded-lg border border-line bg-surface px-3 py-1.5 text-muted md:flex md:max-w-sm">
-            <IconSearch size={15} />
-            <input className="w-full bg-transparent text-[13px] outline-none placeholder:text-muted/70" placeholder="Search anything…" />
-            <kbd className="rounded border border-line px-1 text-[10px]">⌘K</kbd>
-          </label>
-          <div className="flex-1 md:hidden">
-            <span className="text-[15px] font-extrabold">FreshCut</span>
-          </div>
-          <IconBtn label="Notifications" dot><IconBell size={16} /></IconBtn>
-          <IconBtn label="Settings"><IconSettings size={16} /></IconBtn>
-          <div className="ml-1 flex items-center gap-2">
-            <div className="relative flex h-8 w-8 items-center justify-center rounded-full bg-tint text-sm font-extrabold text-primary">
-              {name.charAt(0)}
-              <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-ground bg-ok" />
-            </div>
-            <div className="hidden leading-tight sm:block">
-              <div className="text-[13px] font-extrabold">{name}</div>
-              <div className="text-[11px] text-muted">Admin</div>
-            </div>
-          </div>
-        </header>
+        <TopBar me={me} />
         <main className="min-w-0 flex-1 pb-20 md:pb-0">
           <Outlet context={me} />
         </main>
@@ -100,12 +105,199 @@ export function Shell() {
   );
 }
 
-function IconBtn({ label, dot, children }: { label: string; dot?: boolean; children: React.ReactNode }) {
+function TopBar({ me }: { me: AdminMe }) {
+  const nav = useNavigate();
+  const search = useRef<HTMLInputElement>(null);
+  const [q, setQ] = useState("");
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        search.current?.focus();
+      }
+    };
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
+  }, []);
+
   return (
-    <button aria-label={label} className="relative flex h-8 w-8 items-center justify-center rounded-lg border border-line bg-surface text-muted hover:text-ink">
-      {children}
-      {dot && <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-primary" />}
-    </button>
+    <header className="sticky top-0 z-30 flex h-[60px] items-center gap-4 border-b border-line bg-ground/90 px-4 backdrop-blur md:px-6">
+      <Link to="/" className="flex items-center gap-2 md:hidden">
+        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary text-[13px] font-extrabold text-white">F</div>
+        <span className="text-[15px] font-extrabold">FreshCut</span>
+      </Link>
+      <form
+        className="hidden w-full max-w-md md:block"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (!q.trim()) return;
+          nav(`/orders?filter=all&q=${encodeURIComponent(q.trim())}`);
+          setQ("");
+          search.current?.blur();
+        }}
+      >
+        <label className="flex items-center gap-2 h-[40px] rounded-xl border border-line bg-surface px-3 text-muted transition focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/15">
+          <IconSearch size={15} />
+          <input ref={search} value={q} onChange={(e) => setQ(e.target.value)} className="w-full bg-transparent text-[13px] text-ink outline-none placeholder:text-muted/70" placeholder="Search an order ID, e.g. MT-1102-0016" />
+          <kbd className="hidden rounded-md border border-line bg-surface-2 px-1.5 py-0.5 font-sans text-[10.5px] font-bold lg:block">⌘K</kbd>
+        </label>
+      </form>
+
+      <div className="ml-auto flex items-center gap-[10px]">
+        <BellMenu />
+        <Link to="/settings" aria-label="Settings" title="Settings" className="hidden h-[38px] w-[38px] items-center justify-center rounded-xl border border-line bg-surface text-muted transition hover:border-muted/40 hover:text-ink sm:flex">
+          <IconSettings size={18} />
+        </Link>
+        <span className="mx-[6px] hidden h-[28px] w-px bg-line sm:block" />
+        <ProfileMenu me={me} />
+      </div>
+    </header>
+  );
+}
+
+const KIND_ICON = { urgent: IconAlert, warn: IconAlert, info: IconInfo } as const;
+export const SEVERITY = {
+  urgent: { dot: "bg-bad", icon: "bg-tint text-bad", label: "Urgent" },
+  warn: { dot: "bg-warn", icon: "bg-warn-bg text-warn", label: "Needs action" },
+  info: { dot: "bg-[#2F6FD1]", icon: "bg-[#DFEAFB] text-[#2F6FD1]", label: "Update" },
+} as const;
+
+export function AlertRow({ a, fresh, onClick, compact }: { a: Alert; fresh: boolean; onClick?: () => void; compact?: boolean }) {
+  const I = KIND_ICON[a.severity];
+  const s = SEVERITY[a.severity];
+  return (
+    <Link to={a.link} onClick={onClick} className={`flex gap-3 rounded-xl px-3 transition hover:bg-surface-2/70 ${compact ? "py-2" : "py-2.5"} ${fresh ? "bg-tint/30" : ""}`}>
+      <span className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${s.icon}`}>
+        <I size={15} />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="flex items-center gap-1.5">
+          <span className="truncate text-[12.5px] font-extrabold">{a.title}</span>
+          {(a.open || fresh) && <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${s.dot}`} />}
+        </span>
+        <span className={`block text-[11.5px] text-muted ${compact ? "truncate" : ""}`}>{a.body}</span>
+        <span className="mt-0.5 block text-[10.5px] text-muted/80">
+          {a.open ? `${s.label} · ` : ""}
+          {ago(a.at)}
+        </span>
+      </span>
+    </Link>
+  );
+}
+
+function BellMenu() {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const close = useCallback(() => setOpen(false), []);
+  useDismiss(open, close, ref);
+  const { alerts, unread, isNew, markSeen, isLoading } = useAlerts();
+  const loc = useLocation();
+  useEffect(close, [loc.pathname, loc.search, close]);
+  const top = alerts.slice(0, 6);
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        aria-label={`Notifications${unread ? `, ${unread} new` : ""}`}
+        title="Notifications"
+        onClick={() => setOpen((o) => !o)}
+        className={`relative flex h-[38px] w-[38px] items-center justify-center rounded-xl border bg-surface transition ${open ? "border-primary text-primary" : "border-line text-muted hover:border-muted/40 hover:text-ink"}`}
+      >
+        <IconBell size={18} />
+        {unread > 0 && <span className="absolute -right-1.5 -top-1.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full border-2 border-ground bg-primary px-1 text-[10px] font-extrabold text-white">{unread > 9 ? "9+" : unread}</span>}
+      </button>
+      {open && (
+        <div className="fixed inset-x-3 top-[64px] z-50 overflow-hidden rounded-2xl border border-line bg-surface shadow-2xl sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 sm:w-[360px]">
+          <div className="flex items-center justify-between border-b border-line px-4 py-3">
+            <div>
+              <div className="text-[14px] font-extrabold">Notifications</div>
+              <div className="text-[11px] text-muted">{unread ? `${unread} need your attention` : "You're all caught up"}</div>
+            </div>
+            {alerts.some((a) => isNew(a)) && (
+              <button onClick={markSeen} className="text-[11.5px] font-bold text-primary">
+                Mark updates read
+              </button>
+            )}
+          </div>
+          <div className="max-h-[60vh] overflow-y-auto p-1.5">
+            {top.map((a) => (
+              <AlertRow key={a.id} a={a} fresh={isNew(a)} compact onClick={close} />
+            ))}
+            {!isLoading && !top.length && <div className="px-3 py-8 text-center text-[12px] text-muted">Nothing needs you right now.</div>}
+          </div>
+          <Link to="/notifications" onClick={close} className="block border-t border-line py-2.5 text-center text-[12px] font-extrabold text-primary hover:bg-surface-2/60">
+            See all notifications
+          </Link>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ProfileMenu({ me }: { me: AdminMe }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const close = useCallback(() => setOpen(false), []);
+  useDismiss(open, close, ref);
+  const loc = useLocation();
+  useEffect(close, [loc.pathname, loc.search, close]);
+  const name = displayName(me);
+  const [since, setSince] = useState<string | null>(null);
+  useEffect(() => {
+    void supabase.auth.getUser().then(({ data }) => setSince(data.user?.last_sign_in_at ?? null));
+  }, []);
+
+  const item = "flex items-center gap-2.5 rounded-lg px-3 py-2 text-[12.5px] font-bold text-ink transition hover:bg-surface-2";
+  return (
+    <div ref={ref} className="relative">
+      <button onClick={() => setOpen((o) => !o)} aria-expanded={open} className={`flex h-[44px] items-center gap-[10px] rounded-xl pl-[4px] pr-[10px] transition ${open ? "bg-surface shadow-sm ring-1 ring-line" : "hover:bg-surface/70"}`}>
+        <span className="relative">
+          <Avatar name={name} size={36} />
+          <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-ground bg-ok" />
+        </span>
+        <span className="hidden max-w-[140px] text-left leading-tight sm:block">
+          <span className="block truncate text-[13.5px] font-extrabold">{name}</span>
+          <span className="block text-[11px] text-muted">Administrator</span>
+        </span>
+        <IconChevronDown size={14} className={`hidden text-muted transition sm:block ${open ? "rotate-180" : ""}`} />
+      </button>
+      {open && (
+        <div className="fixed inset-x-3 top-[64px] z-50 overflow-hidden rounded-2xl border border-line bg-surface shadow-2xl sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 sm:w-[288px]">
+          <div className="bg-[linear-gradient(135deg,#FDE6DF,#FBF3D6)] px-4 pb-4 pt-5">
+            <div className="flex items-center gap-3">
+              <Avatar name={name} size={48} ring />
+              <div className="min-w-0">
+                <div className="truncate text-[15px] font-extrabold">{name}</div>
+                <div className="truncate text-[11.5px] text-muted">{me.email}</div>
+                <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-surface px-2 py-0.5 text-[10.5px] font-extrabold text-primary">
+                  <span className="h-1.5 w-1.5 rounded-full bg-ok" /> Admin · full access
+                </span>
+              </div>
+            </div>
+            {since && <div className="mt-3 text-[10.5px] text-muted">Signed in {ago(since)}</div>}
+          </div>
+          <div className="p-1.5">
+            <Link to="/settings?tab=profile" className={item}>
+              <IconUser size={15} className="text-muted" /> My profile
+            </Link>
+            <Link to="/settings" className={item}>
+              <IconSettings size={15} className="text-muted" /> Settings
+            </Link>
+            <Link to="/notifications" className={item}>
+              <IconBell size={15} className="text-muted" /> Notifications
+            </Link>
+            <Link to="/settings?tab=activity" className={item}>
+              <IconHistory size={15} className="text-muted" /> Activity log
+            </Link>
+          </div>
+          <div className="border-t border-line p-1.5">
+            <button onClick={() => void supabase.auth.signOut()} className={`${item} w-full text-bad hover:bg-tint`}>
+              <IconLogout size={15} /> Sign out
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 

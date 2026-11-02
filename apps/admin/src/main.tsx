@@ -12,6 +12,8 @@ import { Orders } from "./pages/Orders";
 import { Shops } from "./pages/Shops";
 import { Riders } from "./pages/Riders";
 import { Cash } from "./pages/Cash";
+import { Notifications } from "./pages/Notifications";
+import { Settings } from "./pages/Settings";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 15_000 } },
@@ -31,6 +33,8 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
               <Route path="/shops" element={<Shops />} />
               <Route path="/riders" element={<Riders />} />
               <Route path="/cash" element={<Cash />} />
+              <Route path="/notifications" element={<Notifications />} />
+              <Route path="/settings" element={<Settings />} />
             </Route>
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />

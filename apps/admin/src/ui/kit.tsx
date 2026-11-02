@@ -1,5 +1,5 @@
 /** Small shared pieces for the admin pages: chips, drawer, fields, buttons, formatters. */
-import { useEffect, type ReactNode } from "react";
+import { useEffect, type ReactNode, type RefObject } from "react";
 import { IconX } from "./icons";
 
 export const inr = (n: number) => "₹" + Math.round(n).toLocaleString("en-IN");
@@ -147,4 +147,35 @@ export function Empty({ children }: { children: ReactNode }) {
 export function ErrorBox({ error }: { error: unknown }) {
   if (!error) return null;
   return <div className="rounded-lg bg-tint px-3 py-2 text-[12px] font-bold text-bad">{(error as Error).message}</div>;
+}
+
+/** Click-outside / Escape handling for a small dropdown panel. */
+export function useDismiss(open: boolean, close: () => void, ref: RefObject<HTMLElement | null>) {
+  useEffect(() => {
+    if (!open) return;
+    const down = (e: MouseEvent) => ref.current && !ref.current.contains(e.target as Node) && close();
+    const esc = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.stopPropagation();
+        close();
+      }
+    };
+    document.addEventListener("mousedown", down);
+    window.addEventListener("keydown", esc, true);
+    return () => {
+      document.removeEventListener("mousedown", down);
+      window.removeEventListener("keydown", esc, true);
+    };
+  }, [open, close, ref]);
+}
+
+export function Avatar({ name, size = 32, ring }: { name: string; size?: number; ring?: boolean }) {
+  return (
+    <span
+      className={`relative inline-flex shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#F7A65E] to-primary font-extrabold text-white ${ring ? "ring-2 ring-white" : ""}`}
+      style={{ width: size, height: size, fontSize: size * 0.42 }}
+    >
+      {name.charAt(0).toUpperCase()}
+    </span>
+  );
 }

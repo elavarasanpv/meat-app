@@ -12,7 +12,7 @@ export class ApiError extends Error {
 }
 
 /** Call the FreshCut API with the signed-in admin's token. */
-export async function api<T>(path: string, init: { method?: "GET" | "POST" | "PATCH"; body?: unknown } = {}): Promise<T> {
+export async function api<T>(path: string, init: { method?: "GET" | "POST" | "PATCH" | "DELETE"; body?: unknown } = {}): Promise<T> {
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token;
   const res = await fetch(BASE + path, {

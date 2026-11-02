@@ -59,7 +59,7 @@ export function Shops() {
           </Btn>
         }
       />
-      <div className="grid gap-3 px-4 pt-4 md:grid-cols-2 md:px-6 xl:grid-cols-3">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-3 px-4 pt-4 md:grid-cols-2 md:px-6 xl:grid-cols-3">
         <div className="md:col-span-2 xl:col-span-3">
           <ErrorBox error={shops.error} />
         </div>

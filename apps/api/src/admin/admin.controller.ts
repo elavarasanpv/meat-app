@@ -1,7 +1,8 @@
-import { BadRequestException, Body, Controller, Get, Headers, Param, Patch, Post, Query } from "@nestjs/common";
-import { adminCancelSchema, adminCashVerifySchema, adminReassignShopSchema, adminRiderSchema, adminShopSchema } from "@freshcut/shared";
+import { BadRequestException, Body, Controller, Delete, Get, Headers, Param, Patch, Post, Query } from "@nestjs/common";
+import { adminInviteSchema, adminProfileSchema, adminCancelSchema, adminCashVerifySchema, adminReassignShopSchema, adminRiderSchema, adminShopSchema } from "@freshcut/shared";
 import type { ZodTypeAny, z } from "zod";
 import { AdminOpsService } from "./admin-ops.service";
+import { AdminAccountService } from "./admin-account.service";
 import { SupabaseService } from "../supabase.service";
 import { AdminService } from "./admin.service";
 import { requireAdmin } from "./admin.guard";
@@ -12,6 +13,7 @@ export class AdminController {
     private readonly supabase: SupabaseService,
     private readonly admin: AdminService,
     private readonly ops: AdminOpsService,
+    private readonly account: AdminAccountService,
   ) {}
 
   private guard(auth: string | undefined) {
@@ -126,6 +128,50 @@ export class AdminController {
     const a = await this.guard(auth);
     const v = parse(adminCashVerifySchema, body);
     return this.ops.verifyCash(a, id, v.received, v.note);
+  }
+
+  // ── alerts, account, team, activity ──
+  @Get("notifications")
+  async notifications(@Headers("authorization") auth: string | undefined) {
+    await this.guard(auth);
+    return this.account.notifications();
+  }
+
+  @Patch("me")
+  async updateMe(@Headers("authorization") auth: string | undefined, @Body() body: unknown) {
+    const a = await this.guard(auth);
+    return this.account.updateMe(a, parse(adminProfileSchema, body).name);
+  }
+
+  @Get("admins")
+  async admins(@Headers("authorization") auth: string | undefined) {
+    await this.guard(auth);
+    return this.account.admins();
+  }
+
+  @Post("admins")
+  async invite(@Headers("authorization") auth: string | undefined, @Body() body: unknown) {
+    const a = await this.guard(auth);
+    const v = parse(adminInviteSchema, body);
+    return this.account.invite(a, v.email, v.note, v.appUrl);
+  }
+
+  @Delete("admins/:email")
+  async removeAdmin(@Headers("authorization") auth: string | undefined, @Param("email") email: string) {
+    const a = await this.guard(auth);
+    return this.account.remove(a, decodeURIComponent(email).toLowerCase());
+  }
+
+  @Get("activity")
+  async activity(@Headers("authorization") auth: string | undefined) {
+    await this.guard(auth);
+    return this.account.activity();
+  }
+
+  @Get("rules")
+  async rules(@Headers("authorization") auth: string | undefined) {
+    await this.guard(auth);
+    return this.account.rules();
   }
 }
 

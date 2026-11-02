@@ -214,3 +214,10 @@ export const adminCashVerifySchema = z.object({
   received: z.number().min(0).max(1_000_000),
   note: z.string().trim().max(200).optional(),
 });
+
+export const adminProfileSchema = z.object({ name: z.string().trim().min(2).max(80) });
+export const adminInviteSchema = z.object({
+  email: z.string().trim().toLowerCase().email("Enter a valid email"),
+  note: z.string().trim().max(80).optional(),
+  appUrl: z.string().url(),
+});
