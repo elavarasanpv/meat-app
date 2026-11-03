@@ -3,6 +3,7 @@ import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AppText } from "@/components/AppText";
 import { Button } from "@/components/Button";
+import { EmptyBasket } from "@/components/EmptyBasket";
 import { Icon } from "@/components/Icon";
 import { productImage } from "@/lib/images";
 import { FREE_DELIVERY_ABOVE, cartTotals, formatQty, lineTotal, qtyStep, useCart } from "@/store/cart";
@@ -23,11 +24,10 @@ export default function CartScreen() {
     return (
       <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: c.ground }}>
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 14, padding: 24 }}>
-          <View style={{ width: 72, height: 72, borderRadius: 24, backgroundColor: c.tint, alignItems: "center", justifyContent: "center" }}>
-            <Icon name="cart" color={c.primary} size={32} />
-          </View>
+          <EmptyBasket size={230} />
           <AppText variant="title" numberOfLines={1}>{t("cartEmpty")}</AppText>
-          <View style={{ width: 220 }}>
+          <AppText muted style={{ textAlign: "center", maxWidth: 280, marginTop: -6 }}>{t("cartEmptySub")}</AppText>
+          <View style={{ width: 220, marginTop: 4 }}>
             <Button label={t("browseProducts")} size="sm" onPress={() => router.push("/(tabs)")} />
           </View>
         </View>

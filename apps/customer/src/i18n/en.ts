@@ -57,6 +57,7 @@ export const en = {
   notFound: "Product not found",
   // cart
   cartEmpty: "Your cart is empty",
+  cartEmptySub: "Fresh chicken, mutton and eggs from shops near you are a tap away.",
   browseProducts: "Browse products",
   itemTotal: "Items",
   deliveryFee: "Delivery",

@@ -54,6 +54,7 @@ export const ta: Record<keyof typeof en, string> = {
   shopMore: "மேலும் சேர்",
   notFound: "பொருள் கிடைக்கவில்லை",
   cartEmpty: "உங்கள் கூடை காலியாக உள்ளது",
+  cartEmptySub: "\u0b85\u0bb0\u0bc1\u0b95\u0bbf\u0bb2\u0bc1\u0bb3\u0bcd\u0bb3 \u0b95\u0b9f\u0bc8\u0b95\u0bb3\u0bbf\u0bb2\u0bbf\u0bb0\u0bc1\u0ba8\u0bcd\u0ba4\u0bc1 \u0baa\u0bc1\u0ba4\u0bbf\u0baf \u0b9a\u0bbf\u0b95\u0bcd\u0b95\u0ba9\u0bcd, \u0bae\u0b9f\u0bcd\u0b9f\u0ba9\u0bcd, \u0bae\u0bc1\u0b9f\u0bcd\u0b9f\u0bc8 \u2014 \u0b92\u0bb0\u0bc1 \u0ba4\u0bca\u0b9f\u0bc1\u0ba4\u0bb2\u0bbf\u0bb2\u0bcd.",
   browseProducts: "பொருட்களை பார்க்க",
   itemTotal: "பொருட்கள்",
   deliveryFee: "டெலிவரி",
