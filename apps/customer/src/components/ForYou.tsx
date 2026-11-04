@@ -5,7 +5,7 @@ import * as Haptics from "expo-haptics";
 import { AppText } from "./AppText";
 import { Icon } from "./Icon";
 import { useSuggestions, type Suggestion } from "@/hooks/useSuggestions";
-import { bannerImage, productImage } from "@/lib/images";
+import { suggestionImage } from "@/lib/images";
 import { formatQty, useCart } from "@/store/cart";
 import { useLang, useT, type TKey } from "@/i18n";
 import { fonts, radius, useTheme } from "@/theme";
@@ -80,7 +80,8 @@ function Banner({ s, width }: { s: Suggestion; width: number }) {
   const more = s.items.length - 1;
   const title = s.kind === "habit" ? t("sugHabit", { day: t(`day_${s.day ?? "sunday"}` as TKey) }) : t(KIND_KEY[s.kind]);
   const line = `${formatQty(first.qty, first.unit)} ${name}${more > 0 ? ` ${t("plusMore", { n: more })}` : ""}`;
-  const imgW = Math.round(width * 0.46);
+  const wide = s.kind === "popular" || s.items.length > 1;
+  const imgW = Math.round(width * (wide ? 0.52 : 0.46));
 
   function add() {
     for (const i of s.items) {
@@ -99,15 +100,10 @@ function Banner({ s, width }: { s: Suggestion; width: number }) {
       {/* soft spotlight behind the photo */}
       <View style={{ position: "absolute", right: -40, top: -30, width: imgW + 70, height: imgW + 70, borderRadius: 999, backgroundColor: "rgba(255,255,255,0.5)" }} />
       <Image
-        source={bannerImage(first.name) ?? productImage(first.name, first.imagePath)}
+        source={suggestionImage(s.kind, s.items)}
         resizeMode="contain"
         style={{ position: "absolute", right: -6, top: 6, width: imgW + 10, height: H - 12 }}
       />
-      {more > 0 && s.items[1] && (
-        <View style={{ position: "absolute", right: imgW - 26, bottom: 10, width: 58, height: 58, borderRadius: 29, backgroundColor: "#FFFFFF", borderWidth: 2, borderColor: c.border, alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
-          <Image source={bannerImage(s.items[1].name) ?? productImage(s.items[1].name, s.items[1].imagePath)} resizeMode="contain" style={{ width: 52, height: 52 }} />
-        </View>
-      )}
 
       <View style={{ flex: 1, padding: 16, paddingRight: imgW - 10, justifyContent: "space-between" }}>
         <View style={{ gap: 4 }}>

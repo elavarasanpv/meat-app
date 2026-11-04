@@ -26,20 +26,33 @@ export const bundled = {
   countryCockCut: require("@freshcut/assets/images/country-cock-cut.png") as ImageSourcePropType,
 };
 
-/** Studio photos for the "For you" banners, matched by product name. */
+/** Studio photos for the "For you" banners. */
 const banners = {
   muttonCurry: require("@freshcut/assets/images/banner-mutton-curry.png") as ImageSourcePropType,
+  muttonBoneless: require("@freshcut/assets/images/banner-mutton-boneless.png") as ImageSourcePropType,
   chickenCurry: require("@freshcut/assets/images/banner-chicken-curry.png") as ImageSourcePropType,
   countryChicken: require("@freshcut/assets/images/banner-country-chicken.png") as ImageSourcePropType,
+  eggs: require("@freshcut/assets/images/banner-eggs.png") as ImageSourcePropType,
+  combo: require("@freshcut/assets/images/banner-combo.png") as ImageSourcePropType,
+  popular: require("@freshcut/assets/images/banner-popular.png") as ImageSourcePropType,
 };
 
 /** Banner photo for a product, or undefined when we don't have one yet (caller falls back to productImage). */
 export function bannerImage(name: string): ImageSourcePropType | undefined {
   const n = name.toLowerCase();
-  if ((n.includes("mutton") || n.includes("goat")) && !n.includes("boneless")) return banners.muttonCurry;
-  if (n.includes("country") && !n.includes("egg")) return banners.countryChicken;
+  if (n.includes("egg")) return banners.eggs;
+  if (n.includes("mutton") || n.includes("goat")) return n.includes("boneless") ? banners.muttonBoneless : banners.muttonCurry;
+  if (n.includes("country")) return banners.countryChicken;
   if (n.includes("chicken") || n.includes("curry") || n.includes("leg") || n.includes("breast") || n.includes("wing")) return banners.chickenCurry;
   return undefined;
+}
+
+/** Banner photo for a whole suggestion: the combo spread for a multi-item basket, the whole-chicken plate for "popular near you". */
+export function suggestionImage(kind: "habit" | "favourite" | "last" | "popular", items: { name: string; imagePath: string | null }[]): ImageSourcePropType | undefined {
+  if (kind === "popular") return banners.popular;
+  if (items.length > 1) return banners.combo;
+  const first = items[0];
+  return first ? (bannerImage(first.name) ?? productImage(first.name, first.imagePath)) : undefined;
 }
 
 /**
