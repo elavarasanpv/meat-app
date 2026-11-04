@@ -10,6 +10,7 @@ import { ProductSheet } from "@/components/ProductSheet";
 import { SearchHint } from "@/components/SearchHint";
 import { SubcategoryCard } from "@/components/SubcategoryCard";
 import { CartBar, CART_BAR_SPACE } from "@/components/CartBar";
+import { ForYou } from "@/components/ForYou";
 import { ErrorState, ProductGridSkeleton, Skeleton } from "@/components/States";
 import { useCategories, useProducts, useSubcategories, type Subcategory } from "@/hooks/useCatalog";
 import { useAddresses } from "@/hooks/useOrders";
@@ -180,23 +181,7 @@ export default function HomeScreen() {
           })}
         </ScrollView>
 
-        {/* AI suggestion */}
-        <View style={{ marginHorizontal: 20, flexDirection: "row", gap: 12, padding: 14, borderRadius: 20, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, alignItems: "center" }}>
-          <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: c.tint, alignItems: "center", justifyContent: "center" }}>
-            <Icon name="sparkle" color={c.primary} size={22} />
-          </View>
-          <View style={{ flex: 1, gap: 2, height: 84, justifyContent: "center" }}>
-            <AppText variant="label" color={c.price} numberOfLines={1} style={{ fontSize: 10, letterSpacing: 0.6, height: 16 }}>{t("aiLabel")}</AppText>
-            <AppText variant="subtitle" numberOfLines={2} style={{ fontSize: 15, lineHeight: 21, height: 42 }}>{t("aiSuggestion")}</AppText>
-            <AppText variant="caption" muted numberOfLines={1} style={{ height: 18 }}>₹ 1,260 · {t("aiMeta")}</AppText>
-          </View>
-          <Pressable
-            accessibilityRole="button"
-            style={({ pressed }) => ({ height: 40, minWidth: 72, paddingHorizontal: 14, borderRadius: 20, backgroundColor: pressed ? c.primaryPressed : c.primary, justifyContent: "center", alignItems: "center" })}
-          >
-            <AppText variant="label" color="#FFFFFF" numberOfLines={1} style={{ fontSize: 13 }}>{t("order")}</AppText>
-          </Pressable>
-        </View>
+        <ForYou />
 
         {/* Product sections: one row per category ("All") or just the chosen category */}
         {pst.loading || cst.loading ? (

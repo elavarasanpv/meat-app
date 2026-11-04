@@ -26,6 +26,22 @@ export const bundled = {
   countryCockCut: require("@freshcut/assets/images/country-cock-cut.png") as ImageSourcePropType,
 };
 
+/** Studio photos for the "For you" banners, matched by product name. */
+const banners = {
+  muttonCurry: require("@freshcut/assets/images/banner-mutton-curry.png") as ImageSourcePropType,
+  chickenCurry: require("@freshcut/assets/images/banner-chicken-curry.png") as ImageSourcePropType,
+  countryChicken: require("@freshcut/assets/images/banner-country-chicken.png") as ImageSourcePropType,
+};
+
+/** Banner photo for a product, or undefined when we don't have one yet (caller falls back to productImage). */
+export function bannerImage(name: string): ImageSourcePropType | undefined {
+  const n = name.toLowerCase();
+  if ((n.includes("mutton") || n.includes("goat")) && !n.includes("boneless")) return banners.muttonCurry;
+  if (n.includes("country") && !n.includes("egg")) return banners.countryChicken;
+  if (n.includes("chicken") || n.includes("curry") || n.includes("leg") || n.includes("breast") || n.includes("wing")) return banners.chickenCurry;
+  return undefined;
+}
+
 /**
  * Image for a product: uploaded image if it has one, otherwise a bundled
  * cut-out matched by name, otherwise none (card shows the gradient alone).

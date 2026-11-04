@@ -2,6 +2,7 @@ import { BadRequestException, Body, Controller, ForbiddenException, Get, Headers
 import { z } from "zod";
 import { cancelOrderSchema, orderStatusSchema, placeOrderSchema, upcomingSlots } from "@freshcut/shared";
 import { OrdersService } from "./orders.service";
+import { SuggestionsService } from "./suggestions.service";
 import { AssignmentService } from "../dealer/assignment.service";
 import { SupabaseService } from "../supabase.service";
 import { requireUser } from "../auth";
@@ -26,12 +27,20 @@ export class OrdersController {
     private readonly orders: OrdersService,
     private readonly supabase: SupabaseService,
     private readonly assignment: AssignmentService,
+    private readonly suggest: SuggestionsService,
   ) {}
 
   /** GET /orders/slots — delivery windows the customer can pick right now. */
   @Get("slots")
   slots() {
     return upcomingSlots();
+  }
+
+  /** GET /orders/suggestions — "For you" on the home screen, from the customer's own orders. */
+  @Get("suggestions")
+  async suggestions(@Headers("authorization") auth: string | undefined) {
+    const user = await requireUser(this.supabase, auth);
+    return this.suggest.forCustomer(user.id);
   }
 
   /** POST /orders — place an order from the cart. */
