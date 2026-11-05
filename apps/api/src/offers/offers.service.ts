@@ -186,11 +186,18 @@ export class OffersService {
     return kept;
   }
 
-  /** Live offers for the home screen: banners first, each with the products it covers. */
-  async publicList(pincode?: string) {
+  /**
+   * Live offers for the home screen and cart: banners first, each with the
+   * products it covers. Coupons this customer can no longer use (already
+   * used up, first-order-only after their first order, or fully used) are
+   * left out, so they never see a code that would only be refused.
+   */
+  async publicList(userId: string, pincode?: string) {
     const live = await this.live(pincode);
+    const usable = await this.stillUsable(userId, live.filter((o) => o.kind === "coupon"));
     const out = [];
     for (const o of live) {
+      if (o.kind === "coupon" && !usable.has(o.id)) continue;
       let products: string[] = o.product_ids ?? [];
       if (!products.length && (o.category_id || o.subcategory_id)) {
         let q = this.db.from("products").select("id").eq("is_active", true);
@@ -216,6 +223,27 @@ export class OffersService {
       });
     }
     return out;
+  }
+
+  /** Which of these coupons this customer could still redeem (limits only; cart maths comes later). */
+  private async stillUsable(userId: string, coupons: OfferRow[]): Promise<Set<string>> {
+    const ok = new Set(coupons.map((c) => c.id));
+    if (!coupons.length) return ok;
+    const db = this.db;
+    const needOrders = coupons.some((c) => c.first_order_only);
+    const [{ count: orders }, { data: reds }] = await Promise.all([
+      needOrders ? db.from("orders").select("id", { count: "exact", head: true }).eq("customer_id", userId).not("status", "in", '("CANCELLED","REFUNDED")') : Promise.resolve({ count: 0 }),
+      db.from("offer_redemptions").select("offer_id, customer_id, orders!inner(status)").in("offer_id", coupons.map((c) => c.id)).not("orders.status", "in", '("CANCELLED","REFUNDED")'),
+    ]);
+    for (const c of coupons) {
+      if (c.first_order_only && (orders ?? 0) > 0) ok.delete(c.id);
+      const mine = (reds ?? []).filter((r) => r.offer_id === c.id && r.customer_id === userId).length;
+      const all = (reds ?? []).filter((r) => r.offer_id === c.id).length;
+      const perCustomer = c.per_customer_limit ?? 1;
+      if (mine >= perCustomer) ok.delete(c.id);
+      if (c.total_limit != null && all >= c.total_limit) ok.delete(c.id);
+    }
+    return ok;
   }
 
   // ───────────────────────── admin ─────────────────────────

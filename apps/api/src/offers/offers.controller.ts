@@ -15,8 +15,8 @@ export class OffersController {
   /** GET /offers?pincode= — live banner offers and coupons for the home screen and price tags. */
   @Get()
   async live(@Headers("authorization") auth: string | undefined, @Query("pincode") pincode?: string) {
-    await requireUser(this.supabase, auth);
-    return this.offers.publicList(pincode);
+    const user = await requireUser(this.supabase, auth);
+    return this.offers.publicList(user.id, pincode);
   }
 
   /** POST /offers/quote — best discount for this cart (with an optional coupon). A preview; the order re-checks. */

@@ -196,7 +196,7 @@ function OfferBanner({ o, width }: { o: LiveOffer; width: number }) {
           <AppText numberOfLines={2} style={{ fontFamily: lang === "ta" ? undefined : fonts.display, fontSize: 19, lineHeight: 23, color: "#FFFFFF", letterSpacing: lang === "ta" ? 0 : 0.4 }}>
             {lang === "ta" ? title : title.toUpperCase()}
           </AppText>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
             <View style={{ backgroundColor: "#FFFFFF", borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 }}>
               <AppText style={{ fontFamily: fonts.display, fontSize: 15, lineHeight: 19, color: base, letterSpacing: 0.5 }}>{pill}</AppText>
             </View>
@@ -205,8 +205,12 @@ function OfferBanner({ o, width }: { o: LiveOffer; width: number }) {
                 <AppText variant="label" color="#FFFFFF" style={{ fontSize: 11.5, letterSpacing: 1.2 }}>{o.code}</AppText>
               </View>
             )}
+            {!!line && (
+              <AppText variant="caption" color="rgba(255,255,255,0.85)" numberOfLines={1} style={{ flexShrink: 1 }}>
+                {line}
+              </AppText>
+            )}
           </View>
-          {!!line && <AppText variant="caption" color="rgba(255,255,255,0.85)" numberOfLines={1}>{line}</AppText>}
         </View>
         <Pressable
           accessibilityRole="button"
