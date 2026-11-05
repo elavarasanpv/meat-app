@@ -5,6 +5,7 @@ import * as Haptics from "expo-haptics";
 import { AppText } from "./AppText";
 import { Icon } from "./Icon";
 import { Doodle, type DoodleName } from "./Doodles";
+const FOR_YOU_ICON = require("@freshcut/assets/images/icon-for-you.png");
 import { useSuggestions, type Suggestion } from "@/hooks/useSuggestions";
 import { useLiveOffers, type LiveOffer } from "@/hooks/useOffers";
 import { useRouter } from "expo-router";
@@ -37,7 +38,7 @@ export function ForYou() {
   return (
     <View style={{ gap: 10 }}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 20 }}>
-        <Doodle name="drumstick" color={c.primary} size={22} strokeWidth={2} />
+        <Image source={FOR_YOU_ICON} resizeMode="contain" style={{ width: 30, height: 30 }} />
         <AppText variant="title">{t("forYou")}</AppText>
       </View>
       <ScrollView
