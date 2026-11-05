@@ -6,10 +6,11 @@ import { AdminOpsService } from "./admin-ops.service";
 import { AdminAccountService } from "./admin-account.service";
 import { DealerModule } from "../dealer/dealer.module";
 import { SupportModule } from "../support/support.module";
+import { OffersModule } from "../offers/offers.module";
 import { OrdersService } from "../orders/orders.service";
 
 @Module({
-  imports: [DealerModule, SupportModule],
+  imports: [DealerModule, SupportModule, OffersModule],
   controllers: [AdminController],
   providers: [AdminService, AdminOpsService, AdminAccountService, OrdersService, SupabaseService],
   exports: [AdminService],

@@ -4,6 +4,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { AppText } from "@/components/AppText";
 import { Button } from "@/components/Button";
 import { EmptyBasket } from "@/components/EmptyBasket";
+import { BillSummary, useBill } from "@/components/BillSummary";
+import { useHomePincode } from "@/hooks/useOffers";
 import { Icon } from "@/components/Icon";
 import { productImage } from "@/lib/images";
 import { FREE_DELIVERY_ABOVE, cartTotals, formatQty, lineTotal, qtyStep, useCart } from "@/store/cart";
@@ -18,7 +20,8 @@ export default function CartScreen() {
   const items = useCart((s) => s.items);
   const setQty = useCart((s) => s.setQty);
   const remove = useCart((s) => s.remove);
-  const { itemTotal, delivery, toPay } = cartTotals(items);
+  const bill = useBill(useHomePincode());
+  const { toPay } = bill;
 
   if (items.length === 0) {
     return (
@@ -105,27 +108,8 @@ export default function CartScreen() {
         {/* Back to Home to add more items */}
         <Button label={t("shopMore")} variant="outline" size="sm" icon="home" onPress={() => router.push("/(tabs)")} style={{ alignSelf: "flex-start" }} />
 
-        {/* Bill summary */}
-        <View style={{ marginTop: 6, padding: 16, borderRadius: 20, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, gap: 8 }}>
-          <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-            <AppText variant="caption" muted>{t("itemTotal")}</AppText>
-            <AppText variant="bodyBold" style={{ fontSize: 13 }}>₹ {itemTotal}</AppText>
-          </View>
-          <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-            <AppText variant="caption" muted>{t("deliveryFee")}</AppText>
-            {delivery === 0 ? (
-              <AppText variant="caption" color={c.successText}>{t("freeAbove", { n: FREE_DELIVERY_ABOVE })}</AppText>
-            ) : (
-              <AppText variant="bodyBold" style={{ fontSize: 13 }}>₹ {delivery}</AppText>
-            )}
-          </View>
-          <View style={{ height: 1, backgroundColor: c.border }} />
-          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-            <AppText variant="bodyBold">{t("toPay")}</AppText>
-            <AppText variant="price" color={c.price} style={{ fontSize: 20, lineHeight: 25 }}>₹ {toPay}</AppText>
-          </View>
-          <AppText variant="caption" muted numberOfLines={2} style={{ lineHeight: 16 }}>{t("weightNote")}</AppText>
-        </View>
+        {/* Bill summary with offers and coupon */}
+        <BillSummary bill={bill} />
       </ScrollView>
 
       <View style={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 20, backgroundColor: c.surface, borderTopWidth: 1, borderTopColor: c.border }}>

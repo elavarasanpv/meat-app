@@ -20,6 +20,7 @@ import {
   IconSearch,
   IconSettings,
   IconShop,
+  IconTag,
   IconShopOff,
   IconUser,
 } from "../ui/icons";
@@ -34,6 +35,7 @@ const SECTIONS: { title: string; items: { to: string; label: string; Icon: typeo
       { to: "/riders", label: "Riders", Icon: IconRider },
       { to: "/cash", label: "Cash", Icon: IconCash },
       { to: "/support", label: "Support", Icon: IconChat },
+      { to: "/offers", label: "Offers", Icon: IconTag },
     ],
   },
   {

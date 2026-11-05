@@ -105,3 +105,6 @@ export const IconPackage = ({ size, className }: P) => (
 export const IconChat = ({ size, className }: P) => (
   <svg {...base(size, className)}><path d="M21 11.5a8.5 8.5 0 0 1-12.4 7.6L3 21l1.9-5.6A8.5 8.5 0 1 1 21 11.5z" /><path d="M8 10.5h8M8 14h5" /></svg>
 );
+export const IconTag = ({ size, className }: P) => (
+  <svg {...base(size, className)}><path d="M3.5 12.2V4.5a1 1 0 0 1 1-1h7.7l8.3 8.3a1.4 1.4 0 0 1 0 2l-6.2 6.2a1.4 1.4 0 0 1-2 0z" /><circle cx="8" cy="8" r="1.6" /></svg>
+);

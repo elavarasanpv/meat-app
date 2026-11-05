@@ -194,7 +194,7 @@ export class AdminOpsService {
     const [{ data: products }, { data: pins }] = await Promise.all([
       db
         .from("products")
-        .select("id, name, name_ta, unit, base_price_per_kg, is_active, categories(name, sort), subcategories(name)")
+        .select("id, name, name_ta, unit, base_price_per_kg, is_active, category_id, subcategory_id, categories(name, sort), subcategories(name)")
         .eq("is_active", true),
       db.from("zone_pincodes").select("pincode, area, lat, lng, zones(name, is_active)"),
     ]);
@@ -211,9 +211,13 @@ export class AdminOpsService {
             category: c?.name ?? "Other",
             sort: c?.sort ?? 99,
             sub: (p.subcategories as unknown as { name: string } | null)?.name ?? null,
+            categoryId: p.category_id as string,
+            subcategoryId: (p.subcategory_id as string | null) ?? null,
           };
         })
         .sort((a, b) => a.sort - b.sort || (a.sub ?? "").localeCompare(b.sub ?? "") || a.name.localeCompare(b.name)),
+      categories: [...new Map((products ?? []).map((p) => [p.category_id, { id: p.category_id as string, name: (p.categories as unknown as { name: string } | null)?.name ?? "Other" }])).values()],
+      subcategories: [...new Map((products ?? []).filter((p) => p.subcategory_id).map((p) => [p.subcategory_id, { id: p.subcategory_id as string, categoryId: p.category_id as string, name: (p.subcategories as unknown as { name: string } | null)?.name ?? "" }])).values()],
       pincodes: (pins ?? [])
         .filter((z) => (z.zones as unknown as { is_active: boolean } | null)?.is_active !== false)
         .map((z) => ({ pincode: z.pincode, area: z.area, lat: z.lat, lng: z.lng, zone: (z.zones as unknown as { name: string } | null)?.name ?? null })),

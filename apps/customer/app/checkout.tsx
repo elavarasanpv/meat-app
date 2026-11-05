@@ -10,7 +10,8 @@ import { ErrorState, Skeleton } from "@/components/States";
 import { useAddresses, useDeleteAddress, usePlaceOrder, useSlots, type Slot } from "@/hooks/useOrders";
 import { useT } from "@/i18n";
 import { errorMessage, queryState } from "@/lib/network";
-import { FREE_DELIVERY_ABOVE, cartTotals, useCart } from "@/store/cart";
+import { useCart } from "@/store/cart";
+import { BillSummary, useBill } from "@/components/BillSummary";
 import { radius, useTheme } from "@/theme";
 
 type Payment = "cod" | "upi_on_delivery";
@@ -21,7 +22,6 @@ export default function CheckoutScreen() {
   const router = useRouter();
   const items = useCart((s) => s.items);
   const clearCart = useCart((s) => s.clear);
-  const { itemTotal, delivery, toPay } = cartTotals(items);
 
   const addresses = useAddresses();
   const removeAddress = useDeleteAddress();
@@ -51,6 +51,11 @@ export default function CheckoutScreen() {
     if (!slot && slots.data?.length) setSlot(slots.data[0]);
   }, [slots.data]);
 
+  const pincode = (addresses.data ?? []).find((a) => a.id === addressId)?.pincode;
+  const bill = useBill(pincode);
+  const { toPay } = bill;
+  const coupon = useCart((s) => s.coupon);
+
   const canPlace = items.length > 0 && !!addressId && !!slot && !place.isPending;
 
   async function placeOrder() {
@@ -62,6 +67,7 @@ export default function CheckoutScreen() {
         slot: { startsAt: slot.startsAt, endsAt: slot.endsAt },
         paymentMode: payment,
         items: items.map((i) => ({ productId: i.productId, qty: i.qty, size: i.size, notes: i.notes })),
+        couponCode: coupon ?? undefined,
       });
       clearCart();
       router.replace({ pathname: "/order/[id]", params: { id: result.orderId, placed: "1" } });
@@ -225,27 +231,8 @@ export default function CheckoutScreen() {
           </View>
         </View>
 
-        {/* Bill */}
-        <View style={card}>
-          <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-            <AppText variant="caption" muted>{t("itemTotal")} · {t("itemsCount", { n: items.length })}</AppText>
-            <AppText variant="bodyBold" style={{ fontSize: 13 }}>₹ {itemTotal}</AppText>
-          </View>
-          <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-            <AppText variant="caption" muted>{t("deliveryFee")}</AppText>
-            {delivery === 0 ? (
-              <AppText variant="caption" color={c.successText}>{t("freeAbove", { n: FREE_DELIVERY_ABOVE })}</AppText>
-            ) : (
-              <AppText variant="bodyBold" style={{ fontSize: 13 }}>₹ {delivery}</AppText>
-            )}
-          </View>
-          <View style={{ height: 1, backgroundColor: c.border }} />
-          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-            <AppText variant="bodyBold">{t("toPay")}</AppText>
-            <AppText variant="price" color={c.price} style={{ fontSize: 20, lineHeight: 25 }}>₹ {toPay}</AppText>
-          </View>
-          <AppText variant="caption" muted numberOfLines={2} style={{ lineHeight: 16 }}>{t("weightNote")}</AppText>
-        </View>
+        {/* Bill with offers and coupon */}
+        <BillSummary bill={bill} />
 
         <AppText variant="caption" color={c.danger} numberOfLines={3} style={{ minHeight: 18 }}>{error ?? ""}</AppText>
       </ScrollView>

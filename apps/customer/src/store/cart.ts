@@ -26,6 +26,9 @@ type CartState = {
   items: CartItem[];
   /** The line most recently added/changed — lets the floating cart bar say "X added". */
   lastAdded: { name: string; nameTa?: string; at: number } | null;
+  /** Coupon the customer typed; the server still picks the single best offer. */
+  coupon: string | null;
+  setCoupon: (code: string | null) => void;
   /** Add or replace the line for a product. */
   upsert: (item: CartItem) => void;
   /** Set quantity; 0 or less removes the line. */
@@ -39,6 +42,8 @@ export const useCart = create<CartState>()(
     (set) => ({
       items: [],
       lastAdded: null,
+      coupon: null,
+      setCoupon: (code) => set({ coupon: code }),
       upsert: (item) =>
         set((s) => ({
           items: [...s.items.filter((i) => i.productId !== item.productId), item],
@@ -52,9 +57,9 @@ export const useCart = create<CartState>()(
               : s.items.map((i) => (i.productId === productId ? { ...i, qty } : i)),
         })),
       remove: (productId) => set((s) => ({ items: s.items.filter((i) => i.productId !== productId) })),
-      clear: () => set({ items: [], lastAdded: null }),
+      clear: () => set({ items: [], lastAdded: null, coupon: null }),
     }),
-    { name: "freshcut.cart", storage: createJSONStorage(() => AsyncStorage), partialize: (s) => ({ items: s.items }) },
+    { name: "freshcut.cart", storage: createJSONStorage(() => AsyncStorage), partialize: (s) => ({ items: s.items, coupon: s.coupon }) },
   ),
 );
 

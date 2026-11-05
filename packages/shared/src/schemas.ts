@@ -25,6 +25,8 @@ export const placeOrderSchema = z.object({
   /** Prepaid UPI comes with the payment gateway later. */
   paymentMode: z.enum(["cod", "upi_on_delivery"]),
   items: z.array(orderItemInputSchema).min(1).max(20),
+  /** Coupon the customer typed in the cart; the server picks the best offer either way. */
+  couponCode: z.string().trim().toUpperCase().regex(/^[A-Z0-9]{3,20}$/).optional(),
 });
 
 export const addressInputSchema = z.object({
@@ -252,3 +254,42 @@ export type TicketResolveInput = z.infer<typeof ticketResolveSchema>;
 export const AUTO_CREDIT_MAX = 100;
 /** …but only once per customer per this many days. */
 export const AUTO_CREDIT_COOLDOWN_DAYS = 7;
+
+// ───────────────────────── offers ─────────────────────────
+export const adminOfferSchema = z.object({
+  kind: z.enum(["banner", "coupon"]),
+  code: z.string().trim().toUpperCase().regex(/^[A-Z0-9]{3,20}$/, "3–20 letters or digits").optional().nullable(),
+  title: z.string().trim().min(3).max(80),
+  titleTa: z.string().trim().max(120).optional().nullable(),
+  subtitle: z.string().trim().max(120).optional().nullable(),
+  imageBase64: z.string().max(1_500_000).optional().nullable(), // new upload
+  tint: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional().nullable(),
+  discountType: z.enum(["percent", "flat"]),
+  discountValue: z.number().positive().max(100_000),
+  maxDiscount: z.number().positive().max(100_000).optional().nullable(),
+  minOrder: z.number().positive().max(1_000_000).optional().nullable(),
+  categoryId: z.string().uuid().optional().nullable(),
+  subcategoryId: z.string().uuid().optional().nullable(),
+  productIds: z.array(z.string().uuid()).max(50).optional().nullable(),
+  pincodes: z.array(z.string().regex(/^[1-9]\d{5}$/)).optional().nullable(),
+  startsAt: z.string().datetime({ offset: true }),
+  endsAt: z.string().datetime({ offset: true }),
+  isActive: z.boolean().optional(),
+  sort: z.number().int().min(0).max(999).optional(),
+  shopSharePct: z.number().min(0).max(100),
+  firstOrderOnly: z.boolean().optional(),
+  perCustomerLimit: z.number().int().positive().max(1000).optional().nullable(),
+  totalLimit: z.number().int().positive().max(1_000_000).optional().nullable(),
+}).superRefine((v, ctx) => {
+  if (v.kind === "coupon" && !v.code) ctx.addIssue({ code: "custom", path: ["code"], message: "A coupon needs a code" });
+  if (v.discountType === "percent" && v.discountValue > 90) ctx.addIssue({ code: "custom", path: ["discountValue"], message: "Percent discounts are capped at 90%" });
+  if (new Date(v.endsAt) <= new Date(v.startsAt)) ctx.addIssue({ code: "custom", path: ["endsAt"], message: "Must end after it starts" });
+});
+export type AdminOfferInput = z.infer<typeof adminOfferSchema>;
+
+export const offerQuoteSchema = z.object({
+  items: z.array(z.object({ productId: z.string().uuid(), qty: z.number().positive().max(100), price: z.number().positive().max(100_000) })).min(1).max(20),
+  couponCode: z.string().trim().toUpperCase().regex(/^[A-Z0-9]{3,20}$/).optional(),
+  pincode: z.string().regex(/^[1-9]\d{5}$/).optional(),
+});
+export type OfferQuoteInput = z.infer<typeof offerQuoteSchema>;

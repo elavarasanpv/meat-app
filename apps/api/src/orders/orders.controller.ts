@@ -3,6 +3,7 @@ import { z } from "zod";
 import { cancelOrderSchema, orderStatusSchema, placeOrderSchema, upcomingSlots } from "@freshcut/shared";
 import { OrdersService } from "./orders.service";
 import { SuggestionsService } from "./suggestions.service";
+import { OffersService } from "../offers/offers.service";
 import { AssignmentService } from "../dealer/assignment.service";
 import { SupabaseService } from "../supabase.service";
 import { requireUser } from "../auth";
@@ -28,6 +29,7 @@ export class OrdersController {
     private readonly supabase: SupabaseService,
     private readonly assignment: AssignmentService,
     private readonly suggest: SuggestionsService,
+    private readonly offers: OffersService,
   ) {}
 
   /** GET /orders/slots — delivery windows the customer can pick right now. */
@@ -49,6 +51,10 @@ export class OrdersController {
     const user = await requireUser(this.supabase, auth);
     const input = parse(placeOrderSchema, body);
     const result = await this.orders.placeOrder(user.id, input);
+    // Best single offer (automatic or the typed coupon) comes off the items total.
+    await this.offers.applyToOrder(user.id, result.orderId, input.couponCode).catch((e) => console.error("[offers] apply", e));
+    const { data: placed } = await this.supabase.admin.from("orders").select("est_amount, discount_amount").eq("id", result.orderId).single();
+    if (placed) Object.assign(result, { estAmount: Number(placed.est_amount), discount: Number(placed.discount_amount ?? 0) });
     // Offer the order to the nearest open shop; a failure here never blocks checkout.
     await this.assignment.offer(result.orderId).catch((e) => console.error("[assign] offer", e));
     return result;

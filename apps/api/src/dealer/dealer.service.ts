@@ -4,6 +4,7 @@ import type { DealerAcceptInput, DealerRejectInput, ItemPhotoInput, ItemUnavaila
 import { DELIVERY_FEE, FREE_DELIVERY_ABOVE } from "@freshcut/shared";
 import { SupabaseService } from "../supabase.service";
 import { PushService } from "../push/push.service";
+import { OffersService } from "../offers/offers.service";
 import { OrdersService } from "../orders/orders.service";
 import { AssignmentService } from "./assignment.service";
 
@@ -18,6 +19,7 @@ export class DealerService {
     private readonly orders: OrdersService,
     private readonly assignment: AssignmentService,
     private readonly push: PushService,
+    private readonly offers: OffersService,
   ) {}
 
   /** The caller's dealer row, or 403. */
@@ -286,7 +288,9 @@ export class DealerService {
     if (missing) throw new BadRequestException(`${missing} item(s) still need a photo on the scale`);
 
     const itemsTotal = items.reduce((sum, i) => sum + Math.round(Number(i.unit_price_per_kg) * Number(i.requested_kg)), 0);
-    const finalAmount = itemsTotal + (itemsTotal >= FREE_DELIVERY_ABOVE ? 0 : DELIVERY_FEE);
+    // Delivery fee is decided on the items total before any discount, same as at checkout.
+    const discount = await this.offers.discountAtPacking(orderId, itemsTotal);
+    const finalAmount = itemsTotal - discount + (itemsTotal >= FREE_DELIVERY_ABOVE ? 0 : DELIVERY_FEE);
     await db.from("orders").update({ final_amount: finalAmount }).eq("id", orderId);
     const result = await this.orders.transition({ orderId, to: "PACKED", actorId: profileId });
     void this.ringRiders(orderId, dealer.id, finalAmount);

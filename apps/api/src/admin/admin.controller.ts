@@ -1,9 +1,10 @@
 import { BadRequestException, Body, Controller, Delete, Get, Headers, Param, Patch, Post, Query } from "@nestjs/common";
-import { ticketResolveSchema, ticketReplySchema, adminInviteSchema, adminProfileSchema, adminCancelSchema, adminCashVerifySchema, adminReassignShopSchema, adminRiderSchema, adminShopSchema } from "@freshcut/shared";
+import { adminOfferSchema, ticketResolveSchema, ticketReplySchema, adminInviteSchema, adminProfileSchema, adminCancelSchema, adminCashVerifySchema, adminReassignShopSchema, adminRiderSchema, adminShopSchema } from "@freshcut/shared";
 import type { ZodTypeAny, z } from "zod";
 import { AdminOpsService } from "./admin-ops.service";
 import { AdminAccountService } from "./admin-account.service";
 import { SupportService } from "../support/support.service";
+import { OffersService } from "../offers/offers.service";
 import { SupabaseService } from "../supabase.service";
 import { AdminService } from "./admin.service";
 import { requireAdmin } from "./admin.guard";
@@ -16,6 +17,7 @@ export class AdminController {
     private readonly ops: AdminOpsService,
     private readonly account: AdminAccountService,
     private readonly support: SupportService,
+    private readonly offersSvc: OffersService,
   ) {}
 
   private guard(auth: string | undefined) {
@@ -148,6 +150,39 @@ export class AdminController {
     const a = await this.guard(auth);
     const v = parse(adminCashVerifySchema, body);
     return this.ops.verifyCash(a, id, v.received, v.note);
+  }
+
+  // ── offers & coupons ──
+  @Get("offers")
+  async offersList(@Headers("authorization") auth: string | undefined) {
+    await this.guard(auth);
+    return this.offersSvc.adminList();
+  }
+
+  @Post("offers")
+  async offerCreate(@Headers("authorization") auth: string | undefined, @Body() body: unknown) {
+    const a = await this.guard(auth);
+    const v = parse(adminOfferSchema, body);
+    const r = await this.offersSvc.save(a.id, v);
+    await this.admin.log(a.id, "offer.create", r.id, { title: v.title, kind: v.kind, code: v.code, discount: `${v.discountValue}${v.discountType === "percent" ? "%" : "₹"}` });
+    return r;
+  }
+
+  @Patch("offers/:id")
+  async offerUpdate(@Headers("authorization") auth: string | undefined, @Param("id") id: string, @Body() body: unknown) {
+    const a = await this.guard(auth);
+    const v = parse(adminOfferSchema, body);
+    const r = await this.offersSvc.save(a.id, v, id);
+    await this.admin.log(a.id, "offer.update", id, { title: v.title, code: v.code });
+    return r;
+  }
+
+  @Post("offers/:id/active")
+  async offerActive(@Headers("authorization") auth: string | undefined, @Param("id") id: string, @Body() body: { active?: boolean }) {
+    const a = await this.guard(auth);
+    const r = await this.offersSvc.setActive(id, !!body?.active);
+    await this.admin.log(a.id, body?.active ? "offer.resume" : "offer.pause", id);
+    return r;
   }
 
   // ── support ──

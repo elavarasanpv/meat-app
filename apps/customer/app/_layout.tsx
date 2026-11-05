@@ -79,6 +79,7 @@ export default function RootLayout() {
           <Stack.Screen name="address/new" />
           <Stack.Screen name="address/location" />
           <Stack.Screen name="order/[id]" />
+          <Stack.Screen name="offer/[id]" />
           <Stack.Screen name="support/new" />
           <Stack.Screen name="support/[id]" />
         </Stack.Protected>

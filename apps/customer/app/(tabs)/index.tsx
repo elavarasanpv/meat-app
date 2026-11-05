@@ -11,6 +11,7 @@ import { SearchHint } from "@/components/SearchHint";
 import { SubcategoryCard } from "@/components/SubcategoryCard";
 import { CartBar, CART_BAR_SPACE } from "@/components/CartBar";
 import { ForYou } from "@/components/ForYou";
+import { offerTag, useOfferForProduct } from "@/hooks/useOffers";
 import { ErrorState, ProductGridSkeleton, Skeleton } from "@/components/States";
 import { useCategories, useProducts, useSubcategories, type Subcategory } from "@/hooks/useCatalog";
 import { useAddresses } from "@/hooks/useOrders";
@@ -39,6 +40,7 @@ function headlinePrice(items: { name: string; base_price_per_kg: number }[]): nu
 }
 
 export default function HomeScreen() {
+  const offerFor = useOfferForProduct();
   const router = useRouter();
   const { c } = useTheme();
   const { width: screenWidth } = useWindowDimensions();
@@ -230,6 +232,10 @@ export default function HomeScreen() {
                         image={productImage(item.name, item.image_path)}
                         onPress={() => router.push(`/product/${item.id}`)}
                         onAdd={() => router.push(`/product/${item.id}`)}
+                        offerTag={(() => {
+                          const o = offerFor(item.id);
+                          return o ? offerTag(o) : null;
+                        })()}
                       />
                     ))}
               </View>

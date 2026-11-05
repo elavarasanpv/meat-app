@@ -17,6 +17,8 @@ type Props = {
   onPress?: () => void;
   /** Card width; height follows (about 1.3×). */
   width: number;
+  /** e.g. "20% OFF" when a live offer covers this product. */
+  offerTag?: string | null;
 };
 
 const PAD = 12;
@@ -25,7 +27,7 @@ const PAD = 12;
  * Product card: white melting into a soft ember glow, dark text, ember "Add".
  * The cut-out is the hero and bleeds to the card edges.
  */
-export function ProductCard({ name, pricePerKg, unit = "kg", image, onAdd, onPress, width }: Props) {
+export function ProductCard({ name, pricePerKg, unit = "kg", image, onAdd, onPress, width, offerTag }: Props) {
   const { c, productGradient, productBorder } = useTheme();
   const t = useT();
   const height = Math.round(width * 1.3);
@@ -40,7 +42,7 @@ export function ProductCard({ name, pricePerKg, unit = "kg", image, onAdd, onPre
         style={{ width, height, borderRadius: radius.card, overflow: "hidden", padding: PAD, borderWidth: 1, borderColor: productBorder }}
       >
         {/* Title: max 2 lines, compact */}
-        <AppText variant="title" style={{ fontSize: 15, lineHeight: 19, height: 38 }} numberOfLines={2}>
+        <AppText variant="title" style={{ fontSize: 15, lineHeight: 19, height: 38, paddingRight: offerTag ? 62 : 0 }} numberOfLines={2}>
           {name}
         </AppText>
 
@@ -94,6 +96,11 @@ export function ProductCard({ name, pricePerKg, unit = "kg", image, onAdd, onPre
             </AppText>
           </Pressable>
         </View>
+        {offerTag ? (
+          <View style={{ position: "absolute", top: 0, right: 0, backgroundColor: "#1E8A4F", borderBottomLeftRadius: 14, paddingHorizontal: 9, paddingVertical: 4 }}>
+            <AppText variant="label" color="#FFFFFF" style={{ fontSize: 10.5, letterSpacing: 0.4 }}>{offerTag}</AppText>
+          </View>
+        ) : null}
       </LinearGradient>
     </Pressable>
   );

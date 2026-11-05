@@ -5,6 +5,8 @@ import * as Haptics from "expo-haptics";
 import { AppText } from "./AppText";
 import { Icon } from "./Icon";
 import { useSuggestions, type Suggestion } from "@/hooks/useSuggestions";
+import { useLiveOffers, type LiveOffer } from "@/hooks/useOffers";
+import { useRouter } from "expo-router";
 import { suggestionImage } from "@/lib/images";
 import { formatQty, useCart } from "@/store/cart";
 import { useLang, useT, type TKey } from "@/i18n";
@@ -22,10 +24,13 @@ export function ForYou() {
   const { c } = useTheme();
   const t = useT();
   const q = useSuggestions();
+  const offers = useLiveOffers();
   const { width } = useWindowDimensions();
   const [page, setPage] = useState(0);
   const list = q.data ?? [];
-  if (!list.length) return null;
+  const live = offers.data ?? [];
+  const count = live.length + list.length;
+  if (!count) return null;
   const cardW = width - 40;
 
   return (
@@ -43,13 +48,16 @@ export function ForYou() {
         onMomentumScrollEnd={(e) => setPage(Math.round(e.nativeEvent.contentOffset.x / (cardW + GAP)))}
         contentContainerStyle={{ paddingHorizontal: 20, gap: GAP }}
       >
+        {live.map((o) => (
+          <OfferBanner key={o.id} o={o} width={cardW} />
+        ))}
         {list.map((s, i) => (
           <Banner key={`${s.kind}-${i}`} s={s} width={cardW} />
         ))}
       </ScrollView>
-      {list.length > 1 && (
+      {count > 1 && (
         <View style={{ flexDirection: "row", justifyContent: "center", gap: 6 }}>
-          {list.map((_, i) => (
+          {Array.from({ length: count }).map((_, i) => (
             <View key={i} style={{ width: i === page ? 18 : 6, height: 6, borderRadius: 3, backgroundColor: i === page ? c.primary : c.border }} />
           ))}
         </View>
@@ -144,5 +152,80 @@ function Banner({ s, width }: { s: Suggestion; width: number }) {
         </Pressable>
       </View>
     </Animated.View>
+  );
+}
+
+/** Admin-made offer or coupon, in the same banner style. */
+function OfferBanner({ o, width }: { o: LiveOffer; width: number }) {
+  const { c } = useTheme();
+  const t = useT();
+  const lang = useLang((x) => x.lang);
+  const router = useRouter();
+  const coupon = useCart((x) => x.coupon);
+  const setCoupon = useCart((x) => x.setCoupon);
+  const applied = o.kind === "coupon" && coupon === o.code;
+  const title = (lang === "ta" && o.titleTa) || o.title;
+  const line =
+    o.subtitle ||
+    `${o.discountType === "percent" ? t("offPct", { n: o.discountValue }) : t("offFlat", { n: o.discountValue })}${o.maxDiscount ? ` · ${t("upTo", { n: o.maxDiscount })}` : ""}${o.minOrder ? ` · ${t("above", { n: o.minOrder })}` : ""}`;
+  const imgW = Math.round(width * 0.46);
+
+  return (
+    <View style={{ width, height: H, borderRadius: radius.card, overflow: "hidden" }}>
+      <LinearGradient colors={[o.tint ?? "#FFE1D3", "#FFF8F2"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0 }} />
+      <View style={{ position: "absolute", right: -40, top: -30, width: imgW + 70, height: imgW + 70, borderRadius: 999, backgroundColor: "rgba(255,255,255,0.5)" }} />
+      {o.imageUrl ? (
+        <Image source={{ uri: o.imageUrl }} resizeMode="contain" style={{ position: "absolute", right: -6, top: 6, width: imgW + 10, height: H - 12 }} />
+      ) : (
+        <View style={{ position: "absolute", right: 18, top: 34, width: imgW - 30, height: H - 68, borderRadius: 20, backgroundColor: c.primary, alignItems: "center", justifyContent: "center", transform: [{ rotate: "-6deg" }] }}>
+          <AppText style={{ fontFamily: fonts.display, fontSize: 28, color: "#FFFFFF" }}>{o.discountType === "percent" ? `${o.discountValue}%` : `₹${o.discountValue}`}</AppText>
+          <AppText variant="label" color="#FFFFFF" style={{ letterSpacing: 2 }}>OFF</AppText>
+        </View>
+      )}
+      <View style={{ flex: 1, padding: 16, paddingRight: imgW - 10, justifyContent: "space-between" }}>
+        <View style={{ gap: 4 }}>
+          {o.kind === "coupon" ? (
+            <View style={{ alignSelf: "flex-start", borderWidth: 1.5, borderStyle: "dashed", borderColor: c.primary, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 2, backgroundColor: "rgba(255,255,255,0.7)" }}>
+              <AppText variant="label" color={c.primary} style={{ fontSize: 11, letterSpacing: 1 }}>{o.code}</AppText>
+            </View>
+          ) : (
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+              <Icon name="sparkle" color={c.primary} size={11} />
+              <AppText variant="label" color={c.primary} style={{ fontSize: 10.5, letterSpacing: 0.6, lineHeight: 14 }}>{t("todayOffer").toUpperCase()}</AppText>
+            </View>
+          )}
+          <AppText numberOfLines={2} style={{ fontFamily: lang === "ta" ? undefined : fonts.display, fontSize: 19, lineHeight: 24, letterSpacing: -0.3 }}>
+            {title}
+          </AppText>
+          <AppText variant="caption" muted numberOfLines={1}>{line}</AppText>
+        </View>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => {
+            if (o.kind === "coupon") {
+              setCoupon(applied ? null : o.code);
+              Haptics.selectionAsync().catch(() => {});
+            } else router.push(`/offer/${o.id}`);
+          }}
+          style={({ pressed }) => ({
+            alignSelf: "flex-start",
+            height: 38,
+            paddingHorizontal: 16,
+            borderRadius: 19,
+            backgroundColor: applied ? "#FFFFFF" : pressed ? c.primaryPressed : c.ink,
+            borderWidth: applied ? 1.5 : 0,
+            borderColor: c.primary,
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 6,
+          })}
+        >
+          <Icon name={applied ? "check" : o.kind === "coupon" ? "receipt" : "cart"} color={applied ? c.primary : "#FFFFFF"} size={15} />
+          <AppText variant="label" color={applied ? c.primary : "#FFFFFF"} style={{ fontSize: 13 }}>
+            {o.kind === "coupon" ? (applied ? t("cpAppliedShort") : t("cpApplyCode")) : t("shopNow")}
+          </AppText>
+        </Pressable>
+      </View>
+    </View>
   );
 }

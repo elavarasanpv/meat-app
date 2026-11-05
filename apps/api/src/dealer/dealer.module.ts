@@ -5,8 +5,10 @@ import { AssignmentService } from "./assignment.service";
 import { OrdersService } from "../orders/orders.service";
 import { SupabaseService } from "../supabase.service";
 import { PushService } from "../push/push.service";
+import { OffersModule } from "../offers/offers.module";
 
 @Module({
+  imports: [OffersModule],
   controllers: [DealerController],
   providers: [DealerService, AssignmentService, OrdersService, SupabaseService, PushService],
   exports: [AssignmentService, PushService],
