@@ -47,7 +47,15 @@ const STATUS: Record<Offer["status"], { label: string; tone: Tone }> = {
   ended: { label: "Ended", tone: "mute" },
   paused: { label: "Paused", tone: "warn" },
 };
-const TINTS = ["#FFE1D3", "#FBE7C8", "#FDE6DF", "#E6F2E7", "#E5EEFB", "#EFE7FA"];
+/** Bold card colours (white text goes on top), matching the customer app. */
+const TINTS = ["#E4461F", "#B8361A", "#1E8A4F", "#1C1715", "#2F6FD1", "#7A3E9D"];
+const darken = (hex: string, by: number) => {
+  const n = parseInt(hex.replace("#", ""), 16);
+  const f = (v: number) => Math.max(0, Math.round(v * (1 - by)));
+  return `#${[f(n >> 16), f((n >> 8) & 255), f(n & 255)].map((v) => v.toString(16).padStart(2, "0")).join("")}`;
+};
+const cardBg = (tint: string | null) => `linear-gradient(135deg, ${tint ?? "#E4461F"}, ${darken(tint ?? "#E4461F", 0.28)})`;
+const pillText = (o: Pick<Offer, "discountType" | "discountValue">) => (o.discountType === "percent" ? `${o.discountValue}% OFF` : `${inr(o.discountValue)} OFF`);
 
 const describe = (o: Pick<Offer, "discountType" | "discountValue" | "maxDiscount" | "minOrder">) =>
   `${o.discountType === "percent" ? `${o.discountValue}% off` : `${inr(o.discountValue)} off`}${o.maxDiscount ? ` · up to ${inr(o.maxDiscount)}` : ""}${o.minOrder ? ` · above ${inr(o.minOrder)}` : ""}`;
@@ -97,18 +105,23 @@ export function Offers() {
         </div>
         {list.map((o) => (
           <div key={o.id} className="card overflow-hidden p-0">
-            <div className="relative flex h-24 items-center gap-3 px-4" style={{ background: o.tint ?? "#FDE6DF" }}>
-              <div className="min-w-0 flex-1">
+            <div className="relative flex h-28 items-center gap-3 overflow-hidden px-4 text-white" style={{ background: cardBg(o.tint) }}>
+              <div className="pointer-events-none absolute -right-10 -top-16 h-44 w-44 rounded-full border-[18px] border-white/10" />
+              <div className="relative min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <Chip tone={STATUS[o.status].tone}>{STATUS[o.status].label}</Chip>
-                  {o.kind === "coupon" ? <span className="rounded-md border border-dashed border-ink/40 bg-white/70 px-1.5 py-0.5 font-mono text-[11px] font-extrabold">{o.code}</span> : <Chip tone="info">Banner</Chip>}
+                  {o.kind === "banner" && <span className="text-[10px] font-extrabold uppercase tracking-wider text-white/70">Banner</span>}
                 </div>
-                <div className="mt-1 truncate text-[15px] font-extrabold">{o.title}</div>
-                <div className="truncate text-[11.5px] text-ink/70">{describe(o)}</div>
+                <div className="mt-1 truncate font-extrabold uppercase tracking-wide">{o.title}</div>
+                <div className="mt-1.5 flex items-center gap-2">
+                  <span className="rounded-md bg-white px-2 py-0.5 text-[12px] font-extrabold" style={{ color: o.tint ?? "#E4461F" }}>{pillText(o)}</span>
+                  {o.kind === "coupon" && <span className="rounded-md border border-dashed border-white/80 px-1.5 py-0.5 font-mono text-[11px] font-extrabold tracking-wider">{o.code}</span>}
+                </div>
               </div>
-              {o.imageUrl && <img src={o.imageUrl} alt="" className="h-20 w-24 shrink-0 object-contain" />}
+              {o.imageUrl && <img src={o.imageUrl} alt="" className="relative h-24 w-28 shrink-0 object-contain object-bottom" />}
             </div>
             <div className="space-y-1 px-4 py-3 text-[12px]">
+              <div className="font-bold">{describe(o)}</div>
               <div className="text-muted">
                 {when(o.startsAt)} → {when(o.endsAt)}
               </div>
@@ -303,13 +316,20 @@ function OfferForm({ offer, kind, onClose }: { offer: Offer | null; kind: "banne
       <ErrorBox error={save.error} />
 
       {/* live preview of the customer banner */}
-      <div className="mb-4 flex h-28 items-center gap-3 overflow-hidden rounded-2xl px-4" style={{ background: f.tint }}>
-        <div className="min-w-0 flex-1">
-          <div className="text-[10.5px] font-extrabold uppercase tracking-wide text-primary">{f.kind === "coupon" ? `Use code ${f.code || "CODE"}` : "Today's offer"}</div>
-          <div className="truncate text-[17px] font-extrabold">{f.title || "Offer title"}</div>
-          <div className="truncate text-[12px] text-ink/70">{f.subtitle || describe({ discountType: f.discountType, discountValue: Number(f.discountValue) || 0, maxDiscount: Number(f.maxDiscount) || null, minOrder: Number(f.minOrder) || null })}</div>
+      <div className="relative mb-4 flex h-32 items-center gap-3 overflow-hidden rounded-2xl px-4 text-white" style={{ background: cardBg(f.tint) }}>
+        <div className="pointer-events-none absolute -right-10 -top-16 h-48 w-48 rounded-full border-[20px] border-white/10" />
+        <div className="relative min-w-0 flex-1">
+          <div className="truncate text-[17px] font-extrabold uppercase tracking-wide">{f.title || "Offer title"}</div>
+          <div className="mt-2 flex items-center gap-2">
+            <span className="rounded-md bg-white px-2.5 py-1 text-[13px] font-extrabold" style={{ color: f.tint }}>
+              {pillText({ discountType: f.discountType, discountValue: Number(f.discountValue) || 0 })}
+            </span>
+            {f.kind === "coupon" && <span className="rounded-md border border-dashed border-white/80 px-2 py-1 font-mono text-[11px] font-extrabold tracking-wider">{f.code || "CODE"}</span>}
+          </div>
+          <div className="mt-1.5 truncate text-[11.5px] text-white/85">{f.subtitle || [Number(f.maxDiscount) ? `up to ${inr(Number(f.maxDiscount))}` : null, Number(f.minOrder) ? `above ${inr(Number(f.minOrder))}` : null].filter(Boolean).join(" · ")}</div>
+          <span className="mt-2 inline-block rounded-full bg-white px-3 py-1 text-[11px] font-extrabold text-ink">{f.kind === "coupon" ? "Apply code" : "Shop now"}</span>
         </div>
-        {f.imageUrl && <img src={f.imageUrl} alt="" className="h-24 w-28 object-contain" />}
+        {f.imageUrl && <img src={f.imageUrl} alt="" className="relative h-28 w-32 object-contain object-bottom" />}
       </div>
 
       <Section title="What customers see">
@@ -334,10 +354,10 @@ function OfferForm({ offer, kind, onClose }: { offer: Offer | null; kind: "banne
             <input type="file" accept="image/png,image/jpeg,image/webp" className="text-[12px]" onChange={(e) => e.target.files?.[0] && void pickImage(e.target.files[0])} />
           </Field>
           <div>
-            <div className="text-[11.5px] font-bold text-muted">Background</div>
+            <div className="text-[11.5px] font-bold text-muted">Card colour</div>
             <div className="mt-1 flex gap-1.5">
               {TINTS.map((t) => (
-                <button key={t} onClick={() => set({ tint: t })} aria-label={`Tint ${t}`} className={`h-7 w-7 rounded-full border-2 ${f.tint === t ? "border-primary" : "border-line"}`} style={{ background: t }} />
+                <button key={t} onClick={() => set({ tint: t })} aria-label={`Tint ${t}`} className={`h-7 w-7 rounded-full ring-2 ring-offset-2 ${f.tint === t ? "ring-ink" : "ring-transparent"}`} style={{ background: t }} />
               ))}
             </div>
           </div>

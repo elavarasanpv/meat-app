@@ -155,7 +155,18 @@ function Banner({ s, width }: { s: Suggestion; width: number }) {
   );
 }
 
-/** Admin-made offer or coupon, in the same banner style. */
+/** Darken a #RRGGBB colour by a fraction (0–1). */
+function darken(hex: string, by: number) {
+  const n = parseInt(hex.replace("#", ""), 16);
+  const f = (v: number) => Math.max(0, Math.round(v * (1 - by)));
+  return `#${[f(n >> 16), f((n >> 8) & 255), f(n & 255)].map((v) => v.toString(16).padStart(2, "0")).join("")}`;
+}
+
+/**
+ * Admin-made offer or coupon: a bold solid-colour card so it stands out from
+ * the light "For you" cards. Big white headline, a white pill with the
+ * discount, and the photo bleeding off the right edge.
+ */
 function OfferBanner({ o, width }: { o: LiveOffer; width: number }) {
   const { c } = useTheme();
   const t = useT();
@@ -164,40 +175,38 @@ function OfferBanner({ o, width }: { o: LiveOffer; width: number }) {
   const coupon = useCart((x) => x.coupon);
   const setCoupon = useCart((x) => x.setCoupon);
   const applied = o.kind === "coupon" && coupon === o.code;
+  const base = o.tint && /^#[0-9a-f]{6}$/i.test(o.tint) ? o.tint : c.primary;
   const title = (lang === "ta" && o.titleTa) || o.title;
+  const pill = o.discountType === "percent" ? `${o.discountValue}% OFF` : `₹${o.discountValue} OFF`;
   const line =
     o.subtitle ||
-    `${o.discountType === "percent" ? t("offPct", { n: o.discountValue }) : t("offFlat", { n: o.discountValue })}${o.maxDiscount ? ` · ${t("upTo", { n: o.maxDiscount })}` : ""}${o.minOrder ? ` · ${t("above", { n: o.minOrder })}` : ""}`;
-  const imgW = Math.round(width * 0.46);
+    [o.maxDiscount ? t("upTo", { n: o.maxDiscount }) : null, o.minOrder ? t("above", { n: o.minOrder }) : null].filter(Boolean).join(" · ");
+  const imgW = Math.round(width * 0.44);
 
   return (
     <View style={{ width, height: H, borderRadius: radius.card, overflow: "hidden" }}>
-      <LinearGradient colors={[o.tint ?? "#FFE1D3", "#FFF8F2"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0 }} />
-      <View style={{ position: "absolute", right: -40, top: -30, width: imgW + 70, height: imgW + 70, borderRadius: 999, backgroundColor: "rgba(255,255,255,0.5)" }} />
-      {o.imageUrl ? (
-        <Image source={{ uri: o.imageUrl }} resizeMode="contain" style={{ position: "absolute", right: -6, top: 6, width: imgW + 10, height: H - 12 }} />
-      ) : (
-        <View style={{ position: "absolute", right: 18, top: 34, width: imgW - 30, height: H - 68, borderRadius: 20, backgroundColor: c.primary, alignItems: "center", justifyContent: "center", transform: [{ rotate: "-6deg" }] }}>
-          <AppText style={{ fontFamily: fonts.display, fontSize: 28, color: "#FFFFFF" }}>{o.discountType === "percent" ? `${o.discountValue}%` : `₹${o.discountValue}`}</AppText>
-          <AppText variant="label" color="#FFFFFF" style={{ letterSpacing: 2 }}>OFF</AppText>
-        </View>
-      )}
-      <View style={{ flex: 1, padding: 16, paddingRight: imgW - 10, justifyContent: "space-between" }}>
-        <View style={{ gap: 4 }}>
-          {o.kind === "coupon" ? (
-            <View style={{ alignSelf: "flex-start", borderWidth: 1.5, borderStyle: "dashed", borderColor: c.primary, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 2, backgroundColor: "rgba(255,255,255,0.7)" }}>
-              <AppText variant="label" color={c.primary} style={{ fontSize: 11, letterSpacing: 1 }}>{o.code}</AppText>
-            </View>
-          ) : (
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-              <Icon name="sparkle" color={c.primary} size={11} />
-              <AppText variant="label" color={c.primary} style={{ fontSize: 10.5, letterSpacing: 0.6, lineHeight: 14 }}>{t("todayOffer").toUpperCase()}</AppText>
-            </View>
-          )}
-          <AppText numberOfLines={2} style={{ fontFamily: lang === "ta" ? undefined : fonts.display, fontSize: 19, lineHeight: 24, letterSpacing: -0.3 }}>
-            {title}
+      <LinearGradient colors={[base, darken(base, 0.28)]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0 }} />
+      {/* decorative rings */}
+      <View style={{ position: "absolute", right: -70, top: -90, width: 240, height: 240, borderRadius: 120, borderWidth: 28, borderColor: "rgba(255,255,255,0.08)" }} />
+      <View style={{ position: "absolute", left: -40, bottom: -70, width: 140, height: 140, borderRadius: 70, backgroundColor: "rgba(255,255,255,0.07)" }} />
+      {o.imageUrl && <Image source={{ uri: o.imageUrl }} resizeMode="contain" style={{ position: "absolute", right: -4, bottom: -2, width: imgW, height: H - 14 }} />}
+
+      <View style={{ flex: 1, padding: 16, paddingRight: o.imageUrl ? imgW - 12 : 16, justifyContent: "space-between" }}>
+        <View style={{ gap: 6 }}>
+          <AppText numberOfLines={2} style={{ fontFamily: lang === "ta" ? undefined : fonts.display, fontSize: 19, lineHeight: 23, color: "#FFFFFF", letterSpacing: lang === "ta" ? 0 : 0.4 }}>
+            {lang === "ta" ? title : title.toUpperCase()}
           </AppText>
-          <AppText variant="caption" muted numberOfLines={1}>{line}</AppText>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <View style={{ backgroundColor: "#FFFFFF", borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 }}>
+              <AppText style={{ fontFamily: fonts.display, fontSize: 15, lineHeight: 19, color: base, letterSpacing: 0.5 }}>{pill}</AppText>
+            </View>
+            {o.kind === "coupon" && (
+              <View style={{ borderWidth: 1.5, borderStyle: "dashed", borderColor: "rgba(255,255,255,0.8)", borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 }}>
+                <AppText variant="label" color="#FFFFFF" style={{ fontSize: 11.5, letterSpacing: 1.2 }}>{o.code}</AppText>
+              </View>
+            )}
+          </View>
+          {!!line && <AppText variant="caption" color="rgba(255,255,255,0.85)" numberOfLines={1}>{line}</AppText>}
         </View>
         <Pressable
           accessibilityRole="button"
@@ -209,19 +218,19 @@ function OfferBanner({ o, width }: { o: LiveOffer; width: number }) {
           }}
           style={({ pressed }) => ({
             alignSelf: "flex-start",
-            height: 38,
+            height: 36,
             paddingHorizontal: 16,
-            borderRadius: 19,
-            backgroundColor: applied ? "#FFFFFF" : pressed ? c.primaryPressed : c.ink,
+            borderRadius: 18,
+            backgroundColor: applied ? "rgba(255,255,255,0.18)" : pressed ? "#F3ECE6" : "#FFFFFF",
             borderWidth: applied ? 1.5 : 0,
-            borderColor: c.primary,
+            borderColor: "#FFFFFF",
             flexDirection: "row",
             alignItems: "center",
             gap: 6,
           })}
         >
-          <Icon name={applied ? "check" : o.kind === "coupon" ? "receipt" : "cart"} color={applied ? c.primary : "#FFFFFF"} size={15} />
-          <AppText variant="label" color={applied ? c.primary : "#FFFFFF"} style={{ fontSize: 13 }}>
+          <Icon name={applied ? "check" : o.kind === "coupon" ? "receipt" : "cart"} color={applied ? "#FFFFFF" : c.ink} size={15} />
+          <AppText variant="label" color={applied ? "#FFFFFF" : c.ink} style={{ fontSize: 13 }}>
             {o.kind === "coupon" ? (applied ? t("cpAppliedShort") : t("cpApplyCode")) : t("shopNow")}
           </AppText>
         </Pressable>
