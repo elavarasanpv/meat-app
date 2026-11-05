@@ -6,7 +6,7 @@ const RIDER = require("@freshcut/assets/images/icon-rider.png");
 
 export type IconName =
   | "search" | "mic" | "bell" | "pin" | "chevronDown" | "back" | "sparkle"
-  | "home" | "orders" | "cart" | "phone" | "truck" | "logo" | "logout" | "clock" | "receipt" | "chevronUp" | "edit" | "trash" | "check" | "cut" | "scooter" | "shop" | "camera" | "chat";
+  | "home" | "orders" | "cart" | "phone" | "truck" | "logo" | "logout" | "clock" | "receipt" | "chevronUp" | "edit" | "trash" | "check" | "cut" | "scooter" | "shop" | "camera" | "chat" | "tag" | "close";
 
 type Props = { name: IconName; size?: number; color: string; strokeWidth?: number };
 
@@ -41,6 +41,8 @@ export function Icon({ name, size = 22, color, strokeWidth = 2.2 }: Props) {
         <Path d="M14 20v-6h3.5v6" {...p} />
       </>)}
       {name === "cut" && (<><Path d="M4 20l12-12 3 3-9 9z" {...p} /><Path d="M14 10l3-3 2 2" {...p} /><Path d="M4 20l1-3" {...p} /></>)}
+      {name === "tag" && (<><Path d="M3.5 12.2V4.5a1 1 0 0 1 1-1h7.7l8.3 8.3a1.4 1.4 0 0 1 0 2l-6.2 6.2a1.4 1.4 0 0 1-2 0z" {...p} /><Path d="M8 8h.01" {...p} strokeWidth={3} /></>)}
+      {name === "close" && (<Path d="M6 6l12 12M18 6L6 18" {...p} />)}
       {name === "chat" && (<><Path d="M10.5 8.2H19a3.6 3.6 0 0 1 3.6 3.6v5a3.6 3.6 0 0 1-3.6 3.6h-.2v3.2l-4.2-3.2h-3.1a3.6 3.6 0 0 1-3.6-3.6v-5a3.6 3.6 0 0 1 3.6-3.6z" fill={color} stroke="none" /><Path d="M5 1.8h10a3.6 3.6 0 0 1 3.6 3.6v5.8A3.6 3.6 0 0 1 15 14.8H9.3l-4.4 3.8v-3.8A3.6 3.6 0 0 1 1.4 11.2V5.4A3.6 3.6 0 0 1 5 1.8z" {...p} fill="#fff" /><Path d="M5.6 6.6h8.8M5.6 10.2h5.4" {...p} /></>)}
       {name === "camera" && (<><Path d="M4 8.5A2.5 2.5 0 0 1 6.5 6h1.8l1.4-2h4.6l1.4 2h1.8A2.5 2.5 0 0 1 20 8.5v9a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 17.5z" {...p} /><Path d="M12 16.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z" {...p} /></>)}
       {name === "edit" && (<><Path d="M4 20h4l10-10-4-4L4 16z" {...p} /><Path d="M13 7l4 4" {...p} /></>)}
