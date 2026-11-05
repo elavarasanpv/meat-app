@@ -1,11 +1,12 @@
-import { Pressable, ScrollView, View } from "react-native";
+import { Image, Pressable, ScrollView, View } from "react-native";
+const HANDOFF = require("@freshcut/assets/images/doodle-handoff.png");
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AppText } from "@/components/AppText";
 import { Button } from "@/components/Button";
 import { Icon } from "@/components/Icon";
 import { StatusBadge } from "@/components/StatusBadge";
-import { EmptyState, ErrorState, ListSkeleton } from "@/components/States";
+import { ErrorState, ListSkeleton } from "@/components/States";
 import { useOrders } from "@/hooks/useOrders";
 import { usePullRefresh } from "@/hooks/usePullRefresh";
 import { dayLabel, slotWindow } from "@/lib/format";
@@ -24,7 +25,14 @@ export default function OrdersScreen() {
   if (orders.data && orders.data.length === 0) {
     return (
       <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: c.ground }}>
-        <EmptyState title={t("noOrders")} icon="orders" actionLabel={t("browseProducts")} onAction={() => router.push("/(tabs)")} />
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 12, padding: 24 }}>
+          <Image source={HANDOFF} resizeMode="contain" style={{ width: 260, height: 240 }} />
+          <AppText variant="title" numberOfLines={1}>{t("noOrders")}</AppText>
+          <AppText muted numberOfLines={2} style={{ textAlign: "center", maxWidth: 280 }}>{t("noOrdersSub")}</AppText>
+          <View style={{ width: 220, marginTop: 4 }}>
+            <Button label={t("browseProducts")} size="sm" onPress={() => router.push("/(tabs)")} />
+          </View>
+        </View>
       </SafeAreaView>
     );
   }

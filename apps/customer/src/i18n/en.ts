@@ -328,4 +328,6 @@ export const en = {
   cpNotInScope: "None of your items are part of this offer.",
   cpPincode: "This code isn't available in your area.",
   youSave: "You save \u20B9{amt} on this order",
+  helpTagline: "We\u2019re here 7 am \u2013 8 pm, every day",
+  noOrdersSub: "Fresh meat from the shop next door, handed to you at the gate.",
 };

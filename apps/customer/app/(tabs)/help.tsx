@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Linking, Pressable, ScrollView, View } from "react-native";
+import { Image, Linking, Pressable, ScrollView, View } from "react-native";
+const CHEF = require("@freshcut/assets/images/doodle-chef.png");
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { AppText } from "@/components/AppText";
@@ -31,7 +32,13 @@ export default function HelpScreen() {
   return (
     <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: c.ground }}>
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 110, gap: 14 }}>
-        <AppText variant="title">{t("tabHelp")}</AppText>
+        <View style={{ flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", height: 96, marginBottom: -8 }}>
+          <View style={{ paddingBottom: 12 }}>
+            <AppText variant="title">{t("tabHelp")}</AppText>
+            <AppText variant="caption" muted>{t("helpTagline")}</AppText>
+          </View>
+          <Image source={CHEF} resizeMode="contain" style={{ width: 150, height: 100, marginRight: -6 }} />
+        </View>
 
         {(wallet.data?.balance ?? 0) > 0 && (
           <View style={{ backgroundColor: c.tint, borderRadius: radius.input, padding: 14, flexDirection: "row", alignItems: "center", gap: 12 }}>
