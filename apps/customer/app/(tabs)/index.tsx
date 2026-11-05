@@ -12,6 +12,7 @@ import { SearchHint } from "@/components/SearchHint";
 import { SubcategoryCard } from "@/components/SubcategoryCard";
 import { CartBar, CART_BAR_SPACE } from "@/components/CartBar";
 import { ForYou } from "@/components/ForYou";
+import { Doodle } from "@/components/Doodles";
 import { offerTag, useOfferForProduct } from "@/hooks/useOffers";
 import { ErrorState, ProductGridSkeleton, Skeleton } from "@/components/States";
 import { useCategories, useProducts, useSubcategories, type Subcategory } from "@/hooks/useCatalog";
@@ -31,19 +32,22 @@ const GAP = 12;
 /** Home header: warm peach → apricot, light enough for dark text. */
 const HEADER = ["#FFF1E8", "#FFE0CC", "#FBC9A6"] as const;
 
-/** Soft white bubbles and a few sparkles behind the header content. */
+/** Soft white bubbles and faint line doodles (drumstick, leaf, chilli, egg) behind the header content. */
 function HeaderDecor() {
   return (
     <>
       <View pointerEvents="none" style={{ position: "absolute", right: -70, top: -40, width: 230, height: 230, borderRadius: 115, backgroundColor: "rgba(255,255,255,0.45)" }} />
       <View pointerEvents="none" style={{ position: "absolute", left: -50, bottom: -90, width: 170, height: 170, borderRadius: 85, backgroundColor: "rgba(255,255,255,0.35)" }} />
-      {[
-        [230, 62, 12],
-        [300, 94, 8],
-        [150, 108, 7],
-      ].map(([x, y, size], i) => (
-        <View key={i} pointerEvents="none" style={{ position: "absolute", left: x, top: y, opacity: 0.9 }}>
-          <Icon name="sparkle" color="#F7A65E" size={size} />
+      {(
+        [
+          ["drumstick", 214, 58, 22, -18],
+          ["leaf", 296, 100, 16, 24],
+          ["chilli", 150, 112, 15, -30],
+          ["egg", 330, 40, 14, 12],
+        ] as const
+      ).map(([name, x, y, size, rot]) => (
+        <View key={name} pointerEvents="none" style={{ position: "absolute", left: x, top: y, transform: [{ rotate: `${rot}deg` }] }}>
+          <Doodle name={name} size={size} color="#E4461F" strokeWidth={1.6} opacity={0.28} />
         </View>
       ))}
     </>

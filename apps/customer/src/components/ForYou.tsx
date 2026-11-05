@@ -4,6 +4,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import { AppText } from "./AppText";
 import { Icon } from "./Icon";
+import { Doodle, type DoodleName } from "./Doodles";
 import { useSuggestions, type Suggestion } from "@/hooks/useSuggestions";
 import { useLiveOffers, type LiveOffer } from "@/hooks/useOffers";
 import { useRouter } from "expo-router";
@@ -36,7 +37,7 @@ export function ForYou() {
   return (
     <View style={{ gap: 10 }}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 20 }}>
-        <Icon name="sparkle" color={c.primary} size={18} />
+        <Doodle name="drumstick" color={c.primary} size={22} strokeWidth={2} />
         <AppText variant="title">{t("forYou")}</AppText>
       </View>
       <ScrollView
@@ -67,6 +68,8 @@ export function ForYou() {
 }
 
 const KIND_KEY: Record<Suggestion["kind"], TKey> = { habit: "sugHabit", favourite: "sugFav", last: "sugLast", popular: "sugPopular" };
+/** Doodle on each suggestion's label: what the card is about at a glance. */
+const KIND_DOODLE: Record<Suggestion["kind"], DoodleName> = { habit: "bowl", favourite: "drumstick", last: "basket", popular: "leaf" };
 /** Warm card tints per kind, so a row of banners doesn't look like one long strip. */
 const TINT: Record<Suggestion["kind"], [string, string]> = {
   habit: ["#FFE1D3", "#FDEFE6"],
@@ -116,7 +119,7 @@ function Banner({ s, width }: { s: Suggestion; width: number }) {
       <View style={{ flex: 1, padding: 16, paddingRight: imgW - 10, justifyContent: "space-between" }}>
         <View style={{ gap: 4 }}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-            <Icon name="sparkle" color={c.primary} size={11} />
+            <Doodle name={KIND_DOODLE[s.kind]} color={c.primary} size={14} strokeWidth={2} />
             <AppText variant="label" color={c.primary} style={{ fontSize: 10.5, letterSpacing: 0.6, lineHeight: 14 }}>
               {title.toUpperCase()}
             </AppText>
