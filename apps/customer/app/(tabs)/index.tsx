@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useRouter } from "expo-router";
 import { Image, Pressable, ScrollView, View, useWindowDimensions } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AppText } from "@/components/AppText";
 import { Icon } from "@/components/Icon";
@@ -76,67 +77,66 @@ export default function HomeScreen() {
   const sheetProducts = openSub ? (products.data ?? []).filter((p) => p.subcategory_id === openSub.id) : [];
 
   return (
-    <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: c.ground }}>
+    <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: c.primary }}>
       {/* No RefreshControl: on Android its SwipeRefreshLayout steals fast horizontal
           swipes from the nested product/category rows. Queries refetch on focus. */}
       <ScrollView
+        style={{ backgroundColor: c.ground }}
         contentContainerStyle={{ paddingBottom: hasCart ? CART_BAR_SPACE : 24, gap: 8 }}
         stickyHeaderIndices={[1]}
         scrollEventThrottle={16}
         onScroll={(e) => {
           const y = e.nativeEvent.contentOffset.y;
-          // header row is ~66px tall; past it the search bar is pinned → show shadow
-          setScrolled((prev) => (y > 70 ? true : y < 60 ? false : prev));
+          // greeting row is ~74px tall; past it the search block is pinned → add its shadow
+          setScrolled((prev) => (y > 74 ? true : y < 64 ? false : prev));
         }}
       >
-        {/* Header (scrolls away) */}
-        <View style={{ paddingHorizontal: 20, paddingTop: 8 }}>
+        {/* Header (scrolls away): brand-orange block with greeting, address and actions */}
+        <LinearGradient colors={[c.primary, c.primaryPressed]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ paddingHorizontal: 20, paddingTop: 10, paddingBottom: 6, marginBottom: -8 }}>
           <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 10, flex: 1 }}>
-              <View style={{ width: 40, height: 40, borderRadius: 14, backgroundColor: c.primary, alignItems: "center", justifyContent: "center" }}>
-                <Icon name="logo" color="#FFFFFF" size={22} />
+              <View style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: "#FFFFFF", alignItems: "center", justifyContent: "center" }}>
+                <Icon name="logo" color={c.primary} size={22} />
               </View>
-              <View style={{ flex: 1, height: 42, justifyContent: "center" }}>
-                <AppText variant="subtitle" numberOfLines={1}>{t(greetingKey())}</AppText>
+              <View style={{ flex: 1, height: 44, justifyContent: "center" }}>
+                <AppText variant="subtitle" color="#FFFFFF" numberOfLines={1}>{t(greetingKey())}</AppText>
                 <Pressable onPress={openAddress} accessibilityRole="button" accessibilityLabel={t("editAddress")} hitSlop={8} style={{ flexDirection: "row", alignItems: "center", gap: 4, height: 18 }}>
-                  <Icon name="pin" color={c.primary} size={13} strokeWidth={2.4} />
-                  <AppText variant="caption" muted numberOfLines={1} style={{ flexShrink: 1 }}>{addressLine}</AppText>
-                  <Icon name="chevronDown" color={c.muted} size={13} strokeWidth={2.6} />
+                  <Icon name="pin" color="#FFFFFF" size={13} strokeWidth={2.4} />
+                  <AppText variant="caption" color="rgba(255,255,255,0.88)" numberOfLines={1} style={{ flexShrink: 1 }}>{addressLine}</AppText>
+                  <Icon name="chevronDown" color="rgba(255,255,255,0.88)" size={13} strokeWidth={2.6} />
                 </Pressable>
               </View>
             </View>
             <View style={{ flexDirection: "row", gap: 8 }}>
-              <LangToggle />
+              <LangToggle onDark />
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="Notifications"
-                style={{ width: 40, height: 40, borderRadius: 20, borderWidth: 1.5, borderColor: c.border, backgroundColor: c.surface, alignItems: "center", justifyContent: "center" }}
+                style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: "#FFFFFF", alignItems: "center", justifyContent: "center" }}
               >
                 <Icon name="bell" color={c.ink} size={18} />
               </Pressable>
             </View>
           </View>
-        </View>
+        </LinearGradient>
 
-        {/* Search bar — sticky (stickyHeaderIndices), gets a shadow once the page scrolls */}
-        <View
-          style={[
-            { paddingHorizontal: 20, paddingVertical: 10, backgroundColor: c.ground },
-            scrolled && { shadowColor: "#000", shadowOpacity: 0.12, shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, elevation: 6, borderBottomWidth: 1, borderBottomColor: c.border },
-          ]}
-        >
-          <Pressable
-            onPress={() => router.push("/search")}
-            accessibilityRole="search"
-            accessibilityLabel={t("searchPlaceholder")}
-            style={{ flexDirection: "row", alignItems: "center", gap: 10, height: 54, paddingLeft: 18, paddingRight: 7, borderRadius: radius.pill, backgroundColor: c.surface, borderWidth: 1.5, borderColor: c.border }}
-          >
-            <Icon name="search" color={c.muted} size={20} />
-            <SearchHint />
-            <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: c.primary, alignItems: "center", justifyContent: "center" }}>
-              <Icon name="mic" color="#FFFFFF" size={18} />
-            </View>
-          </Pressable>
+        {/* Search block — sticky (stickyHeaderIndices). Same orange as the header so it
+            reads as part of it at rest, and as a compact header once pinned. */}
+        <View style={[{ backgroundColor: c.ground }, scrolled && { shadowColor: "#000", shadowOpacity: 0.14, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 8 }]}>
+          <LinearGradient colors={[c.primary, c.primaryPressed]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ paddingHorizontal: 20, paddingTop: 10, paddingBottom: 16, borderBottomLeftRadius: 26, borderBottomRightRadius: 26 }}>
+            <Pressable
+              onPress={() => router.push("/search")}
+              accessibilityRole="search"
+              accessibilityLabel={t("searchPlaceholder")}
+              style={{ flexDirection: "row", alignItems: "center", gap: 10, height: 54, paddingLeft: 18, paddingRight: 7, borderRadius: radius.pill, backgroundColor: c.surface }}
+            >
+              <Icon name="search" color={c.muted} size={20} />
+              <SearchHint />
+              <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: c.primary, alignItems: "center", justifyContent: "center" }}>
+                <Icon name="mic" color="#FFFFFF" size={18} />
+              </View>
+            </Pressable>
+          </LinearGradient>
         </View>
 
         {/* Category bubbles */}

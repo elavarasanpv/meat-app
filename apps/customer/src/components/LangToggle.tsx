@@ -6,7 +6,7 @@ import { fonts, radius, useTheme } from "@/theme";
  * Pill that switches between English and Tamil. Shows the language you'd switch TO.
  * Fixed width so the header never shifts when the label changes.
  */
-export function LangToggle() {
+export function LangToggle({ onDark = false }: { onDark?: boolean }) {
   const { c } = useTheme();
   const { lang, toggle } = useLang();
   const toTamil = lang === "en";
@@ -20,16 +20,16 @@ export function LangToggle() {
         width: 84,
         height: 40,
         borderRadius: radius.pill,
-        borderWidth: 1.5,
+        borderWidth: onDark ? 0 : 1.5,
         borderColor: c.border,
-        backgroundColor: pressed ? c.surface2 : c.surface,
+        backgroundColor: onDark ? (pressed ? "rgba(255,255,255,0.35)" : "rgba(255,255,255,0.22)") : pressed ? c.surface2 : c.surface,
         alignItems: "center",
         justifyContent: "center",
       })}
     >
       <Text
         numberOfLines={1}
-        style={{ fontFamily: toTamil ? fonts.tamil : fonts.bodyBold, fontSize: 13, lineHeight: 18, color: c.ink, includeFontPadding: false }}
+        style={{ fontFamily: toTamil ? fonts.tamil : fonts.bodyBold, fontSize: 13, lineHeight: 18, color: onDark ? "#FFFFFF" : c.ink, includeFontPadding: false }}
       >
         {toTamil ? "தமிழ்" : "English"}
       </Text>
