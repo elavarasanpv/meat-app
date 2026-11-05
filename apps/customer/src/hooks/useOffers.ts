@@ -42,6 +42,7 @@ export function useLiveOffers() {
     queryKey: ["offers", pincode ?? "any"],
     queryFn: () => api<LiveOffer[]>(`/offers${pincode ? `?pincode=${pincode}` : ""}`),
     staleTime: 60_000,
+    refetchOnMount: "always",
   });
 }
 
@@ -73,5 +74,7 @@ export type Headline = { id: string; title: string; titleTa: string | null; subt
 
 /** The admin's special headline for the home "For you" title, or null to use the daily line. */
 export function useHeadline() {
-  return useQuery({ queryKey: ["headline"], queryFn: () => api<Headline>("/offers/headline"), staleTime: 5 * 60_000 });
+  // Always re-check when the home screen opens: an admin can switch a headline
+  // on at any moment, and a saved copy from yesterday must not hide it.
+  return useQuery({ queryKey: ["headline", "v2"], queryFn: () => api<Headline>("/offers/headline"), staleTime: 60_000, refetchOnMount: "always" });
 }
