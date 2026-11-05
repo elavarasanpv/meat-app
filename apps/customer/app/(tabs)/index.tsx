@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useRouter } from "expo-router";
 import { Image, Pressable, ScrollView, View, useWindowDimensions } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppText } from "@/components/AppText";
 import { Icon } from "@/components/Icon";
 import { LangToggle } from "@/components/LangToggle";
@@ -28,6 +28,27 @@ function greetingKey(): TKey {
 }
 
 const GAP = 12;
+/** Home header: warm peach → apricot, light enough for dark text. */
+const HEADER = ["#FFF1E8", "#FFE0CC", "#FBC9A6"] as const;
+
+/** Soft white bubbles and a few sparkles behind the header content. */
+function HeaderDecor() {
+  return (
+    <>
+      <View pointerEvents="none" style={{ position: "absolute", right: -70, top: -40, width: 230, height: 230, borderRadius: 115, backgroundColor: "rgba(255,255,255,0.45)" }} />
+      <View pointerEvents="none" style={{ position: "absolute", left: -50, bottom: -90, width: 170, height: 170, borderRadius: 85, backgroundColor: "rgba(255,255,255,0.35)" }} />
+      {[
+        [230, 62, 12],
+        [300, 94, 8],
+        [150, 108, 7],
+      ].map(([x, y, size], i) => (
+        <View key={i} pointerEvents="none" style={{ position: "absolute", left: x, top: y, opacity: 0.9 }}>
+          <Icon name="sparkle" color="#F7A65E" size={size} />
+        </View>
+      ))}
+    </>
+  );
+}
 
 /**
  * Price to show on a sub-category card: the "normal" cut (curry cut / with skin)
@@ -61,6 +82,7 @@ export default function HomeScreen() {
   const cst = queryState(categories);
   const [openSub, setOpenSub] = useState<Subcategory | null>(null);
   const [scrolled, setScrolled] = useState(false);
+  const insets = useSafeAreaInsets();
 
   // "All" → a section per category; a category → just that one. A section shows
   // sub-category cards when it has them (chicken), otherwise its products directly.
@@ -77,7 +99,7 @@ export default function HomeScreen() {
   const sheetProducts = openSub ? (products.data ?? []).filter((p) => p.subcategory_id === openSub.id) : [];
 
   return (
-    <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: c.primary }}>
+    <SafeAreaView edges={[]} style={{ flex: 1, backgroundColor: HEADER[0] }}>
       {/* No RefreshControl: on Android its SwipeRefreshLayout steals fast horizontal
           swipes from the nested product/category rows. Queries refetch on focus. */}
       <ScrollView
@@ -88,27 +110,28 @@ export default function HomeScreen() {
         onScroll={(e) => {
           const y = e.nativeEvent.contentOffset.y;
           // greeting row is ~74px tall; past it the search block is pinned → add its shadow
-          setScrolled((prev) => (y > 74 ? true : y < 64 ? false : prev));
+          setScrolled((prev) => (y > insets.top + 74 ? true : y < insets.top + 64 ? false : prev));
         }}
       >
         {/* Header (scrolls away): brand-orange block with greeting, address and actions */}
-        <LinearGradient colors={[c.primary, c.primaryPressed]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ paddingHorizontal: 20, paddingTop: 10, paddingBottom: 6, marginBottom: -8 }}>
+        <LinearGradient colors={[...HEADER]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ paddingHorizontal: 20, paddingTop: insets.top + 10, paddingBottom: 6, marginBottom: -8, overflow: "hidden" }}>
+          <HeaderDecor />
           <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 10, flex: 1 }}>
-              <View style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: "#FFFFFF", alignItems: "center", justifyContent: "center" }}>
-                <Icon name="logo" color={c.primary} size={22} />
+              <View style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: c.primary, alignItems: "center", justifyContent: "center" }}>
+                <Icon name="logo" color="#FFFFFF" size={22} />
               </View>
               <View style={{ flex: 1, height: 44, justifyContent: "center" }}>
-                <AppText variant="subtitle" color="#FFFFFF" numberOfLines={1}>{t(greetingKey())}</AppText>
+                <AppText variant="subtitle" numberOfLines={1}>{t(greetingKey())}</AppText>
                 <Pressable onPress={openAddress} accessibilityRole="button" accessibilityLabel={t("editAddress")} hitSlop={8} style={{ flexDirection: "row", alignItems: "center", gap: 4, height: 18 }}>
-                  <Icon name="pin" color="#FFFFFF" size={13} strokeWidth={2.4} />
-                  <AppText variant="caption" color="rgba(255,255,255,0.88)" numberOfLines={1} style={{ flexShrink: 1 }}>{addressLine}</AppText>
-                  <Icon name="chevronDown" color="rgba(255,255,255,0.88)" size={13} strokeWidth={2.6} />
+                  <Icon name="pin" color={c.primary} size={13} strokeWidth={2.4} />
+                  <AppText variant="caption" muted numberOfLines={1} style={{ flexShrink: 1 }}>{addressLine}</AppText>
+                  <Icon name="chevronDown" color={c.muted} size={13} strokeWidth={2.6} />
                 </Pressable>
               </View>
             </View>
             <View style={{ flexDirection: "row", gap: 8 }}>
-              <LangToggle onDark />
+              <LangToggle />
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="Notifications"
@@ -122,13 +145,14 @@ export default function HomeScreen() {
 
         {/* Search block — sticky (stickyHeaderIndices). Same orange as the header so it
             reads as part of it at rest, and as a compact header once pinned. */}
-        <View style={[{ backgroundColor: c.ground }, scrolled && { shadowColor: "#000", shadowOpacity: 0.14, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 8 }]}>
-          <LinearGradient colors={[c.primary, c.primaryPressed]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ paddingHorizontal: 20, paddingTop: 10, paddingBottom: 16, borderBottomLeftRadius: 26, borderBottomRightRadius: 26 }}>
+        <View style={[{ backgroundColor: HEADER[0], borderBottomLeftRadius: 26, borderBottomRightRadius: 26 }, scrolled && { shadowColor: "#000", shadowOpacity: 0.14, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 8 }]}>
+          <LinearGradient colors={[...HEADER]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ paddingHorizontal: 20, paddingTop: scrolled ? insets.top + 8 : 10, paddingBottom: 16, borderBottomLeftRadius: 26, borderBottomRightRadius: 26, overflow: "hidden" }}>
+            <View pointerEvents="none" style={{ position: "absolute", right: -40, top: -120, width: 220, height: 220, borderRadius: 110, backgroundColor: "rgba(255,255,255,0.35)" }} />
             <Pressable
               onPress={() => router.push("/search")}
               accessibilityRole="search"
               accessibilityLabel={t("searchPlaceholder")}
-              style={{ flexDirection: "row", alignItems: "center", gap: 10, height: 54, paddingLeft: 18, paddingRight: 7, borderRadius: radius.pill, backgroundColor: c.surface }}
+              style={{ flexDirection: "row", alignItems: "center", gap: 10, height: 54, paddingLeft: 18, paddingRight: 7, borderRadius: radius.pill, backgroundColor: c.surface, borderWidth: 1.5, borderColor: "rgba(228,70,31,0.18)" }}
             >
               <Icon name="search" color={c.muted} size={20} />
               <SearchHint />
