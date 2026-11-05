@@ -1,5 +1,5 @@
 import { BadRequestException, Body, Controller, Delete, Get, Headers, Param, Patch, Post, Query } from "@nestjs/common";
-import { adminOfferSchema, ticketResolveSchema, ticketReplySchema, adminInviteSchema, adminProfileSchema, adminCancelSchema, adminCashVerifySchema, adminReassignShopSchema, adminRiderSchema, adminShopSchema } from "@freshcut/shared";
+import { adminHeadlineSchema, adminOfferSchema, ticketResolveSchema, ticketReplySchema, adminInviteSchema, adminProfileSchema, adminCancelSchema, adminCashVerifySchema, adminReassignShopSchema, adminRiderSchema, adminShopSchema } from "@freshcut/shared";
 import type { ZodTypeAny, z } from "zod";
 import { AdminOpsService } from "./admin-ops.service";
 import { AdminAccountService } from "./admin-account.service";
@@ -182,6 +182,39 @@ export class AdminController {
     const a = await this.guard(auth);
     const r = await this.offersSvc.setActive(id, !!body?.active);
     await this.admin.log(a.id, body?.active ? "offer.resume" : "offer.pause", id);
+    return r;
+  }
+
+  // ── home headline ──
+  @Get("headlines")
+  async headlines(@Headers("authorization") auth: string | undefined) {
+    await this.guard(auth);
+    return this.offersSvc.adminHeadlines();
+  }
+
+  @Post("headlines")
+  async headlineCreate(@Headers("authorization") auth: string | undefined, @Body() body: unknown) {
+    const a = await this.guard(auth);
+    const v = parse(adminHeadlineSchema, body);
+    const r = await this.offersSvc.saveHeadline(a.id, v);
+    await this.admin.log(a.id, "headline.create", r.id, { title: v.title });
+    return r;
+  }
+
+  @Patch("headlines/:id")
+  async headlineUpdate(@Headers("authorization") auth: string | undefined, @Param("id") id: string, @Body() body: unknown) {
+    const a = await this.guard(auth);
+    const v = parse(adminHeadlineSchema, body);
+    const r = await this.offersSvc.saveHeadline(a.id, v, id);
+    await this.admin.log(a.id, "headline.update", id, { title: v.title });
+    return r;
+  }
+
+  @Post("headlines/:id/active")
+  async headlineActive(@Headers("authorization") auth: string | undefined, @Param("id") id: string, @Body() body: { active?: boolean }) {
+    const a = await this.guard(auth);
+    const r = await this.offersSvc.setHeadlineActive(id, !!body?.active);
+    await this.admin.log(a.id, body?.active ? "headline.resume" : "headline.pause", id);
     return r;
   }
 

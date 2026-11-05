@@ -88,6 +88,9 @@ export function Offers() {
         }
       />
       <div className="px-4 pt-4 md:px-6">
+        <HeadlineCard />
+      </div>
+      <div className="px-4 pt-4 md:px-6">
         <Segments
           value={filter}
           onChange={setFilter}
@@ -496,6 +499,146 @@ function OfferForm({ offer, kind, onClose }: { offer: Offer | null; kind: "banne
           </Field>
           <Field label="Total uses (optional)" hint="Stops after this many orders">
             <input className={inputCls} inputMode="numeric" value={f.totalLimit} onChange={(e) => set({ totalLimit: num(e.target.value) })} />
+          </Field>
+        </div>
+      </Section>
+    </Drawer>
+  );
+}
+
+// ───────────────────────── home headline ─────────────────────────
+
+type Headline = { id: string; title: string; titleTa: string | null; subtitle: string | null; subtitleTa: string | null; startsAt: string; endsAt: string; isActive: boolean; status: Offer["status"] };
+
+/** The daily lines the customer app rotates by itself when no headline is set (Sunday first). */
+const DAILY = ["Sunday special, machi!", "Fresh week, fresh cuts", "Picked just for you", "Midweek cravings sorted", "Offers you can't miss!", "Friday feast loading…", "Weekend grill goals"];
+
+function HeadlineCard() {
+  const qc = useQueryClient();
+  const q = useQuery<Headline[]>({ queryKey: ["admin", "headlines"], queryFn: () => api("/admin/headlines") });
+  const [editing, setEditing] = useState<Headline | "new" | null>(null);
+  const toggle = useMutation({
+    mutationFn: (h: Headline) => api(`/admin/headlines/${h.id}/active`, { method: "POST", body: { active: !h.isActive } }),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ["admin", "headlines"] }),
+  });
+  const live = q.data?.find((h) => h.status === "live");
+  const today = DAILY[new Date().getDay()];
+
+  return (
+    <section className="card">
+      <div className="flex flex-wrap items-start gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="card-title">Home headline</div>
+          <div className="card-sub">The title above the offers and suggestions on the customer home screen.</div>
+        </div>
+        <Btn kind="primary" onClick={() => setEditing("new")}>
+          <IconPlus size={14} /> Special headline
+        </Btn>
+      </div>
+      <div className="mt-3 flex items-center gap-3 rounded-xl bg-surface-2/70 px-3 py-2.5">
+        <span className="text-[10.5px] font-extrabold uppercase tracking-wide text-muted">Showing now</span>
+        <span className="truncate text-[15px] font-extrabold">{live ? live.title : today}</span>
+        <span className="ml-auto shrink-0">{live ? <Chip tone="ok">Your headline · until {when(live.endsAt)}</Chip> : <Chip tone="mute">Daily line</Chip>}</span>
+      </div>
+      {!!q.data?.length && (
+        <div className="mt-3 divide-y divide-line rounded-xl border border-line">
+          {q.data.map((h) => (
+            <div key={h.id} className="flex flex-wrap items-center gap-2 px-3 py-2 text-[12.5px]">
+              <Chip tone={STATUS[h.status].tone}>{STATUS[h.status].label}</Chip>
+              <span className="min-w-0 flex-1 truncate font-bold">{h.title}</span>
+              <span className="text-[11px] text-muted">
+                {when(h.startsAt)} → {when(h.endsAt)}
+              </span>
+              <Btn onClick={() => setEditing(h)}>
+                <IconEdit size={13} />
+              </Btn>
+              {h.status !== "ended" && (
+                <Btn kind={h.isActive ? "danger" : "ghost"} busy={toggle.isPending && toggle.variables?.id === h.id} onClick={() => toggle.mutate(h)}>
+                  {h.isActive ? "Pause" : "Resume"}
+                </Btn>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+      <div className="mt-2 text-[11px] text-muted">Without a special headline the app shows a different line each day: {DAILY.join(" · ")}</div>
+      {editing && <HeadlineForm h={editing === "new" ? null : editing} onClose={() => setEditing(null)} />}
+    </section>
+  );
+}
+
+function HeadlineForm({ h, onClose }: { h: Headline | null; onClose: () => void }) {
+  const qc = useQueryClient();
+  const now = new Date();
+  const s0 = h ? new Date(h.startsAt) : now;
+  const e0 = h ? new Date(h.endsAt) : new Date(now.getTime() + 86_400_000);
+  const [title, setTitle] = useState(h?.title ?? "");
+  const [titleTa, setTitleTa] = useState(h?.titleTa ?? "");
+  const [subtitle, setSubtitle] = useState(h?.subtitle ?? "");
+  const [subtitleTa, setSubtitleTa] = useState(h?.subtitleTa ?? "");
+  const [sd, setSd] = useState(localDate(s0));
+  const [st, setSt] = useState(localTime(s0));
+  const [ed, setEd] = useState(localDate(e0));
+  const [et, setEt] = useState(localTime(e0));
+  const save = useMutation({
+    mutationFn: () =>
+      api(h ? `/admin/headlines/${h.id}` : "/admin/headlines", {
+        method: h ? "PATCH" : "POST",
+        body: { title: title.trim(), titleTa: titleTa.trim() || null, subtitle: subtitle.trim() || null, subtitleTa: subtitleTa.trim() || null, startsAt: toIso(sd, st), endsAt: toIso(ed, et), isActive: h?.isActive ?? true },
+      }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["admin", "headlines"] });
+      onClose();
+    },
+  });
+  return (
+    <Drawer
+      title={h ? "Edit headline" : "Special headline"}
+      sub="Shown instead of the daily line while it runs."
+      onClose={onClose}
+      footer={
+        <>
+          <Btn onClick={onClose}>Cancel</Btn>
+          <Btn kind="primary" busy={save.isPending} disabled={title.trim().length < 3} onClick={() => save.mutate()}>
+            {h ? "Save" : "Create"}
+          </Btn>
+        </>
+      }
+    >
+      <ErrorBox error={save.error} />
+      <div className="mb-4 rounded-2xl bg-[#FBF7F3] px-4 py-3">
+        <div className="text-[18px] font-extrabold">{title || "New Year special 🎉"}</div>
+        {(subtitle || !title) && <div className="text-[12px] text-muted">{subtitle || "Fresh cuts for the party, delivered before midnight"}</div>}
+      </div>
+      <Section title="Words">
+        <div className="grid gap-3">
+          <Field label="Headline" hint="Up to 60 characters. Emojis are fine.">
+            <input className={inputCls} maxLength={60} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="New Year special 🎉" />
+          </Field>
+          <Field label="Headline in Tamil (optional)">
+            <input className={inputCls} maxLength={80} value={titleTa} onChange={(e) => setTitleTa(e.target.value)} placeholder="புத்தாண்டு ஸ்பெஷல் 🎉" />
+          </Field>
+          <Field label="Small line under it (optional)">
+            <input className={inputCls} maxLength={80} value={subtitle} onChange={(e) => setSubtitle(e.target.value)} placeholder="Fresh cuts for the party, delivered before midnight" />
+          </Field>
+          <Field label="Small line in Tamil (optional)">
+            <input className={inputCls} maxLength={100} value={subtitleTa} onChange={(e) => setSubtitleTa(e.target.value)} />
+          </Field>
+        </div>
+      </Section>
+      <Section title="When">
+        <div className="flex flex-wrap items-end gap-3">
+          <Field label="Starts">
+            <div className="flex gap-2">
+              <input type="date" className={`${inputCls} w-40`} value={sd} onChange={(e) => setSd(e.target.value)} />
+              <TimePicker label="Start time" value={st} onChange={setSt} />
+            </div>
+          </Field>
+          <Field label="Ends">
+            <div className="flex gap-2">
+              <input type="date" className={`${inputCls} w-40`} value={ed} onChange={(e) => setEd(e.target.value)} />
+              <TimePicker label="End time" value={et} onChange={setEt} />
+            </div>
           </Field>
         </div>
       </Section>

@@ -68,3 +68,10 @@ export function useOfferQuote(items: CartItem[], coupon: string | null, pincode?
 }
 
 export const offerTag = (o: Pick<LiveOffer, "discountType" | "discountValue">) => (o.discountType === "percent" ? `${o.discountValue}% OFF` : `₹${o.discountValue} OFF`);
+
+export type Headline = { id: string; title: string; titleTa: string | null; subtitle: string | null; subtitleTa: string | null; endsAt: string } | null;
+
+/** The admin's special headline for the home "For you" title, or null to use the daily line. */
+export function useHeadline() {
+  return useQuery({ queryKey: ["headline"], queryFn: () => api<Headline>("/offers/headline"), staleTime: 5 * 60_000 });
+}

@@ -19,6 +19,13 @@ export class OffersController {
     return this.offers.publicList(user.id, pincode);
   }
 
+  /** GET /offers/headline — the admin's headline for the home "For you" title, or null. */
+  @Get("headline")
+  async headline(@Headers("authorization") auth: string | undefined) {
+    await requireUser(this.supabase, auth);
+    return this.offers.liveHeadline();
+  }
+
   /** POST /offers/quote — best discount for this cart (with an optional coupon). A preview; the order re-checks. */
   @Post("quote")
   async quote(@Headers("authorization") auth: string | undefined, @Body() body: unknown) {

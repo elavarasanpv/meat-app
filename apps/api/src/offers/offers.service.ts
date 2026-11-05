@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
-import type { AdminOfferInput } from "@freshcut/shared";
+import type { AdminHeadlineInput, AdminOfferInput } from "@freshcut/shared";
 import { SupabaseService } from "../supabase.service";
 
 export type OfferRow = {
@@ -244,6 +244,65 @@ export class OffersService {
       if (c.total_limit != null && all >= c.total_limit) ok.delete(c.id);
     }
     return ok;
+  }
+
+  // ───────────────────────── home headline ─────────────────────────
+
+  /** The admin's headline for right now (newest live one), or null to let the app rotate its own. */
+  async liveHeadline() {
+    const now = new Date().toISOString();
+    const { data } = await this.db
+      .from("home_headlines")
+      .select("id, title, title_ta, subtitle, subtitle_ta, ends_at")
+      .eq("is_active", true)
+      .lte("starts_at", now)
+      .gt("ends_at", now)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    return data ? { id: data.id, title: data.title, titleTa: data.title_ta, subtitle: data.subtitle, subtitleTa: data.subtitle_ta, endsAt: data.ends_at } : null;
+  }
+
+  async adminHeadlines() {
+    const { data } = await this.db.from("home_headlines").select("*").order("created_at", { ascending: false }).limit(50);
+    const now = Date.now();
+    return (data ?? []).map((h) => ({
+      id: h.id,
+      title: h.title,
+      titleTa: h.title_ta,
+      subtitle: h.subtitle,
+      subtitleTa: h.subtitle_ta,
+      startsAt: h.starts_at,
+      endsAt: h.ends_at,
+      isActive: h.is_active,
+      status: !h.is_active ? "paused" : now < new Date(h.starts_at).getTime() ? "scheduled" : now >= new Date(h.ends_at).getTime() ? "ended" : "live",
+    }));
+  }
+
+  async saveHeadline(adminId: string, input: AdminHeadlineInput, id?: string) {
+    const row = {
+      title: input.title,
+      title_ta: input.titleTa || null,
+      subtitle: input.subtitle || null,
+      subtitle_ta: input.subtitleTa || null,
+      starts_at: input.startsAt,
+      ends_at: input.endsAt,
+      is_active: input.isActive ?? true,
+    };
+    if (id) {
+      const { error } = await this.db.from("home_headlines").update(row).eq("id", id);
+      if (error) throw new BadRequestException(error.message);
+      return { id };
+    }
+    const { data, error } = await this.db.from("home_headlines").insert({ ...row, created_by: adminId }).select("id").single();
+    if (error) throw new BadRequestException(error.message);
+    return { id: data.id };
+  }
+
+  async setHeadlineActive(id: string, active: boolean) {
+    const { error } = await this.db.from("home_headlines").update({ is_active: active }).eq("id", id);
+    if (error) throw new BadRequestException(error.message);
+    return { id, isActive: active };
   }
 
   // ───────────────────────── admin ─────────────────────────

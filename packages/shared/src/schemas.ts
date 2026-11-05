@@ -293,3 +293,16 @@ export const offerQuoteSchema = z.object({
   pincode: z.string().regex(/^[1-9]\d{5}$/).optional(),
 });
 export type OfferQuoteInput = z.infer<typeof offerQuoteSchema>;
+
+export const adminHeadlineSchema = z
+  .object({
+    title: z.string().trim().min(3).max(60),
+    titleTa: z.string().trim().max(80).optional().nullable(),
+    subtitle: z.string().trim().max(80).optional().nullable(),
+    subtitleTa: z.string().trim().max(100).optional().nullable(),
+    startsAt: z.string().datetime({ offset: true }),
+    endsAt: z.string().datetime({ offset: true }),
+    isActive: z.boolean().optional(),
+  })
+  .refine((v) => new Date(v.endsAt) > new Date(v.startsAt), { path: ["endsAt"], message: "Must end after it starts" });
+export type AdminHeadlineInput = z.infer<typeof adminHeadlineSchema>;

@@ -7,7 +7,7 @@ import { Icon } from "./Icon";
 import { Doodle, type DoodleName } from "./Doodles";
 const FOR_YOU_ICON = require("@freshcut/assets/images/icon-for-you.png");
 import { useSuggestions, type Suggestion } from "@/hooks/useSuggestions";
-import { useLiveOffers, type LiveOffer } from "@/hooks/useOffers";
+import { useHeadline, useLiveOffers, type LiveOffer } from "@/hooks/useOffers";
 import { useRouter } from "expo-router";
 import { suggestionImage } from "@/lib/images";
 import { formatQty, useCart } from "@/store/cart";
@@ -27,6 +27,10 @@ export function ForYou() {
   const t = useT();
   const q = useSuggestions();
   const offers = useLiveOffers();
+  const headline = useHeadline().data;
+  const lang = useLang((x) => x.lang);
+  const headTitle = headline ? (lang === "ta" && headline.titleTa) || headline.title : t(`fy_${new Date().getDay()}` as TKey);
+  const headSub = headline ? (lang === "ta" && headline.subtitleTa) || headline.subtitle : null;
   const { width } = useWindowDimensions();
   const [page, setPage] = useState(0);
   const list = q.data ?? [];
@@ -39,7 +43,10 @@ export function ForYou() {
     <View style={{ gap: 10 }}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 20 }}>
         <Image source={FOR_YOU_ICON} resizeMode="contain" style={{ width: 30, height: 30 }} />
-        <AppText variant="title">{t("forYou")}</AppText>
+        <View style={{ flex: 1 }}>
+          <AppText variant="title" numberOfLines={1}>{headTitle}</AppText>
+          {!!headSub && <AppText variant="caption" muted numberOfLines={1}>{headSub}</AppText>}
+        </View>
       </View>
       <ScrollView
         horizontal
