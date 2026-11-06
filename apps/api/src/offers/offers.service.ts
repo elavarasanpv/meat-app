@@ -397,12 +397,16 @@ export class OffersService {
       offerId = data.id;
     }
     if (input.imageBase64) {
+      // A PNG keeps its transparent edge; anything else is stored as JPEG.
+      const png = /^data:image\/png;base64,/.test(input.imageBase64);
       const body = Buffer.from(input.imageBase64.replace(/^data:image\/\w+;base64,/, ""), "base64");
       if (body.byteLength > 1_200_000) throw new BadRequestException("Image too large");
-      const path = `offers/${offerId}-${Date.now()}.jpg`;
-      const { error } = await db.storage.from("product-images").upload(path, body, { contentType: "image/jpeg", upsert: true });
+      const path = `offers/${offerId}-${Date.now()}.${png ? "png" : "jpg"}`;
+      const { error } = await db.storage.from("product-images").upload(path, body, { contentType: png ? "image/png" : "image/jpeg", upsert: true });
       if (error) throw new BadRequestException(error.message);
       await db.from("offers").update({ image_path: path }).eq("id", offerId!);
+    } else if (input.removeImage && id) {
+      await db.from("offers").update({ image_path: null }).eq("id", id);
     }
     return { id: offerId };
   }

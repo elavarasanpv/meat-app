@@ -2,8 +2,9 @@ import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
 import { PageHeader } from "../shell/Shell";
-import { IconEdit, IconPlus } from "../ui/icons";
+import { IconCheck, IconEdit, IconPlus } from "../ui/icons";
 import { TimePicker } from "../ui/TimePicker";
+import { Check, DatePicker, PhotoPicker, Select } from "../ui/pickers";
 import { Btn, Chip, Drawer, Empty, ErrorBox, Field, Section, Segments, type Tone, inputCls, inr, when } from "../ui/kit";
 
 type Offer = {
@@ -170,6 +171,7 @@ type Form = {
   subtitle: string;
   imageUrl: string | null;
   imageBase64: string | null;
+  imageName: string | null;
   tint: string;
   discountType: "percent" | "flat";
   discountValue: string;
@@ -208,6 +210,7 @@ function fromOffer(o: Offer | null, kind: "banner" | "coupon"): Form {
     titleTa: o?.titleTa ?? "",
     subtitle: o?.subtitle ?? "",
     imageUrl: o?.imageUrl ?? null,
+    imageName: null,
     imageBase64: null,
     tint: o?.tint ?? TINTS[0],
     discountType: o?.discountType ?? "percent",
@@ -253,11 +256,11 @@ function OfferForm({ offer, kind, onClose }: { offer: Offer | null; kind: "banne
     c.width = Math.round(img.width * scale);
     c.height = Math.round(img.height * scale);
     const ctx = c.getContext("2d")!;
-    ctx.fillStyle = "#FFFFFF";
-    ctx.fillRect(0, 0, c.width, c.height);
     ctx.drawImage(img, 0, 0, c.width, c.height);
-    const url = c.toDataURL("image/jpeg", 0.82);
-    set({ imageBase64: url.split(",")[1], imageUrl: url });
+    // PNG keeps the cut-out edge; photos go as JPEG to stay small.
+    const url = file.type === "image/png" ? c.toDataURL("image/png") : c.toDataURL("image/jpeg", 0.82);
+    // the full data URL goes up so the API knows whether it is a PNG
+    set({ imageBase64: url, imageUrl: url, imageName: file.name });
   }
 
   function submit() {
@@ -278,6 +281,7 @@ function OfferForm({ offer, kind, onClose }: { offer: Offer | null; kind: "banne
       titleTa: f.titleTa.trim() || null,
       subtitle: f.subtitle.trim() || null,
       imageBase64: f.imageBase64,
+      removeImage: !!offer?.imageUrl && !f.imageUrl,
       tint: f.tint,
       discountType: f.discountType,
       discountValue: value,
@@ -352,28 +356,34 @@ function OfferForm({ offer, kind, onClose }: { offer: Offer | null; kind: "banne
             <input className={inputCls} value={f.subtitle} onChange={(e) => set({ subtitle: e.target.value })} placeholder="Fresh from shops near you" />
           </Field>
         </div>
-        <div className="mt-3 flex flex-wrap items-end gap-4">
-          <Field label="Photo (transparent PNG works best)">
-            <input type="file" accept="image/png,image/jpeg,image/webp" className="text-[12px]" onChange={(e) => e.target.files?.[0] && void pickImage(e.target.files[0])} />
+        <div className="mt-3 grid gap-3">
+          <Field label="Photo" hint="A transparent PNG works best">
+            <PhotoPicker url={f.imageUrl} name={f.imageName} onPick={(file) => void pickImage(file)} onRemove={() => set({ imageUrl: null, imageBase64: null, imageName: null })} />
           </Field>
-          <div>
-            <div className="text-[11.5px] font-bold text-muted">Card colour</div>
-            <div className="mt-1 flex gap-1.5">
+          <Field label="Card colour">
+            <div className="flex items-center gap-2 py-1">
               {TINTS.map((t) => (
-                <button key={t} onClick={() => set({ tint: t })} aria-label={`Tint ${t}`} className={`h-7 w-7 rounded-full ring-2 ring-offset-2 ${f.tint === t ? "ring-ink" : "ring-transparent"}`} style={{ background: t }} />
+                <button key={t} type="button" onClick={() => set({ tint: t })} aria-label={`Tint ${t}`} aria-pressed={f.tint === t} className={`flex h-7 w-7 items-center justify-center rounded-full text-white transition ring-2 ring-offset-2 ring-offset-ground ${f.tint === t ? "ring-ink" : "ring-transparent hover:ring-line"}`} style={{ background: t }}>
+                  {f.tint === t && <IconCheck size={13} />}
+                </button>
               ))}
             </div>
-          </div>
+          </Field>
         </div>
       </Section>
 
       <Section title="Discount">
         <div className="grid gap-3 sm:grid-cols-3">
           <Field label="Type">
-            <select className={inputCls} value={f.discountType} onChange={(e) => set({ discountType: e.target.value as Form["discountType"] })}>
-              <option value="percent">Percent off</option>
-              <option value="flat">Flat ₹ off</option>
-            </select>
+            <Select
+              label="Discount type"
+              value={f.discountType}
+              onChange={(discountType) => set({ discountType })}
+              options={[
+                { value: "percent", label: "Percent off" },
+                { value: "flat", label: "Flat ₹ off" },
+              ]}
+            />
           </Field>
           <Field label={f.discountType === "percent" ? "Percent" : "Rupees off"}>
             <input className={inputCls} inputMode="decimal" value={f.discountValue} onChange={(e) => set({ discountValue: num(e.target.value) })} placeholder={f.discountType === "percent" ? "20" : "50"} />
@@ -404,25 +414,11 @@ function OfferForm({ offer, kind, onClose }: { offer: Offer | null; kind: "banne
           {(f.scope === "category" || f.scope === "subcategory") && (
             <div className="grid gap-3 sm:grid-cols-2">
               <Field label="Category">
-                <select className={inputCls} value={f.categoryId} onChange={(e) => set({ categoryId: e.target.value, subcategoryId: "" })}>
-                  <option value="">Choose…</option>
-                  {catalog.data?.categories.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
+                <Select label="Category" value={f.categoryId} onChange={(categoryId) => set({ categoryId, subcategoryId: "" })} options={(catalog.data?.categories ?? []).map((c) => ({ value: c.id, label: c.name }))} />
               </Field>
               {f.scope === "subcategory" && (
                 <Field label="Sub-category">
-                  <select className={inputCls} value={f.subcategoryId} onChange={(e) => set({ subcategoryId: e.target.value })}>
-                    <option value="">Choose…</option>
-                    {subs.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.name}
-                      </option>
-                    ))}
-                  </select>
+                  <Select label="Sub-category" value={f.subcategoryId} onChange={(subcategoryId) => set({ subcategoryId })} options={subs.map((x) => ({ value: x.id, label: x.name }))} placeholder={f.categoryId ? "Choose…" : "Pick a category first"} />
                 </Field>
               )}
             </div>
@@ -430,10 +426,9 @@ function OfferForm({ offer, kind, onClose }: { offer: Offer | null; kind: "banne
           {f.scope === "products" && (
             <div className="grid max-h-56 grid-cols-1 gap-1 overflow-y-auto rounded-xl border border-line p-2 sm:grid-cols-2">
               {catalog.data?.products.map((p) => (
-                <label key={p.id} className="flex items-center gap-2 rounded-lg px-2 py-1 text-[12.5px] hover:bg-surface-2">
-                  <input type="checkbox" checked={f.productIds.includes(p.id)} onChange={(e) => set({ productIds: e.target.checked ? [...f.productIds, p.id] : f.productIds.filter((x) => x !== p.id) })} />
-                  <span className="truncate">{p.name}</span>
-                </label>
+                <Check key={p.id} className="rounded-lg px-2 py-1.5 hover:bg-surface-2" checked={f.productIds.includes(p.id)} onChange={(on) => set({ productIds: on ? [...f.productIds, p.id] : f.productIds.filter((x) => x !== p.id) })}>
+                  <span className="block truncate">{p.name}</span>
+                </Check>
               ))}
             </div>
           )}
@@ -442,16 +437,16 @@ function OfferForm({ offer, kind, onClose }: { offer: Offer | null; kind: "banne
       </Section>
 
       <Section title="When">
-        <div className="flex flex-wrap items-end gap-3">
+        <div className="grid gap-3 sm:grid-cols-2">
           <Field label="Starts">
-            <div className="flex gap-2">
-              <input type="date" className={`${inputCls} w-40`} value={f.startDate} onChange={(e) => set({ startDate: e.target.value })} />
+            <div className="flex flex-wrap gap-2">
+              <DatePicker label="Start date" value={f.startDate} onChange={(startDate) => set({ startDate })} />
               <TimePicker label="Start time" value={f.startTime} onChange={(startTime) => set({ startTime })} />
             </div>
           </Field>
           <Field label="Ends">
-            <div className="flex gap-2">
-              <input type="date" className={`${inputCls} w-40`} value={f.endDate} onChange={(e) => set({ endDate: e.target.value })} />
+            <div className="flex flex-wrap gap-2">
+              <DatePicker label="End date" value={f.endDate} min={f.startDate} onChange={(endDate) => set({ endDate })} />
               <TimePicker label="End time" value={f.endTime} onChange={(endTime) => set({ endTime })} />
             </div>
           </Field>
@@ -463,7 +458,8 @@ function OfferForm({ offer, kind, onClose }: { offer: Offer | null; kind: "banne
           {catalog.data?.pincodes.map((p) => {
             const on = f.pincodes.includes(p.pincode);
             return (
-              <button key={p.pincode} onClick={() => set({ pincodes: on ? f.pincodes.filter((x) => x !== p.pincode) : [...f.pincodes, p.pincode] })} className={`rounded-lg border px-2.5 py-1 text-[12px] font-bold ${on ? "border-primary bg-tint text-primary" : "border-line bg-surface text-muted"}`}>
+              <button key={p.pincode} type="button" aria-pressed={on} onClick={() => set({ pincodes: on ? f.pincodes.filter((x) => x !== p.pincode) : [...f.pincodes, p.pincode] })} className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[12px] font-bold transition ${on ? "border-primary bg-tint text-primary" : "border-line bg-surface text-muted hover:border-muted/50 hover:text-ink"}`}>
+                {on && <IconCheck size={12} />}
                 {p.pincode} {p.area && <span className="font-normal">· {p.area}</span>}
               </button>
             );
@@ -473,11 +469,19 @@ function OfferForm({ offer, kind, onClose }: { offer: Offer | null; kind: "banne
       </Section>
 
       <Section title="Who pays for the discount">
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="grid gap-3">
           <Field label="Shop's share %">
-            <input className={`${inputCls} w-24`} inputMode="numeric" value={f.shopSharePct} onChange={(e) => set({ shopSharePct: num(e.target.value).slice(0, 3) })} />
+            <div className="flex items-center gap-3">
+              <div className="flex h-[34px] w-28 shrink-0 items-center overflow-hidden rounded-lg border border-line bg-surface transition focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/15">
+                <input className="h-full w-full min-w-0 bg-transparent px-2.5 text-right text-[13px] font-bold tabular-nums outline-none" inputMode="numeric" value={f.shopSharePct} onChange={(e) => set({ shopSharePct: num(e.target.value).slice(0, 3) })} />
+                <span className="flex h-full items-center border-l border-line bg-surface-2 px-2.5 text-[12.5px] font-extrabold text-ink">%</span>
+              </div>
+              <span className="text-[12px] text-muted">
+                FreshCut covers the other <b className="text-ink">{Math.max(0, 100 - (Number(f.shopSharePct) || 0))}%</b>.
+              </span>
+            </div>
           </Field>
-          <div className="rounded-xl bg-surface-2/70 px-3 py-2 text-[12px] text-muted">
+          <div className="rounded-xl bg-surface-2/70 px-3 py-2 text-[12px] leading-relaxed text-muted">
             {example > 0 ? (
               <>
                 On a ₹1,000 order the customer saves <b className="text-ink">{inr(example)}</b>: the shop gives <b className="text-ink">{inr(shopPart)}</b>, FreshCut gives <b className="text-ink">{inr(example - shopPart)}</b>.
@@ -491,9 +495,9 @@ function OfferForm({ offer, kind, onClose }: { offer: Offer | null; kind: "banne
 
       <Section title="Limits">
         <div className="grid gap-3 sm:grid-cols-3">
-          <label className="flex items-center gap-2 text-[12.5px] sm:col-span-3">
-            <input type="checkbox" checked={f.firstOrderOnly} onChange={(e) => set({ firstOrderOnly: e.target.checked })} /> Only on a customer's first order
-          </label>
+          <Check className="sm:col-span-3" checked={f.firstOrderOnly} onChange={(firstOrderOnly) => set({ firstOrderOnly })}>
+            Only on a customer's first order
+          </Check>
           <Field label="Uses per customer" hint={f.kind === "coupon" ? "Empty = once" : "Empty = unlimited"}>
             <input className={inputCls} inputMode="numeric" value={f.perCustomerLimit} onChange={(e) => set({ perCustomerLimit: num(e.target.value) })} />
           </Field>
@@ -627,16 +631,16 @@ function HeadlineForm({ h, onClose }: { h: Headline | null; onClose: () => void 
         </div>
       </Section>
       <Section title="When">
-        <div className="flex flex-wrap items-end gap-3">
+        <div className="grid gap-3 sm:grid-cols-2">
           <Field label="Starts">
-            <div className="flex gap-2">
-              <input type="date" className={`${inputCls} w-40`} value={sd} onChange={(e) => setSd(e.target.value)} />
+            <div className="flex flex-wrap gap-2">
+              <DatePicker label="Start date" value={sd} onChange={setSd} />
               <TimePicker label="Start time" value={st} onChange={setSt} />
             </div>
           </Field>
           <Field label="Ends">
-            <div className="flex gap-2">
-              <input type="date" className={`${inputCls} w-40`} value={ed} onChange={(e) => setEd(e.target.value)} />
+            <div className="flex flex-wrap gap-2">
+              <DatePicker label="End date" value={ed} min={sd} onChange={setEd} />
               <TimePicker label="End time" value={et} onChange={setEt} />
             </div>
           </Field>

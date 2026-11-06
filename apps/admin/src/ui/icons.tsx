@@ -108,3 +108,12 @@ export const IconChat = ({ size, className }: P) => (
 export const IconTag = ({ size, className }: P) => (
   <svg {...base(size, className)}><path d="M3.5 12.2V4.5a1 1 0 0 1 1-1h7.7l8.3 8.3a1.4 1.4 0 0 1 0 2l-6.2 6.2a1.4 1.4 0 0 1-2 0z" /><circle cx="8" cy="8" r="1.6" /></svg>
 );
+export const IconCalendar = ({ size, className }: P) => (
+  <svg {...base(size, className)}><rect x="3.5" y="5" width="17" height="15.5" rx="3" /><path d="M3.5 10h17M8 3v4M16 3v4" /></svg>
+);
+export const IconImage = ({ size, className }: P) => (
+  <svg {...base(size, className)}><rect x="3.5" y="4" width="17" height="16" rx="3" /><circle cx="9" cy="9.5" r="1.8" /><path d="M20.5 15.5l-4.8-4.8a1.2 1.2 0 0 0-1.7 0L4.5 20" /></svg>
+);
+export const IconChevronLeft = ({ size, className }: P) => (
+  <svg {...base(size, className)}><path d="M15 6l-6 6 6 6" /></svg>
+);

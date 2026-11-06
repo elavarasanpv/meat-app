@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { IconClock } from "./icons";
+import { Popover } from "./Popover";
 
 const HOURS = [12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
 const MINUTES = [0, 15, 30, 45];
@@ -21,32 +22,16 @@ export function formatTime(v: string) {
 /** Time field in FreshCut style: tap to open hours, minutes and am/pm. Value is "HH:MM" 24h. */
 export function TimePicker({ value, onChange, label }: { value: string; onChange: (v: string) => void; label?: string }) {
   const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
+  const ref = useRef<HTMLButtonElement>(null);
   const { h12, m, pm } = split(value);
-
-  useEffect(() => {
-    if (!open) return;
-    const close = (e: MouseEvent) => ref.current && !ref.current.contains(e.target as Node) && setOpen(false);
-    const esc = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        e.stopPropagation();
-        setOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", close);
-    window.addEventListener("keydown", esc, true);
-    return () => {
-      document.removeEventListener("mousedown", close);
-      window.removeEventListener("keydown", esc, true);
-    };
-  }, [open]);
 
   const cell = (on: boolean) =>
     `rounded-lg py-1.5 text-[12.5px] font-bold transition ${on ? "bg-primary text-white shadow-sm shadow-primary/30" : "text-ink hover:bg-tint hover:text-primary"}`;
 
   return (
-    <div ref={ref} className="relative">
+    <>
       <button
+        ref={ref}
         type="button"
         aria-label={label}
         aria-expanded={open}
@@ -56,8 +41,8 @@ export function TimePicker({ value, onChange, label }: { value: string; onChange
         {formatTime(value)}
         <IconClock size={14} className={open ? "text-primary" : "text-muted"} />
       </button>
-      {open && (
-        <div className="absolute left-0 top-full z-50 mt-1.5 w-60 rounded-xl border border-line bg-surface p-3 shadow-xl">
+      <Popover anchor={ref} open={open} onClose={() => setOpen(false)} width={240}>
+        <div>
           <div className="mb-1.5 flex items-center justify-between">
             <span className="text-[10.5px] font-extrabold uppercase tracking-wide text-muted">Hour</span>
             <div className="flex rounded-lg bg-surface-2 p-0.5">
@@ -87,7 +72,7 @@ export function TimePicker({ value, onChange, label }: { value: string; onChange
             Done · {formatTime(value)}
           </button>
         </div>
-      )}
-    </div>
+      </Popover>
+    </>
   );
 }

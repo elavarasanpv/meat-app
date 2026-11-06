@@ -263,6 +263,7 @@ export const adminOfferSchema = z.object({
   titleTa: z.string().trim().max(120).optional().nullable(),
   subtitle: z.string().trim().max(120).optional().nullable(),
   imageBase64: z.string().max(1_500_000).optional().nullable(), // new upload
+  removeImage: z.boolean().optional(), // drop the current photo
   tint: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional().nullable(),
   discountType: z.enum(["percent", "flat"]),
   discountValue: z.number().positive().max(100_000),
