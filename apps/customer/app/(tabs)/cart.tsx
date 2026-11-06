@@ -1,9 +1,10 @@
 import { Image, Pressable, ScrollView, View } from "react-native";
 import { useRouter } from "expo-router";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppText } from "@/components/AppText";
 import { Button } from "@/components/Button";
 import { EmptyBasket } from "@/components/EmptyBasket";
+const PATTERN = require("@freshcut/assets/images/pattern-doodles.png");
 import { BillSummary, useBill } from "@/components/BillSummary";
 import { useHomePincode } from "@/hooks/useOffers";
 import { Icon } from "@/components/Icon";
@@ -22,10 +23,15 @@ export default function CartScreen() {
   const remove = useCart((s) => s.remove);
   const bill = useBill(useHomePincode());
   const { toPay } = bill;
+  const insets = useSafeAreaInsets();
 
   if (items.length === 0) {
     return (
       <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: c.ground }}>
+        {/* faint FreshCut doodle frame around the empty state */}
+        <View pointerEvents="none" style={{ position: "absolute", left: 0, right: 0, top: insets.top, bottom: 0 }}>
+          <Image source={PATTERN} resizeMode="contain" style={{ width: "100%", height: "100%", opacity: 0.3 }} />
+        </View>
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 14, padding: 24 }}>
           <EmptyBasket size={230} />
           <AppText variant="title" numberOfLines={1}>{t("cartEmpty")}</AppText>
