@@ -54,3 +54,18 @@ export const TRANSITION_REQUIREMENTS: Partial<Record<OrderStatus, string[]>> = {
   PICKED_UP: ["label_scan_match"],
   DELIVERED: ["customer_otp", "handover_photo", "payment_captured"],
 };
+
+/** Hours after an order closes (delivered, cancelled, returned) that the customer can still raise help on it. */
+export const SUPPORT_WINDOW_HOURS = 24;
+const CLOSED_STATUSES: OrderStatus[] = ["DELIVERED", "CANCELLED", "RETURNED", "REFUNDED"];
+
+/**
+ * When help on this order stops: SUPPORT_WINDOW_HOURS after it first closed.
+ * null = still open-ended (order in progress, or no close time recorded).
+ */
+export function supportClosesAt(status: string, history: { to_status: string; created_at: string }[]): Date | null {
+  if (!CLOSED_STATUSES.includes(status as OrderStatus)) return null;
+  const times = history.filter((h) => CLOSED_STATUSES.includes(h.to_status as OrderStatus)).map((h) => Date.parse(h.created_at));
+  if (!times.length) return null;
+  return new Date(Math.min(...times) + SUPPORT_WINDOW_HOURS * 3_600_000);
+}

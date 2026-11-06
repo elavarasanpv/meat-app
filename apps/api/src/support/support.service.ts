@@ -1,4 +1,5 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
+import { SUPPORT_WINDOW_HOURS, supportClosesAt } from "@freshcut/shared";
 import { AUTO_CREDIT_COOLDOWN_DAYS, AUTO_CREDIT_MAX, type CreateTicketInput, type TicketResolveInput } from "@freshcut/shared";
 import { SupabaseService } from "../supabase.service";
 import { PushService } from "../push/push.service";
@@ -79,6 +80,11 @@ export class SupportService {
       const { data: o } = await db.from("orders").select("id, customer_id").eq("id", input.orderId).maybeSingle();
       if (!o) throw new NotFoundException("Order not found");
       if (source === "customer" && o.customer_id !== userId) throw new ForbiddenException("Not your order");
+      if (source === "customer") {
+        const { data: full } = await db.from("orders").select("status, order_status_history(to_status, created_at)").eq("id", input.orderId).single();
+        const closes = full ? supportClosesAt(full.status, full.order_status_history ?? []) : null;
+        if (closes && closes.getTime() < Date.now()) throw new BadRequestException(`Help on an order is open for ${SUPPORT_WINDOW_HOURS} hours after it is delivered. Start a general question from the Help tab.`);
+      }
     }
     const { data: t, error } = await db
       .from("tickets")

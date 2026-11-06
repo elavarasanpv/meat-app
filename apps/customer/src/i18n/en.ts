@@ -256,6 +256,8 @@ export const en = {
   myTickets: "My support requests",
   noTickets: "No requests yet. If something's wrong with an order, open it and tap Get help.",
   getHelp: "Get help",
+  helpUntil: "Help on this order is open until {when}",
+  helpClosed: "Help on this order has closed. For anything else, use the Help tab.",
   whatWentWrong: "What went wrong?",
   whichItem: "Which item?",
   wholeOrder: "The whole order",

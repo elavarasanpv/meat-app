@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Linking, Pressable, ScrollView, View, useWindowDimensions } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
-import { ARRIVING_KM, CUSTOMER_CANCELLABLE, ORDER_STATUSES, etaMinutesRange, haversineKm, type OrderStatus } from "@freshcut/shared";
+import { ARRIVING_KM, CUSTOMER_CANCELLABLE, ORDER_STATUSES, etaMinutesRange, haversineKm, supportClosesAt, type OrderStatus } from "@freshcut/shared";
 import { AppText } from "@/components/AppText";
 import { Button } from "@/components/Button";
 import { Icon } from "@/components/Icon";
@@ -87,6 +87,9 @@ export default function OrderDetailScreen() {
   const showTimeline = !!o && !showTracking && !delivered;
   const pickedUpAt = o?.order_status_history.find((h) => h.to_status === "PICKED_UP" || h.to_status === "OUT_FOR_DELIVERY")?.created_at;
   const deliveredAt = o?.order_status_history.find((h) => h.to_status === "DELIVERED")?.created_at;
+  // Help on an order stays open for a day after it closes; after that, general questions go via the Help tab.
+  const helpClosesAt = o ? supportClosesAt(o.status, o.order_status_history) : null;
+  const helpOpen = !helpClosesAt || helpClosesAt.getTime() > Date.now();
   const showOtp = !!o && !arrived && !["DELIVERED", "CANCELLED", "RETURNED", "REFUNDED"].includes(o.status) && !!otp.data;
   const card = { padding: 16, borderRadius: 22, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, gap: 10 } as const;
   const mapH = Math.round(screenH * (arrived ? 0.26 : 0.42));
@@ -312,7 +315,14 @@ export default function OrderDetailScreen() {
 
           {placed === "1" ? <Button label={t("backHome")} variant="outline" icon="home" onPress={() => router.replace("/(tabs)")} /> : null}
 
-          <Button label={t("getHelp")} variant="outline" icon="chat" onPress={() => router.push(`/support/new?orderId=${id}`)} />
+          {helpOpen ? (
+            <View style={{ gap: 6, alignItems: "center" }}>
+              <Button label={t("getHelp")} variant="outline" icon="chat" onPress={() => router.push(`/support/new?orderId=${id}`)} style={{ alignSelf: "stretch" }} />
+              {helpClosesAt ? <AppText variant="caption" muted numberOfLines={1}>{t("helpUntil", { when: dateTime(helpClosesAt.toISOString()) })}</AppText> : null}
+            </View>
+          ) : (
+            <AppText variant="caption" muted style={{ textAlign: "center", lineHeight: 17, paddingHorizontal: 12 }}>{t("helpClosed")}</AppText>
+          )}
 
           {canCancel ? (
             <View style={{ gap: 6, alignItems: "center" }}>
