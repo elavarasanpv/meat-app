@@ -33,7 +33,7 @@ export default function CartScreen() {
           <Image source={PATTERN} resizeMode="contain" style={{ width: "100%", height: "100%", opacity: 0.3 }} />
         </View>
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 14, padding: 24 }}>
-          <EmptyBasket size={230} />
+          <EmptyBasket size={250} />
           <AppText variant="title" numberOfLines={1}>{t("cartEmpty")}</AppText>
           <AppText muted style={{ textAlign: "center", maxWidth: 280, marginTop: -6 }}>{t("cartEmptySub")}</AppText>
           <View style={{ width: 220, marginTop: 4 }}>
