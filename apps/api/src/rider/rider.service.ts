@@ -1,4 +1,4 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import * as bcrypt from "bcryptjs";
 import {
   RIDER_MAX_ACTIVE_ORDERS,
@@ -172,27 +172,17 @@ export class RiderService {
       .in("status", RIDER_ACTIVE);
     if ((active ?? 0) >= RIDER_MAX_ACTIVE_ORDERS) throw new BadRequestException("You already have the maximum orders");
 
-    const { data: claimed, error } = await db
-      .from("orders")
-      .update({ rider_id: rider.id, status: "RIDER_ASSIGNED" })
-      .eq("id", orderId)
-      .eq("status", "PACKED")
-      .is("rider_id", null)
-      .select("id")
-      .maybeSingle();
-    if (error) throw new BadRequestException(error.message);
+    // Claim, status change and history happen together; if another rider got it first, we lose cleanly.
+    let claimed = true;
+    try {
+      await this.orders.transition({ orderId, to: "RIDER_ASSIGNED", actorId: rider.profile_id, note: "Rider accepted", riderId: rider.id });
+    } catch (e) {
+      if (!(e instanceof ConflictException || e instanceof BadRequestException)) throw e;
+      claimed = false; // taken by someone else, or no longer PACKED
+    }
 
-    const outcome = claimed ? "won" : "lost";
-    await db.from("rider_offers").upsert({ order_id: orderId, rider_id: rider.id, outcome }, { onConflict: "order_id,rider_id" });
+    await db.from("rider_offers").upsert({ order_id: orderId, rider_id: rider.id, outcome: claimed ? "won" : "lost" }, { onConflict: "order_id,rider_id" });
     if (!claimed) return { accepted: false, reason: "taken" };
-
-    await db.from("order_status_history").insert({
-      order_id: orderId,
-      from_status: "PACKED",
-      to_status: "RIDER_ASSIGNED",
-      actor_id: rider.profile_id,
-      note: "Rider accepted",
-    });
     return { accepted: true };
   }
 

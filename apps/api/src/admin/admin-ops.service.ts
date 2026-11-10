@@ -181,8 +181,8 @@ export class AdminOpsService {
     const { data: o } = await db.from("orders").select("status, rider_id").eq("id", id).maybeSingle();
     if (!o) throw new NotFoundException("Order not found");
     if (o.status !== "RIDER_ASSIGNED") throw new BadRequestException("Only an order waiting for pickup can be released");
+    // back to PACKED clears the rider in the same step (transition_order)
     await this.orders.transition({ orderId: id, to: "PACKED", actorId: admin.id, note: "Rider released by admin" });
-    await db.from("orders").update({ rider_id: null }).eq("id", id);
     await this.audit.log(admin.id, "order.release_rider", id, { rider: o.rider_id });
     return { released: true };
   }

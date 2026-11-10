@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from "@nestjs/common";
 import { randomInt } from "node:crypto";
 import * as bcrypt from "bcryptjs";
 import { CUSTOMER_CANCELLABLE, canTransition, type CancelOrderInput, type OrderStatus, type PlaceOrderInput } from "@freshcut/shared";
@@ -49,9 +49,9 @@ export class OrdersService {
   }
 
   /**
-   * The single gate for every order status change.
-   * Validates the transition, updates the row, and appends to history.
-   * TODO: wrap in a Postgres function (rpc) for true atomicity.
+   * The single gate for every order status change. Checks the move is allowed,
+   * then transition_order() locks the row, re-checks the status, updates it
+   * and writes history in one step. A concurrent change raises a conflict.
    */
   async transition(params: {
     orderId: string;
@@ -60,15 +60,13 @@ export class OrdersService {
     note?: string;
     lat?: number;
     lng?: number;
+    /** A rider claiming the order: sets rider_id, and fails if another rider got it first. */
+    riderId?: string;
   }) {
-    const { orderId, to, actorId, note, lat, lng } = params;
+    const { orderId, to, actorId, note, lat, lng, riderId } = params;
     const db = this.supabase.admin;
 
-    const { data: order, error } = await db
-      .from("orders")
-      .select("id, status")
-      .eq("id", orderId)
-      .single();
+    const { data: order, error } = await db.from("orders").select("id, status").eq("id", orderId).single();
     if (error || !order) throw new NotFoundException("Order not found");
 
     const from = order.status as OrderStatus;
@@ -76,23 +74,21 @@ export class OrdersService {
       throw new BadRequestException(`Cannot move order from ${from} to ${to}`);
     }
 
-    const { error: updateError } = await db
-      .from("orders")
-      .update({ status: to })
-      .eq("id", orderId)
-      .eq("status", from); // optimistic lock on current status
-    if (updateError) throw new BadRequestException(updateError.message);
-
-    const { error: historyError } = await db.from("order_status_history").insert({
-      order_id: orderId,
-      from_status: from,
-      to_status: to,
-      actor_id: actorId,
-      note,
-      lat,
-      lng,
+    const { error: rpcError } = await db.rpc("transition_order", {
+      p_order: orderId,
+      p_expected: from,
+      p_to: to,
+      p_actor: actorId,
+      p_note: note ?? null,
+      p_lat: lat ?? null,
+      p_lng: lng ?? null,
+      p_rider: riderId ?? null,
     });
-    if (historyError) console.error(`[orders] history insert failed for ${orderId}: ${historyError.message}`);
+    if (rpcError) {
+      if (rpcError.code === "FC409") throw new ConflictException("This order was just updated by someone else. Refresh and try again.");
+      if (rpcError.code === "P0002") throw new NotFoundException("Order not found");
+      throw new BadRequestException(rpcError.message);
+    }
 
     return { orderId, from, to };
   }
