@@ -45,6 +45,15 @@
           "cameraPermission": "FreshCut uses the camera so you can show us a photo of your order when something is wrong.",
           "photosPermission": false
         }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "enableProguardInReleaseBuilds": true,
+            "enableShrinkResourcesInReleaseBuilds": true
+          }
+        }
       ]
     ],
     "experiments": {

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Animated, Easing, Image, Modal, Pressable, ScrollView, View, useWindowDimensions } from "react-native";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
@@ -30,6 +31,7 @@ type Props = {
  */
 export function AddMoreSheet({ orderId, status, visible, onClose }: Props) {
   const { c } = useTheme();
+  const insets = useSafeAreaInsets();
   const t = useT();
   const router = useRouter();
   const localName = useLocalName();
@@ -114,7 +116,7 @@ export function AddMoreSheet({ orderId, status, visible, onClose }: Props) {
             </View>
             <AppText variant="title" style={{ textAlign: "center", fontSize: 20, lineHeight: 26, marginTop: 6 }}>{t("addMoreLate")}</AppText>
             <AppText muted style={{ textAlign: "center", maxWidth: 300 }}>{t("addMoreLateSub")}</AppText>
-            <View style={{ alignSelf: "stretch", marginTop: 12, gap: 8 }}>
+            <View style={{ alignSelf: "stretch", marginTop: 12, gap: 8, paddingBottom: insets.bottom }}>
               {count ? <Button label={t("addToCartInstead")} icon="cart" onPress={toCart} /> : null}
               <Button label={t("close")} variant="outline" onPress={onClose} />
             </View>
@@ -153,7 +155,7 @@ export function AddMoreSheet({ orderId, status, visible, onClose }: Props) {
                 );
               })}
             </ScrollView>
-            <View style={{ padding: 16, paddingTop: 10, backgroundColor: c.surface, borderTopWidth: 1, borderTopColor: c.border, gap: 8 }}>
+            <View style={{ padding: 16, paddingTop: 10, paddingBottom: 12 + insets.bottom, backgroundColor: c.surface, borderTopWidth: 1, borderTopColor: c.border, gap: 8 }}>
               {add.isError && !tooLate ? <AppText variant="caption" color={c.danger} numberOfLines={2}>{(add.error as Error).message}</AppText> : null}
               <Button label={count ? t("addMoreSubmit", { n: count, amt: total }) : t("addMoreEmpty")} onPress={submit} loading={add.isPending} disabled={!count} />
             </View>

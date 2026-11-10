@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Keyboard, Platform, Pressable, TextInput, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import MapView, { PROVIDER_GOOGLE, type Region } from "react-native-maps";
 import * as Location from "expo-location";
 import { AppText } from "@/components/AppText";
@@ -32,6 +32,7 @@ const WEAK_GPS_M = 60;
  */
 export default function SelectLocationScreen() {
   const { c } = useTheme();
+  const insets = useSafeAreaInsets();
   const t = useT();
   const router = useRouter();
   const { id, from } = useLocalSearchParams<{ id?: string; from?: string }>();
@@ -263,7 +264,7 @@ export default function SelectLocationScreen() {
       </View>
 
       {/* What's under the pin + confirm */}
-      <View style={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 20, gap: 12, backgroundColor: c.surface, borderTopWidth: 1, borderTopColor: c.border }}>
+      <View style={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12 + insets.bottom, gap: 12, backgroundColor: c.surface, borderTopWidth: 1, borderTopColor: c.border }}>
         <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 12 }}>
           <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: c.tint, alignItems: "center", justifyContent: "center", marginTop: 2 }}>
             {busy ? <ActivityIndicator size="small" color={c.primary} /> : <Icon name="pin" color={c.primary} size={20} />}

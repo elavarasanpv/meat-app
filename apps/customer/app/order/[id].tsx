@@ -103,7 +103,7 @@ export default function OrderDetailScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: c.ground }}>
       <ScrollView
-        contentContainerStyle={{ paddingBottom: 32 }}
+        contentContainerStyle={{ paddingBottom: 32 + insets.bottom }}
         stickyHeaderIndices={showTracking ? undefined : [0]}
         // No pull on the live map: dragging the map would trigger it. The map screen refreshes itself.
         refreshControl={showTracking ? undefined : refresh}

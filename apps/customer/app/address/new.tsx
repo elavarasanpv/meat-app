@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, TextInput, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppText } from "@/components/AppText";
 import { Button } from "@/components/Button";
 import { Icon } from "@/components/Icon";
@@ -21,6 +21,7 @@ const LABELS: { key: TKey; value: string }[] = [
 
 export default function NewAddressScreen() {
   const { c } = useTheme();
+  const insets = useSafeAreaInsets();
   const t = useT();
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id?: string }>();
@@ -195,7 +196,7 @@ export default function NewAddressScreen() {
           <AppText variant="caption" color={c.danger} numberOfLines={2} style={{ height: 36 }}>{error ?? ""}</AppText>
         </ScrollView>
 
-        <View style={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 20, backgroundColor: c.surface, borderTopWidth: 1, borderTopColor: c.border }}>
+        <View style={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 12 + insets.bottom, backgroundColor: c.surface, borderTopWidth: 1, borderTopColor: c.border }}>
           <Button label={t("saveAddress")} onPress={save} loading={add.isPending || update.isPending} />
         </View>
       </KeyboardAvoidingView>

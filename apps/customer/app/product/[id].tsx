@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Image, Pressable, ScrollView, TextInput, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { AppText } from "@/components/AppText";
 import { Button } from "@/components/Button";
@@ -23,6 +23,7 @@ const SIZES = ["small", "medium", "large"] as const;
 export default function ProductDetailScreen() {
   const { c, productGradient, productBorder } = useTheme();
   const t = useT();
+  const insets = useSafeAreaInsets();
   const localName = useLocalName();
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -219,7 +220,7 @@ export default function ProductDetailScreen() {
       </ScrollView>
 
       {/* Bottom bar */}
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 20, paddingTop: 12, paddingBottom: 20, backgroundColor: c.surface, borderTopWidth: 1, borderTopColor: c.border }}>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 20, paddingTop: 12, paddingBottom: 12 + insets.bottom, backgroundColor: c.surface, borderTopWidth: 1, borderTopColor: c.border }}>
         <View>
           <AppText variant="caption" muted numberOfLines={1}>{t("estTotal")}</AppText>
           <AppText variant="price" color={c.price} numberOfLines={1} style={{ fontSize: 20, lineHeight: 25 }}>₹ {estimate}</AppText>

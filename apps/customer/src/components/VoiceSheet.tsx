@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Animated, Easing, Modal, Pressable, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
@@ -32,6 +33,7 @@ type Phase = "starting" | "listening" | "thinking" | "heard" | "retry" | "nomic"
  */
 export function VoiceSheet({ visible, onClose, onResult }: { visible: boolean; onClose: () => void; onResult: (text: string) => void }) {
   const { c } = useTheme();
+  const insets = useSafeAreaInsets();
   const t = useT();
   const recorder = useAudioRecorder(OPTIONS);
   const state = useAudioRecorderState(recorder, 80);
@@ -178,7 +180,7 @@ export function VoiceSheet({ visible, onClose, onResult }: { visible: boolean; o
     <Modal visible={visible && shown} transparent animationType="fade" onRequestClose={close} statusBarTranslucent>
       <Pressable onPress={close} style={{ flex: 1, backgroundColor: "rgba(28,23,21,0.5)", justifyContent: "flex-end" }}>
         <Pressable onPress={() => {}} style={{ borderTopLeftRadius: 34, borderTopRightRadius: 34, overflow: "hidden" }}>
-          <LinearGradient colors={["#FFE6D8", "#FFF6EF", "#FFFFFF"]} start={{ x: 0, y: 0 }} end={{ x: 0.4, y: 1 }} style={{ paddingTop: 12, paddingBottom: 34, paddingHorizontal: 24, alignItems: "center" }}>
+          <LinearGradient colors={["#FFE6D8", "#FFF6EF", "#FFFFFF"]} start={{ x: 0, y: 0 }} end={{ x: 0.4, y: 1 }} style={{ paddingTop: 12, paddingBottom: 24 + insets.bottom, paddingHorizontal: 24, alignItems: "center" }}>
             <View style={{ width: 40, height: 5, borderRadius: 3, backgroundColor: "rgba(28,23,21,0.14)" }} />
 
             <View style={{ alignSelf: "stretch", flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 14 }}>

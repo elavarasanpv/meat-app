@@ -118,7 +118,7 @@ export default function CartScreen() {
         <BillSummary bill={bill} />
       </ScrollView>
 
-      <View style={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 20, backgroundColor: c.surface, borderTopWidth: 1, borderTopColor: c.border }}>
+      <View style={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 12 + insets.bottom, backgroundColor: c.surface, borderTopWidth: 1, borderTopColor: c.border }}>
         <Button label={`${t("placeOrder")} · ₹ ${toPay}`} onPress={() => router.push("/checkout")} />
       </View>
     </SafeAreaView>

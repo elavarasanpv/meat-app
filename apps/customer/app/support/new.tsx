@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Alert, Pressable, ScrollView, TextInput, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { AppText } from "@/components/AppText";
 import { Button } from "@/components/Button";
@@ -18,6 +18,7 @@ export default function NewTicketScreen() {
   const t = useT();
   const { lang } = useLang();
   const { c } = useTheme();
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const order = useOrder(orderId);
   const create = useCreateTicket();
@@ -66,7 +67,7 @@ export default function NewTicketScreen() {
         <AppText variant="title" style={{ flex: 1 }}>{t("getHelp")}</AppText>
         {order.data && <AppText variant="caption" muted>{order.data.display_id}</AppText>}
       </View>
-      <ScrollView contentContainerStyle={{ padding: 16, paddingTop: 4, gap: 16 }} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={{ padding: 16, paddingTop: 4, gap: 16, paddingBottom: 16 + insets.bottom }} keyboardShouldPersistTaps="handled">
         <View style={{ gap: 8 }}>
           <AppText variant="subtitle">{t("whatWentWrong")}</AppText>
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>

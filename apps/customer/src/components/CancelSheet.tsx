@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Animated, Easing, Modal, Pressable, View } from "react-native";
 import { CANCEL_REASONS, type CancelReason } from "@freshcut/shared";
 import { AppText } from "./AppText";
@@ -17,6 +18,7 @@ type Props = {
 /** Slide-up confirmation with a reason picker; "Keep order" is the easy default. */
 export function CancelSheet({ visible, busy, error, onClose, onConfirm }: Props) {
   const { c } = useTheme();
+  const insets = useSafeAreaInsets();
   const t = useT();
   const [reason, setReason] = useState<CancelReason>("mistake");
   const [mounted, setMounted] = useState(visible);
@@ -38,7 +40,7 @@ export function CancelSheet({ visible, busy, error, onClose, onConfirm }: Props)
       <Animated.View style={{ flex: 1, backgroundColor: "rgba(20,8,4,0.45)", opacity: progress }}>
         <Pressable onPress={busy ? undefined : onClose} style={{ flex: 1 }} accessibilityLabel={t("close")} />
       </Animated.View>
-      <Animated.View style={{ position: "absolute", left: 0, right: 0, bottom: 0, backgroundColor: c.ground, borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 20, paddingBottom: 28, gap: 14, transform: [{ translateY }] }}>
+      <Animated.View style={{ position: "absolute", left: 0, right: 0, bottom: 0, backgroundColor: c.ground, borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 20, paddingBottom: 20 + insets.bottom, gap: 14, transform: [{ translateY }] }}>
         <View style={{ alignSelf: "center", width: 44, height: 5, borderRadius: 3, backgroundColor: c.border }} />
         <AppText variant="title" numberOfLines={1}>{t("cancelTitle")}</AppText>
         <AppText variant="caption" muted numberOfLines={1}>{t("cancelSub")}</AppText>

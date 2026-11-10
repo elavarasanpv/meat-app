@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Animated, Easing, Modal, Pressable, View } from "react-native";
 import { AppText } from "./AppText";
 import { Button } from "./Button";
@@ -27,6 +28,7 @@ type Props = {
  */
 export function ConfirmSheet({ visible, title, message, confirmLabel, cancelLabel, icon = "trash", destructive = true, busy, onConfirm, onClose }: Props) {
   const { c } = useTheme();
+  const insets = useSafeAreaInsets();
   const t = useT();
   const [mounted, setMounted] = useState(visible);
   const progress = useRef(new Animated.Value(0)).current;
@@ -49,7 +51,7 @@ export function ConfirmSheet({ visible, title, message, confirmLabel, cancelLabe
       <Animated.View style={{ flex: 1, backgroundColor: "rgba(20,8,4,0.45)", opacity: progress }}>
         <Pressable onPress={busy ? undefined : onClose} style={{ flex: 1 }} accessibilityLabel={t("close")} />
       </Animated.View>
-      <Animated.View style={{ position: "absolute", left: 0, right: 0, bottom: 0, backgroundColor: c.ground, borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 20, paddingBottom: 28, gap: 14, transform: [{ translateY }] }}>
+      <Animated.View style={{ position: "absolute", left: 0, right: 0, bottom: 0, backgroundColor: c.ground, borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 20, paddingBottom: 20 + insets.bottom, gap: 14, transform: [{ translateY }] }}>
         <View style={{ alignSelf: "center", width: 44, height: 5, borderRadius: 3, backgroundColor: c.border }} />
         <View style={{ flexDirection: "row", alignItems: "center", gap: 14, marginTop: 4 }}>
           <View style={{ width: 52, height: 52, borderRadius: 18, backgroundColor: toneBg, alignItems: "center", justifyContent: "center" }}>

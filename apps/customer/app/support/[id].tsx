@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Image, Pressable, ScrollView, TextInput, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { AppText } from "@/components/AppText";
 import { Button } from "@/components/Button";
@@ -14,6 +14,7 @@ export default function TicketScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const t = useT();
   const { c } = useTheme();
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const ticket = useTicket(id);
   const reply = useReplyTicket(id!);
@@ -42,7 +43,7 @@ export default function TicketScreen() {
         {tk && <AppText variant="caption" style={{ fontWeight: "700", color: tk.status === "resolved" ? "#1E8A4F" : c.muted }}>{t(`ts_${tk.status}` as TKey)}</AppText>}
       </View>
 
-      <ScrollView contentContainerStyle={{ padding: 16, paddingTop: 4, gap: 10 }}>
+      <ScrollView contentContainerStyle={{ padding: 16, paddingTop: 4, gap: 10, paddingBottom: 16 + insets.bottom }}>
         {tk?.creditAmount != null && (
           <View style={{ backgroundColor: "#DDF3E6", borderRadius: radius.input, padding: 12 }}>
             <AppText variant="subtitle" color="#1E8A4F">{t("creditedLine", { amt: tk.creditAmount })}</AppText>

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 import { useRouter } from "expo-router";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppText } from "@/components/AppText";
 import { Button } from "@/components/Button";
 import { ConfirmSheet } from "@/components/ConfirmSheet";
@@ -18,6 +18,7 @@ type Payment = "cod" | "upi_on_delivery";
 
 export default function CheckoutScreen() {
   const { c } = useTheme();
+  const insets = useSafeAreaInsets();
   const t = useT();
   const router = useRouter();
   const items = useCart((s) => s.items);
@@ -237,7 +238,7 @@ export default function CheckoutScreen() {
         <AppText variant="caption" color={c.danger} numberOfLines={3} style={{ minHeight: 18 }}>{error ?? ""}</AppText>
       </ScrollView>
 
-      <View style={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 20, backgroundColor: c.surface, borderTopWidth: 1, borderTopColor: c.border }}>
+      <View style={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 12 + insets.bottom, backgroundColor: c.surface, borderTopWidth: 1, borderTopColor: c.border }}>
         <Button label={`${t("placeOrder")} · ₹ ${toPay}`} onPress={placeOrder} disabled={!canPlace} loading={place.isPending} />
       </View>
 

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Animated, Easing, Modal, Pressable, ScrollView, View, useWindowDimensions } from "react-native";
 import { AppText } from "./AppText";
 import { ProductCard } from "./ProductCard";
@@ -25,6 +26,7 @@ const CLOSE_MS = 220;
  */
 export function ProductSheet({ title, products, onClose, onAdd }: Props) {
   const { c } = useTheme();
+  const insets = useSafeAreaInsets();
   const t = useT();
   const localName = useLocalName();
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
@@ -84,7 +86,7 @@ export function ProductSheet({ title, products, onClose, onAdd }: Props) {
           </Pressable>
         </View>
 
-        <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 32 }}>
+        <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 24 + insets.bottom }}>
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: GAP }}>
             {products.map((p) => (
               <ProductCard

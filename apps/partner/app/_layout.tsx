@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { View } from "react-native";
 import { Stack, usePathname, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -16,7 +16,9 @@ import { useRiderMe } from "@/hooks/useRider";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { useLang, useT } from "@/i18n";
+import { takeFreshLogin } from "@/lib/freshLogin";
 import { Login } from "@/screens/Login";
+import { Welcome } from "@/screens/Welcome";
 import { Btn, Txt, useC } from "@/ui";
 
 // Keep the last good data on screen through blips: a failed refetch keeps
@@ -75,8 +77,29 @@ function RoleGate({ userId }: { userId: string }) {
       return (data?.role as string | undefined) ?? "customer";
     },
   });
+  // Right after signing in, a welcome screen sits over the home tabs while they load.
+  const [welcome, setWelcome] = useState(takeFreshLogin);
   if (!role.data) return <View style={{ flex: 1, backgroundColor: c.ground }} />;
-  return role.data === "rider" ? <RiderGate /> : <DealerGate />;
+  const rider = role.data === "rider";
+  return (
+    <View style={{ flex: 1 }}>
+      {rider ? <RiderGate /> : <DealerGate />}
+      {welcome ? <WelcomeFor rider={rider} onDone={() => setWelcome(false)} /> : null}
+    </View>
+  );
+}
+
+/** The welcome screen with the name from this role's own profile (the other role's call would 403). */
+function WelcomeFor({ rider, onDone }: { rider: boolean; onDone: () => void }) {
+  return rider ? <RiderWelcome onDone={onDone} /> : <DealerWelcome onDone={onDone} />;
+}
+function RiderWelcome({ onDone }: { onDone: () => void }) {
+  const me = useRiderMe();
+  return <Welcome role="rider" name={me.data?.name} ready={!!me.data || me.isError} onDone={onDone} />;
+}
+function DealerWelcome({ onDone }: { onDone: () => void }) {
+  const me = useDealerMe();
+  return <Welcome role="dealer" name={me.data?.shop_name} ready={!!me.data || me.isError} onDone={onDone} />;
 }
 
 function RiderGate() {
