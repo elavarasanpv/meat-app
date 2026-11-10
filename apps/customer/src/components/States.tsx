@@ -1,5 +1,6 @@
-import { useEffect, useRef } from "react";
-import { Animated, View, type ViewStyle } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { Animated, Easing, View, type ViewStyle } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { AppText } from "./AppText";
 import { Button } from "./Button";
 import { Icon, type IconName } from "./Icon";
@@ -7,21 +8,26 @@ import { useIsOffline } from "@/lib/network";
 import { useT } from "@/i18n";
 import { radius, useTheme } from "@/theme";
 
-/** Pulsing placeholder block. Compose several to sketch a screen while it loads. */
+/** Placeholder block with a soft light sweep. Compose several to sketch a screen while it loads. */
 export function Skeleton({ style }: { style?: ViewStyle }) {
   const { c } = useTheme();
-  const pulse = useRef(new Animated.Value(0.5)).current;
+  const [width, setWidth] = useState(0);
+  const sweep = useRef(new Animated.Value(0)).current;
   useEffect(() => {
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulse, { toValue: 1, duration: 700, useNativeDriver: true }),
-        Animated.timing(pulse, { toValue: 0.5, duration: 700, useNativeDriver: true }),
-      ]),
-    );
+    const loop = Animated.loop(Animated.timing(sweep, { toValue: 1, duration: 1300, easing: Easing.inOut(Easing.quad), useNativeDriver: true }));
     loop.start();
     return () => loop.stop();
-  }, []);
-  return <Animated.View style={[{ backgroundColor: c.surface2, borderRadius: 12, opacity: pulse }, style]} />;
+  }, [sweep]);
+  const band = Math.max(80, width * 0.6);
+  return (
+    <View onLayout={(e) => setWidth(e.nativeEvent.layout.width)} style={[{ backgroundColor: c.surface2, borderRadius: 12, overflow: "hidden" }, style]}>
+      {width > 0 && (
+        <Animated.View pointerEvents="none" style={{ position: "absolute", top: 0, bottom: 0, width: band, transform: [{ translateX: sweep.interpolate({ inputRange: [0, 1], outputRange: [-band, width] }) }] }}>
+          <LinearGradient colors={["rgba(255,255,255,0)", "rgba(255,255,255,0.55)", "rgba(255,255,255,0)"]} start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }} style={{ flex: 1 }} />
+        </Animated.View>
+      )}
+    </View>
+  );
 }
 
 /** Two product-card placeholders side by side (matches ProductCard sizing). */

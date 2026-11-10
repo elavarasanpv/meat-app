@@ -7,6 +7,7 @@ import * as Location from "expo-location";
 import { AppText } from "@/components/AppText";
 import { Button } from "@/components/Button";
 import { Icon } from "@/components/Icon";
+import { NotServed } from "@/components/NotServed";
 import { MapTypeToggle } from "@/components/MapTypeToggle";
 import { useAddresses, useServiceablePincodes, useUpdateAddressLocation } from "@/hooks/useOrders";
 import { useT } from "@/i18n";
@@ -154,9 +155,7 @@ export default function SelectLocationScreen() {
       ? { text: t("gpsWeak", { m: accuracy }), color: c.warningText }
       : accuracy != null
         ? { text: t("gpsAccuracy", { m: accuracy }), color: c.successText }
-        : notServed
-          ? { text: t("noDeliverHere"), color: c.danger }
-          : zone
+        : zone
             ? { text: t("pincodeServed", { area: zone.area ?? zone.pincode }), color: c.successText }
             : { text: t("deliverHereSub"), color: c.muted };
 
@@ -276,8 +275,12 @@ export default function SelectLocationScreen() {
             <AppText variant="caption" muted numberOfLines={2}>{place?.subtitle ?? ""}</AppText>
           </View>
         </View>
-        <AppText variant="caption" color={hint.color} numberOfLines={2} style={{ height: 34 }}>{hint.text}</AppText>
-        <Button label={t("confirmLocation")} onPress={confirm} disabled={!center || moving} loading={update.isPending} />
+        {notServed && !busy ? (
+          <NotServed place={place?.title || place?.pincode || ""} compact />
+        ) : (
+          <AppText variant="caption" color={hint.color} numberOfLines={2} style={{ height: 34 }}>{hint.text}</AppText>
+        )}
+        <Button label={t("confirmLocation")} onPress={confirm} disabled={!center || moving || notServed} loading={update.isPending} />
       </View>
     </SafeAreaView>
   );

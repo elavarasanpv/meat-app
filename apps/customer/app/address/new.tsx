@@ -5,6 +5,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { AppText } from "@/components/AppText";
 import { Button } from "@/components/Button";
 import { Icon } from "@/components/Icon";
+import { NotServed } from "@/components/NotServed";
 import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
 import { RURAL_MAP_STYLE } from "@/lib/mapStyle";
 import { usePinDraft, type LatLng } from "@/lib/pin";
@@ -183,10 +184,13 @@ export default function NewAddressScreen() {
               maxLength={6}
               style={[field, { height: 50, letterSpacing: 2, borderColor: notServed ? c.danger : match ? c.success : c.border }]}
             />
-            <AppText variant="caption" color={notServed ? c.danger : c.successText} numberOfLines={1} style={{ height: 18 }}>
-              {notServed ? t("pincodeNotServed", { pin: pincode }) : match ? t("pincodeServed", { area: match.area ?? match.pincode }) : ""}
-            </AppText>
+            {!notServed && (
+              <AppText variant="caption" color={c.successText} numberOfLines={1} style={{ height: 18 }}>
+                {match ? t("pincodeServed", { area: match.area ?? match.pincode }) : ""}
+              </AppText>
+            )}
           </View>
+          {notServed && <NotServed place={pincode} onChange={openPicker} compact />}
 
           <AppText variant="caption" color={c.danger} numberOfLines={2} style={{ height: 36 }}>{error ?? ""}</AppText>
         </ScrollView>
