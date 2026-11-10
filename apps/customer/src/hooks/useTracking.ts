@@ -34,7 +34,9 @@ export function useRiderLocation(orderId: string | undefined, riderId: string | 
 
   useEffect(() => {
     if (!orderId) return;
-    const channel = supabase.channel(`track-${orderId}`);
+    // Unique per screen: supabase-js returns an already-subscribed channel for a repeated name,
+    // and adding listeners to it throws (e.g. the same order opened twice from a notification).
+    const channel = supabase.channel(`track-${orderId}-${Math.random().toString(36).slice(2, 8)}`);
     if (riderId) {
       channel.on(
         "postgres_changes",

@@ -38,11 +38,11 @@ export class OrdersService {
   async getRating(customerId: string, orderId: string) {
     const db = this.supabase.admin;
     const [{ data: r }, { data: items }] = await Promise.all([
-      db.from("order_ratings").select("rider_stars, rider_note, app_stars, app_note, created_at").eq("order_id", orderId).eq("customer_id", customerId).maybeSingle(),
+      db.from("order_ratings").select("rider_stars, rider_note, rider_tags, app_stars, app_note, created_at").eq("order_id", orderId).eq("customer_id", customerId).maybeSingle(),
       db.from("product_ratings").select("order_item_id, stars, note").eq("order_id", orderId).eq("customer_id", customerId),
     ]);
     if (!r) return null;
-    return { rider: r.rider_stars ? { stars: r.rider_stars, note: r.rider_note } : null, app: r.app_stars ? { stars: r.app_stars, note: r.app_note } : null, items: items ?? [], createdAt: r.created_at };
+    return { rider: r.rider_stars ? { stars: r.rider_stars, note: r.rider_note, tags: (r.rider_tags as string[] | null) ?? [] } : null, app: r.app_stars ? { stars: r.app_stars, note: r.app_note } : null, items: items ?? [], createdAt: r.created_at };
   }
 
   /** Rate a delivered order: each item, the rider and the app. Saving again replaces the earlier rating. */
@@ -62,6 +62,7 @@ export class OrdersService {
         rider_id: order.rider_id,
         rider_stars: input.rider?.stars ?? null,
         rider_note: input.rider?.note || null,
+        rider_tags: input.rider?.tags ?? [],
         app_stars: input.app?.stars ?? null,
         app_note: input.app?.note || null,
         updated_at: new Date().toISOString(),

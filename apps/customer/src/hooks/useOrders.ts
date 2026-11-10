@@ -233,7 +233,7 @@ export function useOrderOtp(id: string | undefined) {
 }
 
 // ───────────────────────── ratings ─────────────────────────
-export type OrderRating = { rider: { stars: number; note: string | null } | null; app: { stars: number; note: string | null } | null; items: { order_item_id: string; stars: number; note: string | null }[]; createdAt: string } | null;
+export type OrderRating = { rider: { stars: number; note: string | null; tags: string[] } | null; app: { stars: number; note: string | null } | null; items: { order_item_id: string; stars: number; note: string | null }[]; createdAt: string } | null;
 
 export function useOrderRating(orderId: string | undefined, enabled = true) {
   return useQuery({ queryKey: ["orders", "rating", orderId], enabled: !!orderId && enabled, queryFn: () => api<OrderRating>(`/orders/${orderId}/rating`), staleTime: 5 * 60_000 });
@@ -242,7 +242,7 @@ export function useOrderRating(orderId: string | undefined, enabled = true) {
 export function useRateOrder(orderId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (body: { rider?: { stars: number; note?: string | null } | null; app?: { stars: number; note?: string | null } | null; items: { orderItemId: string; stars: number; note?: string | null }[] }) =>
+    mutationFn: (body: { rider?: { stars: number; note?: string | null; tags?: string[] } | null; app?: { stars: number; note?: string | null } | null; items: { orderItemId: string; stars: number; note?: string | null }[] }) =>
       api<{ ok: true }>(`/orders/${orderId}/rating`, { method: "POST", body }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["orders", "rating", orderId] });

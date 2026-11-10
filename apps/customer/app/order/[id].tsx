@@ -13,7 +13,8 @@ import { CancelSheet } from "@/components/CancelSheet";
 import { DeliveryInfoCard } from "@/components/DeliveryInfoCard";
 import { OrderJourney } from "@/components/OrderJourney";
 import { PlacedFlash } from "@/components/PlacedFlash";
-import { RatingCard } from "@/components/RatingCard";
+import { DeliveredCard } from "@/components/DeliveredCard";
+import { DeliveredHero } from "@/components/DeliveredHero";
 import { TrackingMap } from "@/components/TrackingMap";
 import { useRiderLocation } from "@/hooks/useTracking";
 import { useCancelOrder, useOrder, useOrderOtp, useRiderContact, useRiderQueue } from "@/hooks/useOrders";
@@ -87,7 +88,6 @@ export default function OrderDetailScreen() {
   // The full timeline only matters before dispatch; during delivery the map + ETA say it all.
   const showTimeline = !!o && !showTracking && !delivered;
   const pickedUpAt = o?.order_status_history.find((h) => h.to_status === "PICKED_UP" || h.to_status === "OUT_FOR_DELIVERY")?.created_at;
-  const deliveredAt = o?.order_status_history.find((h) => h.to_status === "DELIVERED")?.created_at;
   // Help on an order stays open for a day after it closes; after that, general questions go via the Help tab.
   const helpClosesAt = o ? supportClosesAt(o.status, o.order_status_history) : null;
   const helpOpen = !helpClosesAt || helpClosesAt.getTime() > Date.now();
@@ -190,6 +190,8 @@ export default function OrderDetailScreen() {
             </View>
             )}
           </>
+        ) : delivered && o ? (
+          <DeliveredHero displayId={o.display_id} placedAt={o.created_at} history={o.order_status_history} slotEnd={o.delivery_slots?.ends_at ?? null} onBack={back} />
         ) : (
           /* Plain header when there is nothing to track yet */
           <SafeAreaView edges={["top"]} style={{ backgroundColor: c.ground }}>
@@ -246,22 +248,10 @@ export default function OrderDetailScreen() {
             </View>
           ) : null}
 
-          {/* Delivered: success card instead of a timeline */}
+          {/* Delivered: quick rating instead of a timeline (the hero above has the times) */}
           {delivered && o ? (
-            <View style={{ padding: 16, borderRadius: 22, backgroundColor: c.successBg, flexDirection: "row", alignItems: "center", gap: 12 }}>
-              <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: c.success, alignItems: "center", justifyContent: "center" }}>
-                <Icon name="home" color="#FFFFFF" size={22} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <AppText variant="subtitle" color={c.successText} numberOfLines={1}>{t("st_DELIVERED")}</AppText>
-                <AppText variant="caption" color={c.successText} numberOfLines={2}>
-                  {deliveredAt ? t("deliveredOn", { when: dateTime(deliveredAt) }) : t("thanksNote")}
-                </AppText>
-              </View>
-            </View>
+            <DeliveredCard orderId={o.id} hasRider={!!o.rider_id} />
           ) : null}
-
-          {delivered && o ? <RatingCard orderId={o.id} items={o.order_items.map((it) => ({ id: it.id, products: it.products }))} hasRider={!!o.rider_id} /> : null}
 
           {/* Delivery + bill: compact card while tracking, full cards otherwise */}
           {o && showTracking ? (
@@ -270,7 +260,7 @@ export default function OrderDetailScreen() {
             </View>
           ) : null}
 
-          {o && !showTracking ? (
+          {o && !showTracking && !delivered ? (
             <View style={card}>
               <AppText variant="subtitle" numberOfLines={1} style={{ height: 24 }}>{t("deliverToLabel")}</AppText>
               {o.delivery_slots ? (
@@ -287,8 +277,23 @@ export default function OrderDetailScreen() {
           ) : null}
 
           {o && !showTracking ? (
-            <View style={card}>
-              <AppText variant="subtitle" numberOfLines={1} style={{ height: 24 }}>{t("bill")}</AppText>
+            <View style={delivered ? { ...card, gap: 8, paddingVertical: 12 } : card}>
+              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12, height: 24 }}>
+                <AppText variant="subtitle" numberOfLines={1}>{t("bill")}</AppText>
+                {delivered && o.delivery_slots ? (
+                  <AppText variant="caption" muted numberOfLines={1}>
+                    {dayLabel(o.delivery_slots.starts_at, { today: t("today"), tomorrow: t("tomorrow") })} · {slotWindow(o.delivery_slots.starts_at, o.delivery_slots.ends_at)}
+                  </AppText>
+                ) : null}
+              </View>
+              {delivered && o.addresses ? (
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: -4 }}>
+                  <Icon name="pin" color={c.muted} size={13} />
+                  <AppText variant="caption" muted numberOfLines={1} style={{ flex: 1 }}>
+                    {o.addresses.label} · {o.addresses.address_text}{o.addresses.landmark ? ` · ${o.addresses.landmark}` : ""}
+                  </AppText>
+                </View>
+              ) : null}
               {o.order_items.map((it) => {
                 const unit = it.products?.unit ?? "kg";
                 const qty = Number(it.actual_kg ?? it.requested_kg);

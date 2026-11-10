@@ -757,14 +757,14 @@ export class AdminOpsService {
     const db = this.db;
     const since = new Date(Date.now() - 30 * 86_400_000).toISOString();
     const [{ data: orderRatings }, { data: products }, { data: stats }, { data: riders }, { data: riderStats }, { data: recentItems }] = await Promise.all([
-      db.from("order_ratings").select("order_id, rider_id, rider_stars, rider_note, app_stars, app_note, created_at, orders(display_id), profiles:customer_id(full_name)").order("created_at", { ascending: false }).limit(500),
+      db.from("order_ratings").select("order_id, rider_id, rider_stars, rider_note, rider_tags, app_stars, app_note, created_at, orders(display_id), profiles:customer_id(full_name)").order("created_at", { ascending: false }).limit(500),
       db.from("products").select("id, name, is_active"),
       db.from("product_stats").select("product_id, avg_stars, rating_count, customers"),
       db.from("delivery_partners").select("id, profiles(full_name)"),
       db.from("rider_stats_public").select("rider_id, avg_stars, rating_count"),
       db.from("product_ratings").select("stars, note, created_at, products(name), orders(display_id)").not("note", "is", null).gte("created_at", since).order("created_at", { ascending: false }).limit(50),
     ]);
-    const all = (orderRatings ?? []) as unknown as { order_id: string; rider_id: string | null; rider_stars: number | null; rider_note: string | null; app_stars: number | null; app_note: string | null; created_at: string; orders: { display_id: string } | null; profiles: { full_name: string | null } | null }[];
+    const all = (orderRatings ?? []) as unknown as { order_id: string; rider_id: string | null; rider_stars: number | null; rider_note: string | null; rider_tags: string[] | null; app_stars: number | null; app_note: string | null; created_at: string; orders: { display_id: string } | null; profiles: { full_name: string | null } | null }[];
     const avg = (xs: number[]) => (xs.length ? Math.round((xs.reduce((a, b) => a + b, 0) / xs.length) * 10) / 10 : null);
     const appStars = all.map((r) => r.app_stars).filter((x): x is number => !!x);
     const riderStars = all.map((r) => r.rider_stars).filter((x): x is number => !!x);
@@ -788,11 +788,13 @@ export class AdminOpsService {
         .sort((a, b) => b.ratings - a.ratings),
       recent: [
         ...all
-          .filter((r) => r.app_note || r.rider_note)
+          .filter((r) => r.app_note || r.rider_note || r.rider_tags?.length)
           .slice(0, 50)
           .flatMap((r) => [
             ...(r.app_note ? [{ kind: "app" as const, stars: r.app_stars!, note: r.app_note, who: r.profiles?.full_name ?? null, order: r.orders?.display_id ?? null, at: r.created_at }] : []),
-            ...(r.rider_note ? [{ kind: "rider" as const, stars: r.rider_stars!, note: r.rider_note, who: r.profiles?.full_name ?? null, order: r.orders?.display_id ?? null, at: r.created_at }] : []),
+            ...(r.rider_note || r.rider_tags?.length
+              ? [{ kind: "rider" as const, stars: r.rider_stars!, note: [r.rider_tags?.length ? `[${r.rider_tags.join(", ")}]` : "", r.rider_note ?? ""].filter(Boolean).join(" "), who: r.profiles?.full_name ?? null, order: r.orders?.display_id ?? null, at: r.created_at }]
+              : []),
           ]),
         ...((recentItems ?? []) as unknown as { stars: number; note: string; created_at: string; products: { name: string } | null; orders: { display_id: string } | null }[]).map((x) => ({ kind: "product" as const, stars: x.stars, note: x.note, who: x.products?.name ?? null, order: x.orders?.display_id ?? null, at: x.created_at })),
       ]
