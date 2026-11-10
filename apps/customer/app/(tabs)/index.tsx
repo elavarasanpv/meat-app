@@ -262,10 +262,6 @@ export default function HomeScreen() {
                           const o = offerFor(item.id);
                           return o ? offerTag(o) : null;
                         })()}
-                        rating={(() => {
-                          const st = stats.data?.get(item.id);
-                          return st ? { avg: st.avg_stars, count: st.rating_count } : null;
-                        })()}
                       />
                     ))}
               </View>

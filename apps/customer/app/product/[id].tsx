@@ -28,7 +28,8 @@ export default function ProductDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const products = useProducts();
   const product = (products.data ?? []).find((p) => p.id === id);
-  const stat = useProductStats().data?.get(id ?? "");
+  const stats = useProductStats();
+  const stat = id ? stats.data?.[id] : undefined;
 
   const inCart = useCart((s) => s.items.find((i) => i.productId === id));
   const upsert = useCart((s) => s.upsert);
@@ -133,7 +134,7 @@ export default function ProductDetailScreen() {
               {stat && (stat.rating_count > 0 || stat.customers > 0) ? (
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                   <RatingBadge avg={stat.avg_stars} count={stat.rating_count} size={12} />
-                  {stat.customers > 0 ? <AppText variant="caption" muted numberOfLines={1}>{t("boughtBy", { n: stat.customers })}</AppText> : null}
+                  {stat.customers > 0 ? <AppText variant="caption" muted numberOfLines={1}>{stat.customers === 1 ? t("boughtByOne") : t("boughtBy", { n: stat.customers })}</AppText> : null}
                 </View>
               ) : null}
             </View>

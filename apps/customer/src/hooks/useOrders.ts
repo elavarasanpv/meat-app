@@ -25,7 +25,7 @@ export type OrderSummary = {
   payment_mode: "cod" | "upi_on_delivery" | "prepaid_upi";
   created_at: string;
   delivery_slots: { starts_at: string; ends_at: string } | null;
-  order_items: { id: string }[];
+  order_items: { id: string; product_id: string; requested_kg: number; size: string | null; unavailable: boolean; products: { name: string; name_ta: string | null; unit: "kg" | "piece"; image_path: string | null; base_price_per_kg: number; is_active: boolean } | null }[];
 };
 
 export type OrderDetail = Omit<OrderSummary, "order_items"> & {
@@ -159,12 +159,13 @@ export function useCancelOrder() {
   });
 }
 
-const SUMMARY = "id,display_id,status,est_amount,final_amount,payment_mode,created_at,delivery_slots(starts_at,ends_at),order_items(id)";
+const SUMMARY = "id,display_id,status,est_amount,final_amount,payment_mode,created_at,delivery_slots(starts_at,ends_at),order_items(id,product_id,requested_kg,size,unavailable,products(name,name_ta,unit,image_path,base_price_per_kg,is_active))";
 
 export function useOrders() {
   const userId = useAuth((s) => s.session?.user.id);
   return useQuery({
-    queryKey: ["orders", userId],
+    // "v2": the summary now embeds products, so copies saved by older builds are skipped
+    queryKey: ["orders", userId, "v2"],
     enabled: !!userId,
     queryFn: async () => {
       const { data, error } = await supabase.from("orders").select(SUMMARY).order("created_at", { ascending: false });
@@ -245,7 +246,7 @@ export function useRateOrder(orderId: string) {
       api<{ ok: true }>(`/orders/${orderId}/rating`, { method: "POST", body }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["orders", "rating", orderId] });
-      void qc.invalidateQueries({ queryKey: ["product_stats"] });
+      void qc.invalidateQueries({ queryKey: ["product_stats"] }); // prefix match covers "v2"
     },
   });
 }
