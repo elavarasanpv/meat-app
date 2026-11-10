@@ -20,6 +20,7 @@
       },
       "permissions": [
         "ACCESS_COARSE_LOCATION",
+        "RECORD_AUDIO",
         "ACCESS_FINE_LOCATION",
         "POST_NOTIFICATIONS",
         "VIBRATE"

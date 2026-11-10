@@ -117,3 +117,6 @@ export const IconImage = ({ size, className }: P) => (
 export const IconChevronLeft = ({ size, className }: P) => (
   <svg {...base(size, className)}><path d="M15 6l-6 6 6 6" /></svg>
 );
+export const IconStar = ({ size, className }: P) => (
+  <svg {...base(size, className)}><path d="M12 3.2l2.7 5.6 6.1.8-4.5 4.3 1.1 6.1L12 17.1 6.6 20l1.1-6.1L3.2 9.6l6.1-.8z" /></svg>
+);

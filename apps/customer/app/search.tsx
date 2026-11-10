@@ -1,12 +1,14 @@
 import { useMemo, useState } from "react";
 import { Image, Pressable, ScrollView, TextInput, View } from "react-native";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AppText } from "@/components/AppText";
 import { CartBar, CART_BAR_SPACE } from "@/components/CartBar";
 import { Icon } from "@/components/Icon";
 import { ErrorState, ListSkeleton } from "@/components/States";
 import { SearchHint } from "@/components/SearchHint";
+import { VoiceSheet } from "@/components/VoiceSheet";
+import { toQuery } from "@/lib/voice";
 import { useCategories, useProducts, useSubcategories, type Product } from "@/hooks/useCatalog";
 import { productImage } from "@/lib/images";
 import { buildTargets, searchProducts, type SearchResult } from "@/lib/search";
@@ -45,7 +47,10 @@ export default function SearchScreen() {
   const products = useProducts();
   const categories = useCategories();
   const subcategories = useSubcategories();
+  const { voice } = useLocalSearchParams<{ voice?: string }>();
   const [query, setQuery] = useState("");
+  const [voiceOpen, setVoiceOpen] = useState(voice === "1");
+  const [heard, setHeard] = useState<{ text: string; query: string } | null>(null);
   const hasCart = useCart((s) => s.items.length > 0);
 
   const targets = useMemo(
@@ -82,7 +87,7 @@ export default function SearchScreen() {
           <TextInput
             value={query}
             onChangeText={setQuery}
-            autoFocus
+            autoFocus={voice !== "1"}
             autoCorrect={false}
             autoComplete="off"
             spellCheck={false}
@@ -95,11 +100,24 @@ export default function SearchScreen() {
               <AppText variant="bodyBold" muted style={{ fontSize: 16 }}>✕</AppText>
             </Pressable>
           ) : null}
+          <Pressable
+            onPress={() => setVoiceOpen(true)}
+            accessibilityRole="button"
+            accessibilityLabel={t("voiceSearch")}
+            style={({ pressed }) => ({ width: 40, height: 40, marginRight: -9, borderRadius: 20, backgroundColor: pressed ? c.primaryPressed : c.primary, alignItems: "center", justifyContent: "center" })}
+          >
+            <Icon name="mic" color="#FFFFFF" size={18} />
+          </Pressable>
         </View>
       </View>
 
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: hasCart ? CART_BAR_SPACE : 20, gap: 10 }} keyboardShouldPersistTaps="handled">
-        {empty ? (
+        {heard && heard.query === query ? (
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8, alignSelf: "flex-start", maxWidth: "100%", paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999, backgroundColor: c.tint }}>
+            <Icon name="mic" color={c.primary} size={14} />
+            <AppText variant="caption" color={c.primary} numberOfLines={2} style={{ flexShrink: 1 }}>{t("voiceHeard", { text: heard.text })}</AppText>
+          </View>
+        ) : empty ? (
           <AppText variant="caption" muted numberOfLines={2}>{t("searchHint")}</AppText>
         ) : null}
         {queryState(products).loading ? <ListSkeleton rows={6} height={78} /> : null}
@@ -124,6 +142,16 @@ export default function SearchScreen() {
       </ScrollView>
 
       <CartBar />
+      <VoiceSheet
+        visible={voiceOpen}
+        onClose={() => setVoiceOpen(false)}
+        onResult={(text) => {
+          const q = toQuery(text);
+          setHeard({ text, query: q });
+          setQuery(q);
+          setVoiceOpen(false);
+        }}
+      />
     </SafeAreaView>
   );
 }

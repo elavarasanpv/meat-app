@@ -13,6 +13,7 @@ import { CancelSheet } from "@/components/CancelSheet";
 import { DeliveryInfoCard } from "@/components/DeliveryInfoCard";
 import { OrderJourney } from "@/components/OrderJourney";
 import { PlacedFlash } from "@/components/PlacedFlash";
+import { RatingCard } from "@/components/RatingCard";
 import { TrackingMap } from "@/components/TrackingMap";
 import { useRiderLocation } from "@/hooks/useTracking";
 import { useCancelOrder, useOrder, useOrderOtp, useRiderContact, useRiderQueue } from "@/hooks/useOrders";
@@ -259,6 +260,8 @@ export default function OrderDetailScreen() {
               </View>
             </View>
           ) : null}
+
+          {delivered && o ? <RatingCard orderId={o.id} items={o.order_items.map((it) => ({ id: it.id, products: it.products }))} hasRider={!!o.rider_id} /> : null}
 
           {/* Delivery + bill: compact card while tracking, full cards otherwise */}
           {o && showTracking ? (

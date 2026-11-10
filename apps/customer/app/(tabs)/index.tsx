@@ -15,7 +15,7 @@ import { ForYou } from "@/components/ForYou";
 const INGREDIENTS = require("@freshcut/assets/images/doodle-ingredients.png");
 import { offerTag, useOfferForProduct } from "@/hooks/useOffers";
 import { ErrorState, ProductGridSkeleton, Skeleton } from "@/components/States";
-import { useCategories, useProducts, useSubcategories, type Subcategory } from "@/hooks/useCatalog";
+import { byPopularity, useCategories, useProductStats, useProducts, useSubcategories, type Subcategory } from "@/hooks/useCatalog";
 import { useAddresses } from "@/hooks/useOrders";
 import { useCart } from "@/store/cart";
 import { categoryImage, productImage, subcategoryImage } from "@/lib/images";
@@ -73,6 +73,7 @@ export default function HomeScreen() {
   const categories = useCategories();
   const subcategories = useSubcategories();
   const products = useProducts(); // all products once; grouped below
+  const stats = useProductStats(); // stars + how many customers bought each; most-bought first
   const pst = queryState(products);
   const cst = queryState(categories);
   const [openSub, setOpenSub] = useState<Subcategory | null>(null);
@@ -87,11 +88,11 @@ export default function HomeScreen() {
       id: cat.id,
       name: localName(cat),
       subs: (subcategories.data ?? []).filter((su) => su.category_id === cat.id),
-      items: (products.data ?? []).filter((p) => p.category_id === cat.id),
+      items: byPopularity((products.data ?? []).filter((p) => p.category_id === cat.id), stats.data),
     }))
     .filter((s) => s.subs.length > 0 || s.items.length > 0);
 
-  const sheetProducts = openSub ? (products.data ?? []).filter((p) => p.subcategory_id === openSub.id) : [];
+  const sheetProducts = openSub ? byPopularity((products.data ?? []).filter((p) => p.subcategory_id === openSub.id), stats.data) : [];
 
   return (
     <SafeAreaView edges={[]} style={{ flex: 1, backgroundColor: HEADER[0] }}>
@@ -151,9 +152,15 @@ export default function HomeScreen() {
             >
               <Icon name="search" color={c.muted} size={20} />
               <SearchHint />
-              <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: c.primary, alignItems: "center", justifyContent: "center" }}>
+              <Pressable
+                onPress={() => router.push("/search?voice=1")}
+                hitSlop={6}
+                accessibilityRole="button"
+                accessibilityLabel={t("voiceSearch")}
+                style={({ pressed }) => ({ width: 40, height: 40, borderRadius: 20, backgroundColor: pressed ? c.primaryPressed : c.primary, alignItems: "center", justifyContent: "center" })}
+              >
                 <Icon name="mic" color="#FFFFFF" size={18} />
-              </View>
+              </Pressable>
             </Pressable>
           </LinearGradient>
         </View>
@@ -254,6 +261,10 @@ export default function HomeScreen() {
                         offerTag={(() => {
                           const o = offerFor(item.id);
                           return o ? offerTag(o) : null;
+                        })()}
+                        rating={(() => {
+                          const st = stats.data?.get(item.id);
+                          return st ? { avg: st.avg_stars, count: st.rating_count } : null;
                         })()}
                       />
                     ))}

@@ -7,7 +7,8 @@ import { AppText } from "@/components/AppText";
 import { Button } from "@/components/Button";
 import { Icon } from "@/components/Icon";
 import { ErrorState, Skeleton } from "@/components/States";
-import { useProducts } from "@/hooks/useCatalog";
+import { useProductStats, useProducts } from "@/hooks/useCatalog";
+import { RatingBadge } from "@/components/Stars";
 import { productImage } from "@/lib/images";
 import * as Haptics from "expo-haptics";
 import { useCart } from "@/store/cart";
@@ -27,6 +28,7 @@ export default function ProductDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const products = useProducts();
   const product = (products.data ?? []).find((p) => p.id === id);
+  const stat = useProductStats().data?.get(id ?? "");
 
   const inCart = useCart((s) => s.items.find((i) => i.productId === id));
   const upsert = useCart((s) => s.upsert);
@@ -124,9 +126,17 @@ export default function ProductDetailScreen() {
         <View style={{ paddingHorizontal: 20, gap: 16 }}>
           {/* Name + price */}
           <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
-            <AppText variant="title" numberOfLines={2} style={{ flex: 1, fontSize: 20, lineHeight: 26, height: 52 }}>
-              {localName(product)}
-            </AppText>
+            <View style={{ flex: 1, gap: 4 }}>
+              <AppText variant="title" numberOfLines={2} style={{ fontSize: 20, lineHeight: 26, height: 52 }}>
+                {localName(product)}
+              </AppText>
+              {stat && (stat.rating_count > 0 || stat.customers > 0) ? (
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                  <RatingBadge avg={stat.avg_stars} count={stat.rating_count} size={12} />
+                  {stat.customers > 0 ? <AppText variant="caption" muted numberOfLines={1}>{t("boughtBy", { n: stat.customers })}</AppText> : null}
+                </View>
+              ) : null}
+            </View>
             <View style={{ alignItems: "flex-end" }}>
               <AppText variant="price" color={c.price} style={{ fontSize: 20, lineHeight: 24 }}>₹ {price}</AppText>
               <AppText variant="caption" muted>{t(isKg ? "perKg" : "perPiece")}</AppText>

@@ -255,6 +255,16 @@ export const AUTO_CREDIT_MAX = 100;
 /** …but only once per customer per this many days. */
 export const AUTO_CREDIT_COOLDOWN_DAYS = 7;
 
+// ───────────────────────── ratings ─────────────────────────
+const stars = z.number().int().min(1).max(5);
+const note = z.string().trim().max(300).optional().nullable();
+export const rateOrderSchema = z.object({
+  rider: z.object({ stars, note }).optional().nullable(),
+  app: z.object({ stars, note }).optional().nullable(),
+  items: z.array(z.object({ orderItemId: z.string().uuid(), stars, note })).max(30),
+});
+export type RateOrderInput = z.infer<typeof rateOrderSchema>;
+
 // ───────────────────────── offers ─────────────────────────
 export const adminOfferSchema = z.object({
   kind: z.enum(["banner", "coupon"]),

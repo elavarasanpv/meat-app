@@ -3,6 +3,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import Svg, { Defs, Ellipse, RadialGradient, Stop } from "react-native-svg";
 import { AppText } from "./AppText";
 import { Icon } from "./Icon";
+import { RatingBadge } from "./Stars";
 import { radius, useTheme } from "@/theme";
 import { useT } from "@/i18n";
 
@@ -19,6 +20,8 @@ type Props = {
   width: number;
   /** e.g. "20% OFF" when a live offer covers this product. */
   offerTag?: string | null;
+  /** Average stars and how many rated; hidden until the first rating. */
+  rating?: { avg: number | null; count: number } | null;
 };
 
 const PAD = 12;
@@ -27,7 +30,7 @@ const PAD = 12;
  * Product card: white melting into a soft ember glow, dark text, ember "Add".
  * The cut-out is the hero and bleeds to the card edges.
  */
-export function ProductCard({ name, pricePerKg, unit = "kg", image, onAdd, onPress, width, offerTag }: Props) {
+export function ProductCard({ name, pricePerKg, unit = "kg", image, onAdd, onPress, width, offerTag, rating }: Props) {
   const { c, productGradient, productBorder } = useTheme();
   const t = useT();
   const height = Math.round(width * 1.3);
@@ -45,6 +48,11 @@ export function ProductCard({ name, pricePerKg, unit = "kg", image, onAdd, onPre
         <AppText variant="title" style={{ fontSize: 15, lineHeight: 19, height: 38, paddingRight: offerTag ? 62 : 0 }} numberOfLines={2}>
           {name}
         </AppText>
+        {rating && rating.count > 0 ? (
+          <View style={{ position: "absolute", left: PAD, bottom: 52, paddingHorizontal: 7, paddingVertical: 3, borderRadius: 999, backgroundColor: "rgba(255,255,255,0.85)" }}>
+            <RatingBadge avg={rating.avg} count={rating.count} size={11} />
+          </View>
+        ) : null}
 
         {/* Image band: bleeds to the card edges, whole cut-out, soft shadow pool beneath */}
         <View style={{ flex: 1, marginHorizontal: -PAD, alignItems: "center", justifyContent: "flex-end" }}>

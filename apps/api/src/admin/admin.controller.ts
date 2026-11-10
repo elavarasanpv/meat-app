@@ -31,6 +31,13 @@ export class AdminController {
     return this.admin.dashboard();
   }
 
+  /** GET /admin/ratings — stars for the app, riders and products, plus written feedback. */
+  @Get("ratings")
+  async ratings(@Headers("authorization") auth: string | undefined) {
+    await this.guard(auth);
+    return this.ops.ratings();
+  }
+
   /** GET /admin/me — 200 with the admin's identity, or 403 for everyone else. */
   @Get("me")
   async me(@Headers("authorization") auth: string | undefined) {

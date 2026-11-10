@@ -1,6 +1,6 @@
 import { BadRequestException, Body, Controller, ForbiddenException, Get, Headers, Param, Post } from "@nestjs/common";
 import { z } from "zod";
-import { cancelOrderSchema, orderStatusSchema, placeOrderSchema, upcomingSlots } from "@freshcut/shared";
+import { cancelOrderSchema, orderStatusSchema, placeOrderSchema, upcomingSlots, rateOrderSchema } from "@freshcut/shared";
 import { OrdersService } from "./orders.service";
 import { SuggestionsService } from "./suggestions.service";
 import { OffersService } from "../offers/offers.service";
@@ -99,6 +99,20 @@ export class OrdersController {
     const { data: rider } = await db.from("delivery_partners").select("vehicle, profiles(full_name, phone)").eq("id", order.rider_id).maybeSingle();
     const p = rider?.profiles as unknown as { full_name: string | null; phone: string | null } | null;
     return { name: p?.full_name ?? null, phone: p?.phone ? `+${p.phone}` : null, vehicle: rider?.vehicle ?? null };
+  }
+
+  /** GET /orders/:id/rating — what this customer rated, or null. */
+  @Get(":id/rating")
+  async rating(@Headers("authorization") auth: string | undefined, @Param("id") id: string) {
+    const user = await requireUser(this.supabase, auth);
+    return this.orders.getRating(user.id, id);
+  }
+
+  /** POST /orders/:id/rating — rate the items, the rider and the app on a delivered order. */
+  @Post(":id/rating")
+  async rate(@Headers("authorization") auth: string | undefined, @Param("id") id: string, @Body() body: unknown) {
+    const user = await requireUser(this.supabase, auth);
+    return this.orders.rateOrder(user.id, id, parse(rateOrderSchema, body));
   }
 
   /** POST /orders/:id/cancel — customer cancels their own order (only until the shop accepts). */

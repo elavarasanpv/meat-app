@@ -1,7 +1,7 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from "@nestjs/common";
 import { randomInt } from "node:crypto";
 import * as bcrypt from "bcryptjs";
-import { CUSTOMER_CANCELLABLE, canTransition, type CancelOrderInput, type OrderStatus, type PlaceOrderInput } from "@freshcut/shared";
+import { CUSTOMER_CANCELLABLE, canTransition, type CancelOrderInput, type OrderStatus, type PlaceOrderInput, type RateOrderInput } from "@freshcut/shared";
 import { SupabaseService } from "../supabase.service";
 
 @Injectable()
@@ -32,6 +32,49 @@ export class OrdersService {
     }
     const row = (Array.isArray(data) ? data[0] : data) as { order_id: string; display_id: string; est_amount: number };
     return { orderId: row.order_id, displayId: row.display_id, estAmount: Number(row.est_amount), otp };
+  }
+
+  /** What the customer rated on this order, or null. */
+  async getRating(customerId: string, orderId: string) {
+    const db = this.supabase.admin;
+    const [{ data: r }, { data: items }] = await Promise.all([
+      db.from("order_ratings").select("rider_stars, rider_note, app_stars, app_note, created_at").eq("order_id", orderId).eq("customer_id", customerId).maybeSingle(),
+      db.from("product_ratings").select("order_item_id, stars, note").eq("order_id", orderId).eq("customer_id", customerId),
+    ]);
+    if (!r) return null;
+    return { rider: r.rider_stars ? { stars: r.rider_stars, note: r.rider_note } : null, app: r.app_stars ? { stars: r.app_stars, note: r.app_note } : null, items: items ?? [], createdAt: r.created_at };
+  }
+
+  /** Rate a delivered order: each item, the rider and the app. Saving again replaces the earlier rating. */
+  async rateOrder(customerId: string, orderId: string, input: RateOrderInput) {
+    const db = this.supabase.admin;
+    const { data: order } = await db.from("orders").select("id, status, customer_id, rider_id, order_items(id, product_id)").eq("id", orderId).maybeSingle();
+    if (!order || order.customer_id !== customerId) throw new NotFoundException("Order not found");
+    if (order.status !== "DELIVERED") throw new BadRequestException("You can rate an order once it is delivered");
+    const items = (order.order_items as { id: string; product_id: string }[]) ?? [];
+    const byItem = new Map(items.map((i) => [i.id, i.product_id]));
+    for (const it of input.items) if (!byItem.has(it.orderItemId)) throw new BadRequestException("That item is not on this order");
+
+    const { error } = await db.from("order_ratings").upsert(
+      {
+        order_id: orderId,
+        customer_id: customerId,
+        rider_id: order.rider_id,
+        rider_stars: input.rider?.stars ?? null,
+        rider_note: input.rider?.note || null,
+        app_stars: input.app?.stars ?? null,
+        app_note: input.app?.note || null,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "order_id" },
+    );
+    if (error) throw new BadRequestException(error.message);
+    if (input.items.length) {
+      const rows = input.items.map((it) => ({ order_item_id: it.orderItemId, order_id: orderId, product_id: byItem.get(it.orderItemId)!, customer_id: customerId, stars: it.stars, note: it.note || null }));
+      const { error: e2 } = await db.from("product_ratings").upsert(rows, { onConflict: "order_item_id" });
+      if (e2) throw new BadRequestException(e2.message);
+    }
+    return { ok: true };
   }
 
   /** Customer-initiated cancel: must own the order and it must not be accepted yet. */
