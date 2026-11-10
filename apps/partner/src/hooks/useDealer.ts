@@ -28,6 +28,8 @@ export type DealerOrder = {
   /** Set once a rider has accepted the pickup. */
   rider: RiderInfo | null;
   ready_by: string | null;
+  /** Customer added items after placing (null when the order is as placed). */
+  items_added_at: string | null;
   accept_deadline: string | null;
   created_at: string;
   delivery_slots: { starts_at: string; ends_at: string } | null;

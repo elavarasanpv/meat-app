@@ -1,6 +1,6 @@
 import { BadRequestException, Body, Controller, ForbiddenException, Get, Headers, Param, Post } from "@nestjs/common";
 import { z } from "zod";
-import { cancelOrderSchema, orderStatusSchema, placeOrderSchema, upcomingSlots, rateOrderSchema } from "@freshcut/shared";
+import { addOrderItemsSchema, cancelOrderSchema, orderStatusSchema, placeOrderSchema, upcomingSlots, rateOrderSchema } from "@freshcut/shared";
 import { OrdersService } from "./orders.service";
 import { SuggestionsService } from "./suggestions.service";
 import { OffersService } from "../offers/offers.service";
@@ -113,6 +113,13 @@ export class OrdersController {
   async rate(@Headers("authorization") auth: string | undefined, @Param("id") id: string, @Body() body: unknown) {
     const user = await requireUser(this.supabase, auth);
     return this.orders.rateOrder(user.id, id, parse(rateOrderSchema, body));
+  }
+
+  /** POST /orders/:id/items — add to an order the customer just placed; 409 once the shop has accepted. */
+  @Post(":id/items")
+  async addItems(@Headers("authorization") auth: string | undefined, @Param("id") id: string, @Body() body: unknown) {
+    const user = await requireUser(this.supabase, auth);
+    return this.orders.addItems(user.id, id, parse(addOrderItemsSchema, body));
   }
 
   /** POST /orders/:id/cancel — customer cancels their own order (only until the shop accepts). */

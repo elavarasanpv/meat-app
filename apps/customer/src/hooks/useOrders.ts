@@ -150,6 +150,16 @@ export function usePlaceOrder() {
   });
 }
 
+/** Add items to an order already placed; the server refuses (409) once the shop has accepted. */
+export function useAddOrderItems(orderId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { items: { productId: string; qty: number; size?: "small" | "medium" | "large" }[] }) =>
+      api<{ orderId: string; estAmount: number }>(`/orders/${orderId}/items`, { method: "POST", body }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["orders"] }),
+  });
+}
+
 export function useCancelOrder() {
   const qc = useQueryClient();
   return useMutation({

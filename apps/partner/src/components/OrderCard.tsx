@@ -100,6 +100,12 @@ export function OrderCard({ o, compact }: { o: DealerOrder; compact?: boolean })
         {isNew && o.accept_deadline ? <Countdown deadline={o.accept_deadline} /> : <StagePill status={o.status} />}
       </View>
 
+      {o.items_added_at ? (
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 6, alignSelf: "flex-start", paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999, backgroundColor: c.infoBg }}>
+          <Icon name="bell" color={c.info} size={13} />
+          <Txt bold size={12} color={c.info}>{t("customerAdded")} · {clock(o.items_added_at)}</Txt>
+        </View>
+      ) : null}
       <View style={{ gap: 8, borderTopWidth: 1, borderTopColor: c.border, paddingTop: 10 }}>
         {compact ? null : items.map((it) => <ItemRow key={it.id} it={it} />)}
         <View style={{ flexDirection: "row", justifyContent: "space-between" }}>

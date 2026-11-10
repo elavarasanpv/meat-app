@@ -29,6 +29,11 @@ export const placeOrderSchema = z.object({
   couponCode: z.string().trim().toUpperCase().regex(/^[A-Z0-9]{3,20}$/).optional(),
 });
 
+/** Items the customer adds to an order they already placed (allowed until the shop accepts). */
+export const addOrderItemsSchema = z.object({
+  items: z.array(orderItemInputSchema).min(1).max(10),
+});
+
 export const addressInputSchema = z.object({
   label: z.string().min(1).max(30),
   addressText: z.string().min(5).max(300),
@@ -160,6 +165,7 @@ export const cancelOrderSchema = z.object({
 export type OrderItemInput = z.infer<typeof orderItemInputSchema>;
 export type DeliverySlotInput = z.infer<typeof deliverySlotSchema>;
 export type PlaceOrderInput = z.infer<typeof placeOrderSchema>;
+export type AddOrderItemsInput = z.infer<typeof addOrderItemsSchema>;
 export type AddressInput = z.infer<typeof addressInputSchema>;
 export type RiderLocationInput = z.infer<typeof riderLocationSchema>;
 export type RiderPickupInput = z.infer<typeof riderPickupSchema>;

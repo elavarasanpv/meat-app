@@ -404,4 +404,13 @@ export const ta: Record<keyof typeof en, string> = {
   fy_4: "\u0ba4\u0bb5\u0bb1\u0bb5\u0bbf\u0b9f\u0b95\u0bcd\u0b95\u0bc2\u0b9f\u0bbe\u0ba4 \u0b9a\u0bb2\u0bc1\u0b95\u0bc8\u0b95\u0bb3\u0bcd!",
   fy_5: "\u0bb5\u0bc6\u0bb3\u0bcd\u0bb3\u0bbf \u0bb5\u0bbf\u0bb0\u0bc1\u0ba8\u0bcd\u0ba4\u0bc1 \u0bb0\u0bc6\u0b9f\u0bbf\u2026",
   fy_6: "\u0bb5\u0bbe\u0bb0 \u0b87\u0bb1\u0bc1\u0ba4\u0bbf \u0b95\u0bca\u0ba3\u0bcd\u0b9f\u0bbe\u0b9f\u0bcd\u0b9f\u0bae\u0bcd",
+  addMoreTitle: "ஏதாவது மறந்துவிட்டீர்களா?",
+  addMoreSub: "கடை ஏற்கும் வரை இந்த ஆர்டரில் சேர்க்கலாம்.",
+  addMoreCta: "பொருட்களைச் சேர்",
+  addMoreCard: "வேறு ஏதாவது வேண்டுமா? கடை ஏற்கும் முன் இந்த ஆர்டரிலேயே சேர்க்கலாம் — கூடுதல் டெலிவரி கட்டணம் இல்லை.",
+  addMoreSubmit: "{n} சேர் · ₹{amt}",
+  addMoreEmpty: "சேர்க்க ஏதாவது தேர்வு செய்யுங்கள்",
+  addMoreLate: "கடை உங்கள் ஆர்டரை ஏற்கனவே தொடங்கிவிட்டது",
+  addMoreLateSub: "இப்போது சேர்க்க முடியாது. கார்ட்டில் போட்டு புதிய ஆர்டர் செய்யுங்கள்.",
+  addToCartInstead: "கார்ட்டில் சேர்",
 };

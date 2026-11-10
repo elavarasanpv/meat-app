@@ -415,4 +415,13 @@ export const en = {
   fy_4: "Offers you can't miss!",
   fy_5: "Friday feast loading…",
   fy_6: "Weekend grill goals",
+  addMoreTitle: "Forgot something?",
+  addMoreSub: "You can add to this order until the shop accepts it.",
+  addMoreCta: "Add items",
+  addMoreCard: "Need anything else? Add it to this order before the shop accepts — no extra delivery fee.",
+  addMoreSubmit: "Add {n} to order · ₹{amt}",
+  addMoreEmpty: "Pick something to add",
+  addMoreLate: "The shop has already started on your order",
+  addMoreLateSub: "Items can't be added now. Put them in your cart and place a new order.",
+  addToCartInstead: "Add to cart instead",
 };

@@ -13,6 +13,7 @@ import { CancelSheet } from "@/components/CancelSheet";
 import { DeliveryInfoCard } from "@/components/DeliveryInfoCard";
 import { OrderJourney } from "@/components/OrderJourney";
 import { PlacedFlash } from "@/components/PlacedFlash";
+import { AddMoreSheet } from "@/components/AddMoreSheet";
 import { DeliveredCard } from "@/components/DeliveredCard";
 import { DeliveredHero } from "@/components/DeliveredHero";
 import { TrackingMap } from "@/components/TrackingMap";
@@ -65,6 +66,8 @@ export default function OrderDetailScreen() {
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelError, setCancelError] = useState<string | null>(null);
   const canCancel = !!o && CUSTOMER_CANCELLABLE.includes(o.status);
+  // "Forgot something?": offered right after checkout, and from a card while the shop hasn't accepted.
+  const [addOpen, setAddOpen] = useState(false);
   const isCancelled = o?.status === "CANCELLED";
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
@@ -321,6 +324,19 @@ export default function OrderDetailScreen() {
             </View>
           ) : null}
 
+          {canCancel ? (
+            <View style={{ ...card, flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: c.tintSoft, borderColor: c.tint }}>
+              <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: c.tint, alignItems: "center", justifyContent: "center" }}>
+                <Icon name="cart" color={c.primary} size={22} />
+              </View>
+              <View style={{ flex: 1, gap: 2 }}>
+                <AppText variant="subtitle" numberOfLines={1}>{t("addMoreTitle")}</AppText>
+                <AppText variant="caption" muted numberOfLines={3}>{t("addMoreCard")}</AppText>
+              </View>
+              <Button label={t("add")} size="sm" onPress={() => setAddOpen(true)} />
+            </View>
+          ) : null}
+
           {placed === "1" ? <Button label={t("backHome")} variant="outline" icon="home" onPress={() => router.replace("/(tabs)")} /> : null}
 
           {helpOpen ? (
@@ -357,7 +373,8 @@ export default function OrderDetailScreen() {
         }}
       />
 
-      {placed === "1" ? <PlacedFlash /> : null}
+      {placed === "1" ? <PlacedFlash onDone={() => setAddOpen(true)} /> : null}
+      {o ? <AddMoreSheet orderId={o.id} status={o.status} visible={addOpen} onClose={() => setAddOpen(false)} /> : null}
     </View>
   );
 }

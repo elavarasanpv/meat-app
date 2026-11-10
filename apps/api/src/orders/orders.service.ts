@@ -1,7 +1,7 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from "@nestjs/common";
 import { randomInt } from "node:crypto";
 import * as bcrypt from "bcryptjs";
-import { CUSTOMER_CANCELLABLE, canTransition, type CancelOrderInput, type OrderStatus, type PlaceOrderInput, type RateOrderInput } from "@freshcut/shared";
+import { CUSTOMER_CANCELLABLE, canTransition, type AddOrderItemsInput, type CancelOrderInput, type OrderStatus, type PlaceOrderInput, type RateOrderInput } from "@freshcut/shared";
 import { SupabaseService } from "../supabase.service";
 
 @Injectable()
@@ -32,6 +32,25 @@ export class OrdersService {
     }
     const row = (Array.isArray(data) ? data[0] : data) as { order_id: string; display_id: string; est_amount: number };
     return { orderId: row.order_id, displayId: row.display_id, estAmount: Number(row.est_amount), otp };
+  }
+
+  /**
+   * Add items to a placed order. The SQL function holds the order's row lock,
+   * so this and the shop's accept run one after the other: if the shop got
+   * there first it raises FC409 and nothing is added.
+   */
+  async addItems(customerId: string, orderId: string, input: AddOrderItemsInput) {
+    const { data, error } = await this.supabase.admin.rpc("add_order_items", {
+      p_order: orderId,
+      p_customer: customerId,
+      p_items: input.items.map((i) => ({ product_id: i.productId, qty: i.qty, size: i.size ?? null, notes: i.notes ?? null })),
+    });
+    if (error) {
+      if (error.code === "FC409") throw new ConflictException(error.message);
+      if (error.code === "P0002") throw new NotFoundException(error.message);
+      throw new BadRequestException(error.message);
+    }
+    return { orderId, estAmount: Number(data) };
   }
 
   /** What the customer rated on this order, or null. */
