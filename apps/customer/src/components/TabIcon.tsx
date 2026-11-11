@@ -87,7 +87,7 @@ const GLYPHS = { home: HomeGlyph, orders: OrdersGlyph, cart: CartGlyph, help: He
  * solid when the tab is selected. The outline and the solid are stacked and
  * cross-faded, so the change looks like the icon filling up rather than a swap.
  */
-export function TabIcon({ name, focused, color, size = 24, pill = true }: { name: TabIconName; focused: boolean; color: string; size?: number; pill?: boolean }) {
+export function TabIcon({ name, focused, color, size = 24, pill = true, knock }: { name: TabIconName; focused: boolean; color: string; size?: number; pill?: boolean; /** colour of the cut-outs inside a solid glyph (defaults to the tint pill) */ knock?: string }) {
   const { c } = useTheme();
   const G = GLYPHS[name];
   const t = useRef(new Animated.Value(focused ? 1 : 0)).current;
@@ -107,7 +107,7 @@ export function TabIcon({ name, focused, color, size = 24, pill = true }: { name
         <G color={color} filled={false} size={size} knock={c.surface} />
       </Animated.View>
       <Animated.View style={{ position: "absolute", opacity: t, transform: [{ scale: t.interpolate({ inputRange: [0, 1], outputRange: [0.85, 1] }) }] }}>
-        <G color={color} filled size={size} knock={c.tint} />
+        <G color={color} filled size={size} knock={knock ?? c.tint} />
       </Animated.View>
     </View>
   );
