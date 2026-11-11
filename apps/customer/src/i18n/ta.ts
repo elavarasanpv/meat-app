@@ -416,4 +416,5 @@ export const ta: Record<keyof typeof en, string> = {
   termsLink: "விதிமுறைகள்",
   privacyLink: "தனியுரிமைக் கொள்கை",
   otpKicker: "கிட்டத்தட்ட முடிந்தது",
+  cartAddMoreSub: "ஆர்டர் செய்வதற்கு முன் கடையைப் பார்த்து மேலும் சேர்க்கலாம்.",
 };

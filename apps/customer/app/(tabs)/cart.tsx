@@ -112,7 +112,19 @@ export default function CartScreen() {
         })}
 
         {/* Back to Home to add more items */}
-        <Button label={t("shopMore")} variant="outline" size="sm" icon="home" onPress={() => router.push("/(tabs)")} style={{ alignSelf: "flex-start" }} />
+        {/* "Forgot something?" — same card as on a placed order, here it goes back to the catalog */}
+        <Pressable onPress={() => router.push("/(tabs)")} accessibilityRole="button" style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 12, padding: 14, borderRadius: 22, backgroundColor: c.tintSoft, borderWidth: 1, borderColor: c.tint, opacity: pressed ? 0.9 : 1 })}>
+          <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: c.tint, alignItems: "center", justifyContent: "center" }}>
+            <Icon name="cart" color={c.primary} size={22} />
+          </View>
+          <View style={{ flex: 1, gap: 2 }}>
+            <AppText variant="subtitle" numberOfLines={1}>{t("addMoreTitle")}</AppText>
+            <AppText variant="caption" muted numberOfLines={2}>{t("cartAddMoreSub")}</AppText>
+          </View>
+          <View style={{ height: 36, paddingHorizontal: 16, borderRadius: 999, backgroundColor: c.primary, alignItems: "center", justifyContent: "center" }}>
+            <AppText variant="label" color="#FFFFFF" numberOfLines={1}>{t("add")}</AppText>
+          </View>
+        </Pressable>
 
         {/* Bill summary with offers and coupon */}
         <BillSummary bill={bill} />

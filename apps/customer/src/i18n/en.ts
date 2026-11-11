@@ -427,4 +427,5 @@ export const en = {
   termsLink: "Terms",
   privacyLink: "Privacy policy",
   otpKicker: "Almost there",
+  cartAddMoreSub: "Browse the shop and add more before you place the order.",
 };
