@@ -43,12 +43,12 @@ function Tab({ name, label, focused, onPress, badge }: { name: TabIconName; labe
 
   const ta = lang === "ta";
   const labelStyle = { fontSize: ta ? 11 : 12, lineHeight: 16, includeFontPadding: false as const };
-  const DISC = 52;
+  const DISC = 44;
 
   return (
     <Pressable onPress={onPress} accessibilityRole="tab" accessibilityState={{ selected: focused }} accessibilityLabel={label} style={{ flex: 1, alignItems: "center", overflow: "visible" }}>
-      <View style={{ height: 60, minWidth: 72, alignItems: "center", justifyContent: "flex-end", overflow: "visible" }}>
-        {/* the disc rises ~22px above the bar's top edge when selected */}
+      <View style={{ height: 58, minWidth: 72, alignItems: "center", justifyContent: "flex-end", overflow: "visible" }}>
+        {/* the disc peeks ~10px above the bar's top edge when selected */}
         <Animated.View
           style={{
             position: "absolute",
@@ -60,18 +60,18 @@ function Tab({ name, label, focused, onPress, badge }: { name: TabIconName; labe
             justifyContent: "center",
             backgroundColor: c.primary,
             // a halo in the page colour so the disc reads as cut out of the bar
-            borderWidth: 4,
+            borderWidth: 3,
             borderColor: c.ground,
-            elevation: 6,
+            elevation: 3,
             shadowColor: "#7A1E0E",
-            shadowOpacity: 0.3,
-            shadowRadius: 8,
-            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.18,
+            shadowRadius: 5,
+            shadowOffset: { width: 0, height: 2 },
             opacity: t,
-            transform: [{ translateY: t.interpolate({ inputRange: [0, 1], outputRange: [8, -26] }) }, { scale: t.interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] }) }],
+            transform: [{ translateY: t.interpolate({ inputRange: [0, 1], outputRange: [6, -14] }) }, { scale: t.interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] }) }],
           }}
         >
-          <TabIcon name={name} focused color="#FFFFFF" knock={c.primary} pill={false} size={name === "help" ? 30 : 25} />
+          <TabIcon name={name} focused color="#FFFFFF" knock={c.primary} pill={false} size={name === "help" ? 26 : 22} />
         </Animated.View>
         {/* the idle icon fades out as the disc takes over */}
         <Animated.View style={{ position: "absolute", top: 8, opacity: t.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }), transform: [{ scale: t.interpolate({ inputRange: [0, 1], outputRange: [1, 0.7] }) }] }}>
@@ -87,7 +87,7 @@ function Tab({ name, label, focused, onPress, badge }: { name: TabIconName; labe
           </Animated.Text>
         </View>
         {badge != null ? (
-          <Animated.View style={{ position: "absolute", top: 2, right: 8, minWidth: 18, height: 18, paddingHorizontal: 5, borderRadius: 9, backgroundColor: c.primary, borderWidth: 2, borderColor: c.surface, alignItems: "center", justifyContent: "center", transform: [{ translateY: t.interpolate({ inputRange: [0, 1], outputRange: [0, -22] }) }, { translateX: t.interpolate({ inputRange: [0, 1], outputRange: [0, -4] }) }] }}>
+          <Animated.View style={{ position: "absolute", top: 2, right: 8, minWidth: 18, height: 18, paddingHorizontal: 5, borderRadius: 9, backgroundColor: c.primary, borderWidth: 2, borderColor: c.surface, alignItems: "center", justifyContent: "center", transform: [{ translateY: t.interpolate({ inputRange: [0, 1], outputRange: [0, -12] }) }, { translateX: t.interpolate({ inputRange: [0, 1], outputRange: [0, -6] }) }] }}>
             <Animated.Text allowFontScaling={false} style={{ fontFamily: fonts.bodyBold, fontSize: 10, lineHeight: 12, color: "#FFFFFF" }}>{String(badge)}</Animated.Text>
           </Animated.View>
         ) : null}
