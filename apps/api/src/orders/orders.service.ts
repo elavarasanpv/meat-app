@@ -2,11 +2,15 @@ import { BadRequestException, ConflictException, Injectable, NotFoundException }
 import { randomInt } from "node:crypto";
 import * as bcrypt from "bcryptjs";
 import { CUSTOMER_CANCELLABLE, canTransition, type AddOrderItemsInput, type CancelOrderInput, type OrderStatus, type PlaceOrderInput, type RateOrderInput } from "@freshcut/shared";
+import { PushService } from "../push/push.service";
 import { SupabaseService } from "../supabase.service";
 
 @Injectable()
 export class OrdersService {
-  constructor(private readonly supabase: SupabaseService) {}
+  constructor(
+    private readonly supabase: SupabaseService,
+    private readonly push: PushService,
+  ) {}
 
   /**
    * Place an order: generates the delivery OTP and calls the atomic
@@ -153,6 +157,34 @@ export class OrdersService {
       throw new BadRequestException(rpcError.message);
     }
 
+    void this.notifyCustomer(orderId, to);
     return { orderId, from, to };
   }
+
+  /**
+   * Tell the customer about the steps they care about, even with the app
+   * closed. Arrival at the door has its own push (rider.controller) and
+   * their own cancellation needs none. Fire-and-forget.
+   */
+  private async notifyCustomer(orderId: string, to: OrderStatus) {
+    const text = CUSTOMER_STATUS_PUSH[to];
+    if (!text) return;
+    try {
+      const { data: o } = await this.supabase.admin.from("orders").select("customer_id, display_id").eq("id", orderId).single();
+      if (!o) return;
+      await this.push.toProfiles([o.customer_id], { title: text.title, body: `${o.display_id} · ${text.body}`, data: { kind: "status", status: to, orderId }, channelId: "delivery" });
+    } catch (e) {
+      console.warn("[push] status", (e as Error).message);
+    }
+  }
 }
+
+/** Customer-facing status pushes; statuses missing here send nothing. */
+const CUSTOMER_STATUS_PUSH: Partial<Record<OrderStatus, { title: string; body: string }>> = {
+  ACCEPTED: { title: "Shop accepted your order", body: "They're cutting it fresh for you now." },
+  PACKED: { title: "Your order is packed", body: "Weighed, photographed and waiting for a rider." },
+  PICKED_UP: { title: "Your order is on the way", body: "The rider has picked it up. Keep your delivery code ready." },
+  OUT_FOR_DELIVERY: { title: "Your order is on the way", body: "The rider is heading to you. Keep your delivery code ready." },
+  DELIVERED: { title: "Delivered — enjoy!", body: "Tap to rate your order and the delivery." },
+  DELIVERY_FAILED: { title: "We couldn't deliver your order", body: "Tap to see what happened and get help." },
+};
