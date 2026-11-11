@@ -172,19 +172,26 @@ export class OrdersService {
     try {
       const { data: o } = await this.supabase.admin.from("orders").select("customer_id, display_id").eq("id", orderId).single();
       if (!o) return;
-      await this.push.toProfiles([o.customer_id], { title: text.title, body: `${o.display_id} · ${text.body}`, data: { kind: "status", status: to, orderId }, channelId: "delivery" });
+      await this.push.toProfiles([o.customer_id], {
+        title: text.title,
+        body: `${o.display_id} · ${text.body}`,
+        ta: { title: text.ta.title, body: `${o.display_id} · ${text.ta.body}` },
+        data: { kind: "status", status: to, orderId },
+        channelId: "delivery",
+      });
     } catch (e) {
       console.warn("[push] status", (e as Error).message);
     }
   }
 }
 
-/** Customer-facing status pushes; statuses missing here send nothing. */
-const CUSTOMER_STATUS_PUSH: Partial<Record<OrderStatus, { title: string; body: string }>> = {
-  ACCEPTED: { title: "Shop accepted your order", body: "They're cutting it fresh for you now." },
-  PACKED: { title: "Your order is packed", body: "Weighed, photographed and waiting for a rider." },
-  PICKED_UP: { title: "Your order is on the way", body: "The rider has picked it up. Keep your delivery code ready." },
-  OUT_FOR_DELIVERY: { title: "Your order is on the way", body: "The rider is heading to you. Keep your delivery code ready." },
-  DELIVERED: { title: "Delivered — enjoy!", body: "Tap to rate your order and the delivery." },
-  DELIVERY_FAILED: { title: "We couldn't deliver your order", body: "Tap to see what happened and get help." },
+/** Customer-facing status pushes in English and Tamil; statuses missing here send nothing. */
+type PushText = { title: string; body: string; ta: { title: string; body: string } };
+const CUSTOMER_STATUS_PUSH: Partial<Record<OrderStatus, PushText>> = {
+  ACCEPTED: { title: "Shop accepted your order", body: "They're cutting it fresh for you now.", ta: { title: "கடை உங்கள் ஆர்டரை ஏற்றது", body: "உங்களுக்காக இப்போது புதிதாக வெட்டுகிறார்கள்." } },
+  PACKED: { title: "Your order is packed", body: "Weighed, photographed and waiting for a rider.", ta: { title: "உங்கள் ஆர்டர் பேக் ஆகிவிட்டது", body: "எடை போட்டு, புகைப்படம் எடுத்து, ரைடருக்காகக் காத்திருக்கிறது." } },
+  PICKED_UP: { title: "Your order is on the way", body: "The rider has picked it up. Keep your delivery code ready.", ta: { title: "உங்கள் ஆர்டர் வந்துகொண்டிருக்கிறது", body: "ரைடர் எடுத்துக்கொண்டார். டெலிவரி குறியீட்டைத் தயாராக வைத்திருங்கள்." } },
+  OUT_FOR_DELIVERY: { title: "Your order is on the way", body: "The rider is heading to you. Keep your delivery code ready.", ta: { title: "உங்கள் ஆர்டர் வந்துகொண்டிருக்கிறது", body: "ரைடர் உங்களை நோக்கி வருகிறார். டெலிவரி குறியீட்டைத் தயாராக வைத்திருங்கள்." } },
+  DELIVERED: { title: "Delivered — enjoy!", body: "Tap to rate your order and the delivery.", ta: { title: "டெலிவரி ஆகிவிட்டது — ருசித்து மகிழுங்கள்!", body: "ஆர்டரையும் டெலிவரியையும் மதிப்பிட தட்டவும்." } },
+  DELIVERY_FAILED: { title: "We couldn't deliver your order", body: "Tap to see what happened and get help.", ta: { title: "உங்கள் ஆர்டரை டெலிவரி செய்ய முடியவில்லை", body: "என்ன நடந்தது என்று பார்க்கவும் உதவி பெறவும் தட்டவும்." } },
 };

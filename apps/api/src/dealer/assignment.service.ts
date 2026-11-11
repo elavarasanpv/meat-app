@@ -138,6 +138,7 @@ export class AssignmentService implements OnModuleInit, OnModuleDestroy {
       await this.push.toProfiles([profileId], {
         title: `New order ${o?.display_id ?? ""}`.trim(),
         body: `${n} item${n === 1 ? "" : "s"} · accept within ${ACCEPT_WINDOW_MIN} min`,
+        ta: { title: `புதிய ஆர்டர் ${o?.display_id ?? ""}`.trim(), body: `${n} பொருள்${n === 1 ? "" : "கள்"} · ${ACCEPT_WINDOW_MIN} நிமிடத்திற்குள் ஏற்கவும்` },
         data: { kind: "new_order", orderId },
         channelId: "orders",
       });

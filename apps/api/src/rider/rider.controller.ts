@@ -213,6 +213,7 @@ export class RiderController {
           ? this.push.toProfiles([data.customer_id], {
               title: "Your FreshCut order is here!",
               body: "Your rider is at the door. Keep your delivery code ready.",
+              ta: { title: "உங்கள் FreshCut ஆர்டர் வந்துவிட்டது!", body: "ரைடர் உங்கள் வாசலில் இருக்கிறார். டெலிவரி குறியீட்டைத் தயாராக வைத்திருங்கள்." },
               data: { kind: "arrived", orderId: order.id },
               channelId: "delivery",
             })

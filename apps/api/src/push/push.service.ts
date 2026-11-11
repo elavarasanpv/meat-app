@@ -6,6 +6,8 @@ const EXPO_PUSH_URL = "https://exp.host/--/api/v2/push/send";
 export type PushMessage = {
   title: string;
   body: string;
+  /** Tamil title/body, used for readers whose profile language is Tamil. */
+  ta?: { title: string; body: string };
   /** Read by the app when the notification is tapped (e.g. { kind: "offer", orderId }). */
   data?: Record<string, unknown>;
   /**
@@ -27,9 +29,19 @@ export class PushService {
   async toProfiles(profileIds: string[], msg: PushMessage): Promise<{ sent: number; failed: number }> {
     const ids = [...new Set(profileIds)].filter(Boolean);
     if (!ids.length) return { sent: 0, failed: 0 };
-    const { data: rows } = await this.supabase.admin.from("push_tokens").select("token").in("profile_id", ids);
-    const tokens = [...new Set((rows ?? []).map((r) => r.token as string))].filter((t) => t.startsWith("ExponentPushToken["));
-    return this.toTokens(tokens, msg);
+    const { data: rows } = await this.supabase.admin.from("push_tokens").select("token, profiles(lang)").in("profile_id", ids);
+    const seen = new Set<string>();
+    const en: string[] = [];
+    const ta: string[] = [];
+    for (const r of rows ?? []) {
+      const token = r.token as string;
+      if (!token.startsWith("ExponentPushToken[") || seen.has(token)) continue;
+      seen.add(token);
+      const lang = (r.profiles as unknown as { lang?: string } | null)?.lang;
+      (lang === "ta" && msg.ta ? ta : en).push(token);
+    }
+    const [a, b] = await Promise.all([this.toTokens(en, msg), ta.length ? this.toTokens(ta, { ...msg, title: msg.ta!.title, body: msg.ta!.body }) : { sent: 0, failed: 0 }]);
+    return { sent: a.sent + b.sent, failed: a.failed + b.failed };
   }
 
   async toTokens(tokens: string[], msg: PushMessage): Promise<{ sent: number; failed: number }> {

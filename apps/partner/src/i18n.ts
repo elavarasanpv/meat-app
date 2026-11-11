@@ -430,8 +430,21 @@ export const useLang = create<LangState>((set, get) => ({
     const lang: Lang = get().lang === "ta" ? "en" : "ta";
     set({ lang });
     AsyncStorage.setItem(KEY, lang).catch(() => {});
+    void syncLangToProfile(lang);
   },
 }));
+
+/** Server-side copy of the choice, so push notifications arrive in the same language. */
+export async function syncLangToProfile(lang: Lang) {
+  try {
+    const { supabase } = await import("@/lib/supabase");
+    const { data } = await supabase.auth.getSession();
+    const uid = data.session?.user.id;
+    if (uid) await supabase.from("profiles").update({ lang }).eq("id", uid);
+  } catch {
+    /* offline: the next toggle or sign-in syncs it */
+  }
+}
 
 export function useT() {
   const lang = useLang((s) => s.lang);

@@ -248,7 +248,7 @@ export class SupportService {
     if (!t) throw new NotFoundException("Ticket not found");
     await db.from("ticket_messages").insert({ ticket_id: ticketId, sender: "admin", sender_id: admin.id, body });
     if (t.status === "open") await db.from("tickets").update({ status: "waiting_customer", assigned_admin: admin.id }).eq("id", ticketId);
-    void this.push.toProfiles([t.customer_id], { title: "FreshCut support", body: body.slice(0, 120), data: { type: "support", ticketId } });
+    void this.push.toProfiles([t.customer_id], { title: "FreshCut support", body: body.slice(0, 120), ta: { title: "FreshCut உதவி", body: body.slice(0, 120) }, data: { type: "support", ticketId } });
     return { sent: true };
   }
 
@@ -286,7 +286,7 @@ export class SupportService {
           ? `We'll send your refund by UPI shortly.${input.note ? ` ${input.note}` : ""}`
           : (input.note ?? "Thanks for telling us. We've looked into it.");
     await db.from("ticket_messages").insert({ ticket_id: ticketId, sender: "admin", sender_id: admin.id, body: text });
-    void this.push.toProfiles([t.customer_id], { title: "FreshCut support", body: text.slice(0, 120), data: { type: "support", ticketId } });
+    void this.push.toProfiles([t.customer_id], { title: "FreshCut support", body: text.slice(0, 120), ta: { title: "FreshCut உதவி", body: text.slice(0, 120) }, data: { type: "support", ticketId } });
     return { resolved: true };
   }
 

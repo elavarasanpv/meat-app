@@ -29,8 +29,21 @@ export const useLang = create<LangState>((set, get) => ({
     const next: Lang = get().lang === "en" ? "ta" : "en";
     set({ lang: next });
     AsyncStorage.setItem(STORAGE_KEY, next).catch(() => {});
+    void syncLangToProfile(next);
   },
 }));
+
+/** Server-side copy of the choice, so push notifications arrive in the same language. */
+export async function syncLangToProfile(lang: Lang) {
+  try {
+    const { supabase } = await import("@/lib/supabase");
+    const { data } = await supabase.auth.getSession();
+    const uid = data.session?.user.id;
+    if (uid) await supabase.from("profiles").update({ lang }).eq("id", uid);
+  } catch {
+    /* offline: the next toggle or sign-in syncs it */
+  }
+}
 
 /** Display name for a catalog row: Tamil when the language is Tamil and a translation exists. */
 export function useLocalName() {

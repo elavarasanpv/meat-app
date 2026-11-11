@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { useRouter } from "expo-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { Notifications, registerForPush } from "@/lib/push";
-import { useT } from "@/i18n";
+import { syncLangToProfile, useLang, useT } from "@/i18n";
 
 /**
  * Register this phone for alerts once logged in, and route taps:
@@ -13,9 +13,11 @@ export function usePush(role: "dealer" | "rider") {
   const router = useRouter();
   const qc = useQueryClient();
   const t = useT();
+  const lang = useLang((s) => s.lang);
 
   useEffect(() => {
     registerForPush(t("pushChannelName")).catch(() => {});
+    void syncLangToProfile(lang); // pushes come in the language chosen on this phone
   }, []);
 
   useEffect(() => {
