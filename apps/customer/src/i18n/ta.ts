@@ -415,4 +415,5 @@ export const ta: Record<keyof typeof en, string> = {
   addToCartInstead: "கார்ட்டில் சேர்",
   termsLink: "விதிமுறைகள்",
   privacyLink: "தனியுரிமைக் கொள்கை",
+  otpKicker: "கிட்டத்தட்ட முடிந்தது",
 };

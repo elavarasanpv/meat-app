@@ -426,4 +426,5 @@ export const en = {
   addToCartInstead: "Add to cart instead",
   termsLink: "Terms",
   privacyLink: "Privacy policy",
+  otpKicker: "Almost there",
 };
