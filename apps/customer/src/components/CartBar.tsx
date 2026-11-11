@@ -58,8 +58,7 @@ export function CartBar({ aboveTabBar = false }: Props) {
   // Up to the last three items, newest on top of the stack (items are kept in add order).
   const recent = items.slice(-3);
   const addedName = lastAdded ? (lang === "ta" && lastAdded.nameTa ? lastAdded.nameTa : lastAdded.name) : "";
-  // on tab screens leave room for the selected tab's disc, which peeks above the bar
-  const bottom = aboveTabBar ? 22 : insets.bottom + 12;
+  const bottom = (aboveTabBar ? 0 : insets.bottom) + 12;
   const summary = items.length === 1 ? t("itemTotalOne", { total: itemTotal }) : t("itemsTotal", { n: items.length, total: itemTotal });
 
   return (
