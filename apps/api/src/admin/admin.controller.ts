@@ -1,5 +1,5 @@
 import { BadRequestException, Body, Controller, Delete, Get, Headers, Param, Patch, Post, Query } from "@nestjs/common";
-import { adminHeadlineSchema, adminOfferSchema, ticketResolveSchema, ticketReplySchema, adminInviteSchema, adminProfileSchema, adminCancelSchema, adminCashVerifySchema, adminReassignShopSchema, adminRiderSchema, adminShopSchema } from "@freshcut/shared";
+import { adminHeadlineSchema, adminOfferSchema, ticketResolveSchema, ticketReplySchema, adminInviteSchema, adminProfileSchema, adminCancelSchema, adminCashVerifySchema, adminReassignShopSchema, adminRiderSchema, adminShopSchema, adminBroadcastSchema } from "@freshcut/shared";
 import type { ZodTypeAny, z } from "zod";
 import { AdminOpsService } from "./admin-ops.service";
 import { AdminAccountService } from "./admin-account.service";
@@ -190,6 +190,19 @@ export class AdminController {
     const r = await this.offersSvc.setActive(id, !!body?.active);
     await this.admin.log(a.id, body?.active ? "offer.resume" : "offer.pause", id);
     return r;
+  }
+
+  // ── promo pushes ──
+  @Get("broadcasts")
+  async broadcasts(@Headers("authorization") auth: string | undefined) {
+    await this.guard(auth);
+    return this.ops.broadcasts();
+  }
+
+  @Post("broadcasts")
+  async broadcast(@Headers("authorization") auth: string | undefined, @Body() body: unknown) {
+    const a = await this.guard(auth);
+    return this.ops.broadcast(a.id, parse(adminBroadcastSchema, body));
   }
 
   // ── home headline ──

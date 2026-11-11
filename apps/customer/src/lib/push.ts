@@ -14,6 +14,8 @@ export const Notifications: typeof NotificationsT | null = pushAvailable ? requi
 
 /** Android channel the server targets ("delivery"). Its sound is fixed at creation — new id to change it. */
 export const DELIVERY_CHANNEL = "delivery";
+/** Promos ("Sunday special", new offers): normal importance, default sound, no vibration pattern. */
+export const OFFERS_CHANNEL = "offers";
 
 Notifications?.setNotificationHandler({
   handleNotification: async () => ({
@@ -35,6 +37,9 @@ export async function registerForPush(channelName: string): Promise<{ token: str
         vibrationPattern: [0, 250, 150, 250],
         lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
       });
+    }
+    if (Platform.OS === "android") {
+      await Notifications.setNotificationChannelAsync(OFFERS_CHANNEL, { name: "Offers", importance: Notifications.AndroidImportance.DEFAULT });
     }
     let { status } = await Notifications.getPermissionsAsync();
     if (status !== "granted") status = (await Notifications.requestPermissionsAsync()).status;

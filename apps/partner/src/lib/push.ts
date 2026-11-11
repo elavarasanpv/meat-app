@@ -33,6 +33,7 @@ Notifications?.setNotificationHandler({
 
 async function ensureChannel(name: string) {
   if (Platform.OS !== "android" || !Notifications) return;
+  await Notifications.setNotificationChannelAsync("offers", { name: "Notices", importance: Notifications.AndroidImportance.DEFAULT });
   await Notifications.setNotificationChannelAsync(ORDERS_CHANNEL, {
     name,
     importance: Notifications.AndroidImportance.MAX,

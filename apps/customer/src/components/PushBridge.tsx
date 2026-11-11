@@ -13,7 +13,10 @@ export function PushBridge() {
     void syncLangToProfile(lang); // pushes come in the language chosen on this phone
     if (!Notifications) return;
     const open = (data: Record<string, unknown> | undefined) => {
-      if (data?.orderId) router.push(`/order/${String(data.orderId)}`);
+      if (!data) return;
+      // promos: the offer's products, or just Home
+      if (data.kind === "promo") return data.offerId ? router.push(`/offer/${String(data.offerId)}`) : router.push("/(tabs)");
+      if (data.orderId) router.push(`/order/${String(data.orderId)}`);
     };
     const sub = Notifications.addNotificationResponseReceivedListener((r) => open(r.notification.request.content.data));
     Notifications.getLastNotificationResponseAsync()

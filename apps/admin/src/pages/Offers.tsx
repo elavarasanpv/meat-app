@@ -88,8 +88,9 @@ export function Offers() {
           </div>
         }
       />
-      <div className="px-4 pt-4 md:px-6">
+      <div className="grid gap-4 px-4 pt-4 md:px-6 xl:grid-cols-2">
         <HeadlineCard />
+        <AnnounceCard offers={q.data ?? []} />
       </div>
       <div className="px-4 pt-4 md:px-6">
         <Segments
@@ -567,6 +568,96 @@ function HeadlineCard() {
       )}
       <div className="mt-2 text-[11px] text-muted">Without a special headline the app shows a different line each day: {DAILY.join(" · ")}</div>
       {editing && <HeadlineForm h={editing === "new" ? null : editing} onClose={() => setEditing(null)} />}
+    </section>
+  );
+}
+
+type Broadcast = { id: string; title: string; body: string; titleTa: string | null; bodyTa: string | null; audience: "customers" | "shops" | "riders" | "all"; offerId: string | null; offerTitle: string | null; sent: number; failed: number; at: string; by: string | null };
+const AUDIENCE: Record<Broadcast["audience"], string> = { customers: "Customers", shops: "Shops", riders: "Riders", all: "Everyone" };
+
+/** Promo push: "Sunday special", a new offer, a notice to shops or riders. Goes to every phone in the audience. */
+function AnnounceCard({ offers }: { offers: Offer[] }) {
+  const qc = useQueryClient();
+  const history = useQuery<Broadcast[]>({ queryKey: ["admin", "broadcasts"], queryFn: () => api("/admin/broadcasts") });
+  const [title, setTitle] = useState("");
+  const [body, setBody] = useState("");
+  const [titleTa, setTitleTa] = useState("");
+  const [bodyTa, setBodyTa] = useState("");
+  const [audience, setAudience] = useState<Broadcast["audience"]>("customers");
+  const [offerId, setOfferId] = useState("");
+  const [confirm, setConfirm] = useState(false);
+  const [done, setDone] = useState<{ sent: number; failed: number } | null>(null);
+  const send = useMutation({
+    mutationFn: () => api<{ sent: number; failed: number }>("/admin/broadcasts", { method: "POST", body: { title, body, titleTa: titleTa || null, bodyTa: bodyTa || null, audience, offerId: offerId || null } }),
+    onSuccess: (r) => {
+      setDone(r);
+      setConfirm(false);
+      setTitle(""); setBody(""); setTitleTa(""); setBodyTa(""); setOfferId("");
+      void qc.invalidateQueries({ queryKey: ["admin", "broadcasts"] });
+    },
+  });
+  const live = offers.filter((o) => o.status === "live" || o.status === "scheduled");
+  // picking an offer prefills the text; the admin can still edit it
+  const pickOffer = (id: string) => {
+    setOfferId(id);
+    const o = offers.find((x) => x.id === id);
+    if (o && !title) { setTitle(o.title.slice(0, 60)); setBody(`${describe(o)} · Open FreshCut to order`.slice(0, 140)); }
+  };
+  const ready = title.trim().length >= 3 && body.trim().length >= 3;
+
+  return (
+    <section className="card">
+      <div className="card-title">Announce</div>
+      <div className="card-sub">A push notification to every phone in the audience: a Sunday special, a new offer, or a notice to shops or riders.</div>
+      <div className="mt-3 grid gap-3 sm:grid-cols-2">
+        <Field label="Title (English)" hint={`${title.length}/60`}>
+          <input className={inputCls} maxLength={60} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Sunday special: 20% off mutton" />
+        </Field>
+        <Field label="Title (Tamil)" hint="optional · shown to Tamil users">
+          <input className={inputCls} maxLength={80} value={titleTa} onChange={(e) => setTitleTa(e.target.value)} placeholder="ஞாயிறு சிறப்பு: ஆட்டிறைச்சிக்கு 20% தள்ளுபடி" />
+        </Field>
+        <Field label="Message (English)" hint={`${body.length}/140`}>
+          <textarea className={`${inputCls} min-h-[64px]`} maxLength={140} value={body} onChange={(e) => setBody(e.target.value)} placeholder="Today only. Order before 7 PM for evening delivery." />
+        </Field>
+        <Field label="Message (Tamil)" hint="optional">
+          <textarea className={`${inputCls} min-h-[64px]`} maxLength={180} value={bodyTa} onChange={(e) => setBodyTa(e.target.value)} placeholder="இன்று மட்டும். மாலை டெலிவரிக்கு 7 மணிக்குள் ஆர்டர் செய்யுங்கள்." />
+        </Field>
+        <Select label="Send to" value={audience} onChange={setAudience} options={(Object.keys(AUDIENCE) as Broadcast["audience"][]).map((a) => ({ value: a, label: AUDIENCE[a] }))} />
+        <Select label="Opens this offer when tapped" value={offerId} onChange={pickOffer} placeholder="Just open the app" options={live.map((o) => ({ value: o.id, label: `${o.title}${o.kind === "coupon" ? ` (${o.code})` : ""}` }))} />
+      </div>
+      {/* phone-style preview */}
+      <div className="mt-3 flex items-start gap-3 rounded-xl border border-line bg-surface-2/60 px-3 py-2.5">
+        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-primary text-[13px] font-extrabold text-white">F</span>
+        <div className="min-w-0 flex-1">
+          <div className="text-[11px] text-muted">FreshCut · now</div>
+          <div className="truncate text-[13px] font-extrabold">{title || "Title"}</div>
+          <div className="line-clamp-2 text-[12px]">{body || "Message"}</div>
+        </div>
+      </div>
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        {confirm ? (
+          <>
+            <span className="text-[12px] font-bold">Send to all {AUDIENCE[audience].toLowerCase()} now?</span>
+            <Btn kind="primary" busy={send.isPending} onClick={() => send.mutate()}>Yes, send</Btn>
+            <Btn onClick={() => setConfirm(false)}>Cancel</Btn>
+          </>
+        ) : (
+          <Btn kind="primary" disabled={!ready} onClick={() => { setDone(null); setConfirm(true); }}>Send notification</Btn>
+        )}
+        {done && <Chip tone="ok">Sent to {done.sent} phone{done.sent === 1 ? "" : "s"}{done.failed ? ` · ${done.failed} failed` : ""}</Chip>}
+      </div>
+      <ErrorBox error={send.error} />
+      {!!history.data?.length && (
+        <div className="mt-3 divide-y divide-line rounded-xl border border-line">
+          {history.data.slice(0, 6).map((b) => (
+            <div key={b.id} className="flex flex-wrap items-center gap-2 px-3 py-2 text-[12.5px]">
+              <Chip tone="mute">{AUDIENCE[b.audience]}</Chip>
+              <span className="min-w-0 flex-1 truncate"><b>{b.title}</b> <span className="text-muted">· {b.body}</span></span>
+              <span className="shrink-0 text-[11px] text-muted">{b.sent} sent · {when(b.at)}{b.by ? ` · ${b.by}` : ""}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </section>
   );
 }

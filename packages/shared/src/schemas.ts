@@ -325,3 +325,16 @@ export const adminHeadlineSchema = z
   })
   .refine((v) => new Date(v.endsAt) > new Date(v.startsAt), { path: ["endsAt"], message: "Must end after it starts" });
 export type AdminHeadlineInput = z.infer<typeof adminHeadlineSchema>;
+
+/** A promo push from the admin: "Sunday special", a new offer, a notice to shops or riders. */
+export const BROADCAST_AUDIENCES = ["customers", "shops", "riders", "all"] as const;
+export const adminBroadcastSchema = z.object({
+  title: z.string().trim().min(3).max(60),
+  body: z.string().trim().min(3).max(140),
+  titleTa: z.string().trim().max(80).optional().nullable(),
+  bodyTa: z.string().trim().max(180).optional().nullable(),
+  audience: z.enum(BROADCAST_AUDIENCES),
+  /** Tapping the push opens this offer in the customer app. */
+  offerId: z.string().uuid().optional().nullable(),
+});
+export type AdminBroadcastInput = z.infer<typeof adminBroadcastSchema>;

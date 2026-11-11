@@ -1,9 +1,10 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from "@nestjs/common";
-import type { AdminRiderInput, AdminShopInput } from "@freshcut/shared";
+import type { AdminBroadcastInput, AdminRiderInput, AdminShopInput } from "@freshcut/shared";
 import { SupabaseService } from "../supabase.service";
 import { OrdersService } from "../orders/orders.service";
 import { AssignmentService } from "../dealer/assignment.service";
 import { AdminService } from "./admin.service";
+import { PushService } from "../push/push.service";
 import type { AdminUser } from "./admin.guard";
 
 /** A delivery taking longer than this from pickup to handover counts as late. */
@@ -30,7 +31,37 @@ export class AdminOpsService {
     private readonly orders: OrdersService,
     private readonly assignment: AssignmentService,
     private readonly audit: AdminService,
+    private readonly push: PushService,
   ) {}
+
+  // ───────────────────────── promo pushes ─────────────────────────
+  /** Sends a promo push to everyone in the audience and records the result. */
+  async broadcast(adminId: string, input: AdminBroadcastInput) {
+    const roles = input.audience === "all" ? ["customer", "dealer", "rider"] : input.audience === "customers" ? ["customer"] : input.audience === "shops" ? ["dealer"] : ["rider"];
+    const ta = input.titleTa?.trim() && input.bodyTa?.trim() ? { title: input.titleTa.trim(), body: input.bodyTa.trim() } : undefined;
+    const result = await this.push.toRoles(roles, { title: input.title, body: input.body, ta, data: { kind: "promo", offerId: input.offerId ?? null }, channelId: "offers" });
+    const { data } = await this.supabase.admin
+      .from("broadcasts")
+      .insert({ title: input.title, body: input.body, title_ta: ta?.title ?? null, body_ta: ta?.body ?? null, audience: input.audience, offer_id: input.offerId ?? null, sent: result.sent, failed: result.failed, sent_by: adminId })
+      .select("id")
+      .single();
+    await this.audit.log(adminId, "broadcast.send", data?.id, { title: input.title, audience: input.audience, sent: result.sent });
+    return { id: data?.id ?? null, ...result };
+  }
+
+  /** The last promo pushes, newest first. */
+  async broadcasts() {
+    const { data } = await this.supabase.admin
+      .from("broadcasts")
+      .select("id, title, body, title_ta, body_ta, audience, offer_id, sent, failed, created_at, profiles:sent_by(full_name), offers:offer_id(title)")
+      .order("created_at", { ascending: false })
+      .limit(30);
+    return (data ?? []).map((b) => ({
+      id: b.id, title: b.title, body: b.body, titleTa: b.title_ta, bodyTa: b.body_ta, audience: b.audience, offerId: b.offer_id, sent: b.sent, failed: b.failed, at: b.created_at,
+      by: (b.profiles as unknown as { full_name: string | null } | null)?.full_name ?? null,
+      offerTitle: (b.offers as unknown as { title: string } | null)?.title ?? null,
+    }));
+  }
 
   private get db() {
     return this.supabase.admin;
