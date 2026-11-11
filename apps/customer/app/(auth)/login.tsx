@@ -136,8 +136,13 @@ export default function LoginScreen() {
                 onSubmitEditing={sendOtp}
                 returnKeyType="send"
               />
-              <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: e164 ? c.successBg : "transparent", alignItems: "center", justifyContent: "center" }}>
-                {e164 ? <Icon name="check" color={c.success} size={18} strokeWidth={3} /> : phone ? (
+              <View style={{ width: 32, height: 32, alignItems: "center", justifyContent: "center" }}>
+                {e164 ? (
+                  /* small solid green dot with a white tick: "this number is good" */
+                  <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: c.success, alignItems: "center", justifyContent: "center" }}>
+                    <Icon name="check" color="#FFFFFF" size={12} strokeWidth={3.2} />
+                  </View>
+                ) : phone ? (
                   <Pressable onPress={() => setPhone("")} hitSlop={8} accessibilityRole="button" accessibilityLabel={t("close")}>
                     <Icon name="close" color={c.muted} size={16} />
                   </Pressable>

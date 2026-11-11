@@ -142,8 +142,8 @@ export function Login() {
                   onSubmitEditing={() => phone.length === 10 && sendOtp()}
                 />
                 {phone.length === 10 ? (
-                  <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: c.successBg, alignItems: "center", justifyContent: "center" }}>
-                    <Icon name="check" color={c.success} size={15} strokeWidth={3} />
+                  <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: c.success, alignItems: "center", justifyContent: "center" }}>
+                    <Icon name="check" color="#FFFFFF" size={12} strokeWidth={3.2} />
                   </View>
                 ) : null}
               </View>

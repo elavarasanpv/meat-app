@@ -27,3 +27,8 @@ supabase/.temp
 *.log
 coverage/
 builds/
+
+# Android signing keystores (downloaded from EAS): never commit
+*.jks
+*.keystore
+credentials.json
