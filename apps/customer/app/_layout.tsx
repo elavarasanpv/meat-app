@@ -8,6 +8,7 @@ import { createAsyncStoragePersister } from "@tanstack/query-async-storage-persi
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { OfflineBanner } from "@/components/OfflineBanner";
 import { PushBridge } from "@/components/PushBridge";
+import { ExpandSheet } from "@/components/ExpandSheet";
 import { bindOnlineManager } from "@/lib/network";
 import { useFonts } from "expo-font";
 import { Outfit_700Bold, Outfit_800ExtraBold } from "@expo-google-fonts/outfit";
@@ -88,6 +89,8 @@ export default function RootLayout() {
           <Stack.Screen name="(auth)" />
         </Stack.Protected>
       </Stack>
+      {/* the cart bar grows into this sheet; it lives here so it covers the tab bar too */}
+      <ExpandSheet />
     </PersistQueryClientProvider>
   );
 }

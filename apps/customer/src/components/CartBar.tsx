@@ -9,6 +9,8 @@ import { Icon } from "./Icon";
 import { useLang, useT } from "@/i18n";
 import { productImage } from "@/lib/images";
 import { cartTotals, useCart } from "@/store/cart";
+import { useExpand } from "@/store/expand";
+import { EXPAND_MS } from "./ExpandSheet";
 import { radius, useTheme } from "@/theme";
 
 /** How long the bar says "X added" after a change before going back to the item count. */
@@ -40,6 +42,18 @@ export function CartBar({ aboveTabBar = false }: Props) {
   const visible = items.length > 0;
 
   const slide = useRef(new Animated.Value(visible ? 0 : 1)).current;
+
+  // Tap → the bar grows into a full-screen sheet (ExpandSheet at the root) while the Cart tab opens underneath.
+  const barRef = useRef<View>(null);
+  function openCart() {
+    const go = () => router.push("/(tabs)/cart");
+    if (!barRef.current) return go();
+    barRef.current.measureInWindow((x, y, w, h) => {
+      if (!w || !h) return go();
+      useExpand.getState().start({ x, y, w, h });
+      setTimeout(go, EXPAND_MS * 0.6); // the tab swaps while the sheet still covers the screen
+    });
+  }
   useEffect(() => {
     Animated.timing(slide, { toValue: visible ? 0 : 1, duration: 260, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
   }, [visible]);
@@ -67,7 +81,8 @@ export function CartBar({ aboveTabBar = false }: Props) {
       style={{ position: "absolute", left: 16, right: 16, bottom, transform: [{ translateY: slide.interpolate({ inputRange: [0, 1], outputRange: [0, 120] }) }] }}
     >
       <Pressable
-        onPress={() => router.push("/(tabs)/cart")}
+        ref={barRef}
+        onPress={openCart}
         accessibilityRole="button"
         accessibilityLabel={t("viewCart")}
         style={({ pressed }) => ({ borderRadius: 36, opacity: pressed ? 0.92 : 1, elevation: 12, shadowColor: "#000", shadowOpacity: 0.22, shadowRadius: 16, shadowOffset: { width: 0, height: 8 } })}
