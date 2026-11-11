@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { Animated, Easing, LayoutAnimation, Pressable, View } from "react-native";
+import { Animated, Pressable, View } from "react-native";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { TabIcon, type TabIconName } from "./TabIcon";
@@ -9,50 +9,25 @@ import { fonts, useTheme } from "@/theme";
 const ICONS: Record<string, TabIconName> = { index: "home", orders: "orders", cart: "cart", help: "help" };
 
 /**
- * Floating pill tab bar: big simple icons, and the selected tab is a solid
- * brand-orange pill that widens to show its label. Switching tabs animates
- * the widths (LayoutAnimation) while the pill, icon and label fade/scale in.
+ * Bottom tab bar where the selected tab's icon lifts out of the bar: a solid
+ * brand-orange disc springs up so it overflows the top edge, the icon turns
+ * white, and the label below cross-fades from regular to bold.
  */
 export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const { c } = useTheme();
   const insets = useSafeAreaInsets();
-  // animate the width change of the active pill on every tab switch
-  const prev = useRef(state.index);
-  useEffect(() => {
-    if (prev.current !== state.index) LayoutAnimation.configureNext(LayoutAnimation.create(220, LayoutAnimation.Types.easeInEaseOut, LayoutAnimation.Properties.scaleXY));
-    prev.current = state.index;
-  }, [state.index]);
-
   return (
-    <View style={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: Math.max(insets.bottom, 10) + 4 }}>
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          height: 66,
-          padding: 7,
-          borderRadius: 33,
-          backgroundColor: c.surface,
-          borderWidth: 1,
-          borderColor: c.border,
-          shadowColor: "#3A1D15",
-          shadowOpacity: 0.14,
-          shadowRadius: 16,
-          shadowOffset: { width: 0, height: 6 },
-          elevation: 8,
-        }}
-      >
-        {state.routes.map((route, i) => {
-          const focused = state.index === i;
-          const { options } = descriptors[route.key];
-          const label = typeof options.title === "string" ? options.title : route.name;
-          const onPress = () => {
-            const e = navigation.emit({ type: "tabPress", target: route.key, canPreventDefault: true });
-            if (!focused && !e.defaultPrevented) navigation.navigate(route.name);
-          };
-          return <Tab key={route.key} name={ICONS[route.name] ?? "home"} label={label} focused={focused} onPress={onPress} badge={options.tabBarBadge} />;
-        })}
-      </View>
+    <View style={{ flexDirection: "row", backgroundColor: c.surface, borderTopWidth: 1, borderTopColor: c.border, paddingTop: 6, paddingBottom: Math.max(insets.bottom, 10), paddingHorizontal: 8, overflow: "visible" }}>
+      {state.routes.map((route, i) => {
+        const focused = state.index === i;
+        const { options } = descriptors[route.key];
+        const label = typeof options.title === "string" ? options.title : route.name;
+        const onPress = () => {
+          const e = navigation.emit({ type: "tabPress", target: route.key, canPreventDefault: true });
+          if (!focused && !e.defaultPrevented) navigation.navigate(route.name);
+        };
+        return <Tab key={route.key} name={ICONS[route.name] ?? "home"} label={label} focused={focused} onPress={onPress} badge={options.tabBarBadge} />;
+      })}
     </View>
   );
 }
@@ -60,42 +35,63 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
 function Tab({ name, label, focused, onPress, badge }: { name: TabIconName; label: string; focused: boolean; onPress: () => void; badge?: string | number }) {
   const { c } = useTheme();
   const lang = useLang((s) => s.lang);
-  const ta = lang === "ta";
-  const t = useRef(new Animated.Value(focused ? 1 : 0)).current; // 0 idle → 1 selected
-  const press = useRef(new Animated.Value(1)).current; // squash on touch
+  const t = useRef(new Animated.Value(focused ? 1 : 0)).current;
   useEffect(() => {
-    Animated.timing(t, { toValue: focused ? 1 : 0, duration: 260, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
+    // a spring so the disc pops up with a little overshoot, then settles
+    Animated.spring(t, { toValue: focused ? 1 : 0, speed: 14, bounciness: focused ? 9 : 0, useNativeDriver: true }).start();
   }, [focused]);
 
+  const ta = lang === "ta";
+  const labelStyle = { fontSize: ta ? 11 : 12, lineHeight: 16, includeFontPadding: false as const };
+  const DISC = 52;
+
   return (
-    <Pressable
-      onPress={onPress}
-      onPressIn={() => Animated.spring(press, { toValue: 0.88, speed: 40, bounciness: 0, useNativeDriver: true }).start()}
-      onPressOut={() => Animated.spring(press, { toValue: 1, speed: 20, bounciness: 10, useNativeDriver: true }).start()}
-      accessibilityRole="tab"
-      accessibilityState={{ selected: focused }}
-      accessibilityLabel={label}
-      style={{ flex: focused ? 2 : 1, height: 52, borderRadius: 26, alignItems: "center", justifyContent: "center" }}
-    >
-      {/* the solid pill behind the selected tab */}
-      <Animated.View pointerEvents="none" style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0, borderRadius: 26, backgroundColor: c.primary, opacity: t, transform: [{ scaleX: t.interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] }) }] }} />
-      <Animated.View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 12, transform: [{ scale: press }] }}>
-        <TabIcon name={name} focused={focused} color={focused ? "#FFFFFF" : c.muted} knock={c.primary} pill={false} size={name === "help" ? 30 : 26} />
-        {focused ? (
-          <Animated.Text
-            numberOfLines={1}
-            allowFontScaling={false}
-            style={{ fontFamily: ta ? fonts.tamilBold : fonts.bodyBold, fontSize: ta ? 12 : 14, lineHeight: 18, color: "#FFFFFF", includeFontPadding: false, opacity: t, transform: [{ translateX: t.interpolate({ inputRange: [0, 1], outputRange: [-6, 0] }) }] }}
-          >
+    <Pressable onPress={onPress} accessibilityRole="tab" accessibilityState={{ selected: focused }} accessibilityLabel={label} style={{ flex: 1, alignItems: "center", overflow: "visible" }}>
+      <View style={{ height: 60, minWidth: 72, alignItems: "center", justifyContent: "flex-end", overflow: "visible" }}>
+        {/* the disc rises ~22px above the bar's top edge when selected */}
+        <Animated.View
+          style={{
+            position: "absolute",
+            top: 4,
+            width: DISC,
+            height: DISC,
+            borderRadius: DISC / 2,
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: c.primary,
+            // a halo in the page colour so the disc reads as cut out of the bar
+            borderWidth: 4,
+            borderColor: c.ground,
+            elevation: 6,
+            shadowColor: "#7A1E0E",
+            shadowOpacity: 0.3,
+            shadowRadius: 8,
+            shadowOffset: { width: 0, height: 4 },
+            opacity: t,
+            transform: [{ translateY: t.interpolate({ inputRange: [0, 1], outputRange: [8, -26] }) }, { scale: t.interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] }) }],
+          }}
+        >
+          <TabIcon name={name} focused color="#FFFFFF" knock={c.primary} pill={false} size={name === "help" ? 30 : 25} />
+        </Animated.View>
+        {/* the idle icon fades out as the disc takes over */}
+        <Animated.View style={{ position: "absolute", top: 8, opacity: t.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }), transform: [{ scale: t.interpolate({ inputRange: [0, 1], outputRange: [1, 0.7] }) }] }}>
+          <TabIcon name={name} focused={false} color={c.muted} pill={false} size={name === "help" ? 30 : 25} />
+        </Animated.View>
+        {/* regular and bold labels stacked; cross-fade so the weight change is animated */}
+        <View style={{ height: 16, marginBottom: 2, alignItems: "center", justifyContent: "center" }}>
+          <Animated.Text numberOfLines={1} allowFontScaling={false} style={[labelStyle, { fontFamily: ta ? fonts.tamil : fonts.body, color: c.muted, opacity: t.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }) }]}>
             {label}
           </Animated.Text>
-        ) : null}
-      </Animated.View>
-      {badge != null ? (
-        <View style={{ position: "absolute", top: 6, right: focused ? 10 : "22%", minWidth: 18, height: 18, paddingHorizontal: 5, borderRadius: 9, backgroundColor: focused ? "#FFFFFF" : c.primary, borderWidth: 2, borderColor: focused ? c.primary : c.surface, alignItems: "center", justifyContent: "center" }}>
-          <Animated.Text allowFontScaling={false} style={{ fontFamily: fonts.bodyBold, fontSize: 10, lineHeight: 12, color: focused ? c.primary : "#FFFFFF" }}>{String(badge)}</Animated.Text>
+          <Animated.Text numberOfLines={1} allowFontScaling={false} style={[labelStyle, { position: "absolute", fontFamily: ta ? fonts.tamilBold : fonts.bodyBold, color: c.primary, opacity: t }]}>
+            {label}
+          </Animated.Text>
         </View>
-      ) : null}
+        {badge != null ? (
+          <Animated.View style={{ position: "absolute", top: 2, right: 8, minWidth: 18, height: 18, paddingHorizontal: 5, borderRadius: 9, backgroundColor: c.primary, borderWidth: 2, borderColor: c.surface, alignItems: "center", justifyContent: "center", transform: [{ translateY: t.interpolate({ inputRange: [0, 1], outputRange: [0, -22] }) }, { translateX: t.interpolate({ inputRange: [0, 1], outputRange: [0, -4] }) }] }}>
+            <Animated.Text allowFontScaling={false} style={{ fontFamily: fonts.bodyBold, fontSize: 10, lineHeight: 12, color: "#FFFFFF" }}>{String(badge)}</Animated.Text>
+          </Animated.View>
+        ) : null}
+      </View>
     </Pressable>
   );
 }
