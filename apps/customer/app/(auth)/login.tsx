@@ -7,6 +7,7 @@ import { AppText } from "@/components/AppText";
 import { Button } from "@/components/Button";
 import { Icon } from "@/components/Icon";
 import { LangToggle } from "@/components/LangToggle";
+import { openLegal } from "@/lib/legal";
 import { supabase } from "@/lib/supabase";
 import { toE164India } from "@/store/auth";
 import { useT } from "@/i18n";
@@ -151,6 +152,10 @@ export default function LoginScreen() {
           <View style={{ gap: 12, paddingBottom: 12 }}>
             <Button label={loading ? t("otpSending") : t("sendOtp")} onPress={sendOtp} loading={loading} disabled={!e164} />
             <AppText variant="caption" muted numberOfLines={2} style={{ textAlign: "center" }}>{t("terms")}</AppText>
+            <View style={{ flexDirection: "row", justifyContent: "center", gap: 18 }}>
+              <Pressable onPress={() => openLegal("terms")} hitSlop={8} accessibilityRole="link"><AppText variant="label" color={c.price}>{t("termsLink")}</AppText></Pressable>
+              <Pressable onPress={() => openLegal("privacy")} hitSlop={8} accessibilityRole="link"><AppText variant="label" color={c.price}>{t("privacyLink")}</AppText></Pressable>
+            </View>
           </View>
         </SafeAreaView>
       </KeyboardAvoidingView>

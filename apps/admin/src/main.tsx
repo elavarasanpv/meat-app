@@ -17,6 +17,7 @@ import { Settings } from "./pages/Settings";
 import { Support } from "./pages/Support";
 import { Offers } from "./pages/Offers";
 import { RatingsPage } from "./pages/Ratings";
+import { Privacy, Terms } from "./pages/Legal";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 15_000 } },
@@ -27,6 +28,9 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <Routes>
+          {/* public pages, linked from the apps and the Play Store listing */}
+          <Route path="/terms" element={<Terms />} />
+          <Route path="/privacy" element={<Privacy />} />
           <Route path="/login" element={<Login />} />
           <Route path="/set-password" element={<SetPassword />} />
           <Route element={<Gate />}>

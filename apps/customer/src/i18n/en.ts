@@ -424,4 +424,6 @@ export const en = {
   addMoreLate: "The shop has already started on your order",
   addMoreLateSub: "Items can't be added now. Put them in your cart and place a new order.",
   addToCartInstead: "Add to cart instead",
+  termsLink: "Terms",
+  privacyLink: "Privacy policy",
 };

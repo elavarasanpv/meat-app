@@ -3,6 +3,7 @@ import { Animated, Easing, Keyboard, KeyboardAvoidingView, Platform, Pressable, 
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { clearFreshLogin, markFreshLogin } from "@/lib/freshLogin";
+import { openLegal } from "@/lib/legal";
 import { supabase } from "@/lib/supabase";
 import { useLang, useT } from "@/i18n";
 import { Icon } from "@/components/Icon";
@@ -178,6 +179,10 @@ export function Login() {
               </>
             )}
             <Txt size={12} muted style={{ textAlign: "center" }}>{t("loginFoot")}</Txt>
+            <View style={{ flexDirection: "row", justifyContent: "center", gap: 18 }}>
+              <Pressable onPress={() => openLegal("terms")} hitSlop={8} accessibilityRole="link"><Txt bold size={12} color={c.primary}>{t("termsLink")}</Txt></Pressable>
+              <Pressable onPress={() => openLegal("privacy")} hitSlop={8} accessibilityRole="link"><Txt bold size={12} color={c.primary}>{t("privacyLink")}</Txt></Pressable>
+            </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

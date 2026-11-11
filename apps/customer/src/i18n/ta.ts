@@ -413,4 +413,6 @@ export const ta: Record<keyof typeof en, string> = {
   addMoreLate: "கடை உங்கள் ஆர்டரை ஏற்கனவே தொடங்கிவிட்டது",
   addMoreLateSub: "இப்போது சேர்க்க முடியாது. கார்ட்டில் போட்டு புதிய ஆர்டர் செய்யுங்கள்.",
   addToCartInstead: "கார்ட்டில் சேர்",
+  termsLink: "விதிமுறைகள்",
+  privacyLink: "தனியுரிமைக் கொள்கை",
 };
