@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Animated, Image, Keyboard, KeyboardAvoidingView, Platform, Pressable, TextInput, View } from "react-native";
+import { Animated, Image, KeyboardAvoidingView, Platform, Pressable, TextInput, View } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
@@ -27,22 +27,12 @@ export default function LoginScreen() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [focused, setFocused] = useState(false);
-  const [keyboard, setKeyboard] = useState(false);
   const inputRef = useRef<TextInput>(null);
   const shake = useRef(new Animated.Value(0)).current;
 
   const e164 = toE164India(phone);
   const pretty = phone.length > 5 ? `${phone.slice(0, 5)} ${phone.slice(5)}` : phone;
 
-  // the hero makes room for the keyboard instead of pushing the form off screen
-  useEffect(() => {
-    const show = Keyboard.addListener(Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow", () => setKeyboard(true));
-    const hide = Keyboard.addListener(Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide", () => setKeyboard(false));
-    return () => {
-      show.remove();
-      hide.remove();
-    };
-  }, []);
 
   function wobble() {
     shake.setValue(0);
@@ -84,11 +74,9 @@ export default function LoginScreen() {
           </View>
           <LangToggle />
         </View>
-        {!keyboard && (
-          <View style={{ alignItems: "center", marginTop: 10 }}>
+                  <View style={{ alignItems: "center", marginTop: 10 }}>
             <Image source={HERO} resizeMode="contain" style={{ width: 250, height: 200 }} />
           </View>
-        )}
       </LinearGradient>
 
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>

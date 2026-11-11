@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Animated, Easing, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, TextInput, View } from "react-native";
+import { Animated, Easing, KeyboardAvoidingView, Platform, Pressable, ScrollView, TextInput, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { clearFreshLogin, markFreshLogin } from "@/lib/freshLogin";
@@ -27,19 +27,9 @@ export function Login() {
   const [stage, setStage] = useState<"phone" | "otp">("phone");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [keyboard, setKeyboard] = useState(false);
   const otpRef = useRef<TextInput>(null);
   const shake = useRef(new Animated.Value(0)).current;
 
-  // the hero shrinks for the keyboard so the field and button stay on screen
-  useEffect(() => {
-    const show = Keyboard.addListener(Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow", () => setKeyboard(true));
-    const hide = Keyboard.addListener(Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide", () => setKeyboard(false));
-    return () => {
-      show.remove();
-      hide.remove();
-    };
-  }, []);
 
   function wobble() {
     shake.setValue(0);
@@ -84,7 +74,7 @@ export function Login() {
   return (
     <View style={{ flex: 1, backgroundColor: c.ground }}>
       {/* hero */}
-      <LinearGradient colors={[...HERO]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ paddingTop: insets.top + 10, paddingHorizontal: 22, paddingBottom: keyboard ? 22 : 30, borderBottomLeftRadius: 34, borderBottomRightRadius: 34, overflow: "hidden" }}>
+      <LinearGradient colors={[...HERO]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ paddingTop: insets.top + 10, paddingHorizontal: 22, paddingBottom: 30, borderBottomLeftRadius: 34, borderBottomRightRadius: 34, overflow: "hidden" }}>
         <View pointerEvents="none" style={{ position: "absolute", right: -70, top: -90, width: 240, height: 240, borderRadius: 120, backgroundColor: "rgba(255,255,255,0.08)" }} />
         <View pointerEvents="none" style={{ position: "absolute", left: -40, bottom: -60, width: 160, height: 160, borderRadius: 80, backgroundColor: "rgba(255,255,255,0.06)" }} />
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
@@ -99,8 +89,7 @@ export function Login() {
           </Pressable>
         </View>
 
-        {!keyboard ? (
-          <View style={{ marginTop: 26, gap: 16 }}>
+                  <View style={{ marginTop: 26, gap: 16 }}>
             <Txt bold size={lang === "ta" ? 26 : 30} color="#FFFFFF" style={{ lineHeight: lang === "ta" ? 36 : 38 }}>{t("loginHero")}</Txt>
             {/* who this app is for */}
             <View style={{ flexDirection: "row", gap: 10 }}>
@@ -117,7 +106,6 @@ export function Login() {
               ))}
             </View>
           </View>
-        ) : null}
       </LinearGradient>
 
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>

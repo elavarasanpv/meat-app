@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Animated, Easing, Image, Keyboard, Platform, Pressable, TextInput, View } from "react-native";
+import { Animated, Easing, Image, Pressable, TextInput, View } from "react-native";
 import { Redirect, useLocalSearchParams, useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
@@ -25,7 +25,6 @@ export default function OtpScreen() {
   const t = useT();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const [keyboard, setKeyboard] = useState(false);
   const { phone } = useLocalSearchParams<{ phone: string }>();
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -36,15 +35,6 @@ export default function OtpScreen() {
   const shake = useRef(new Animated.Value(0)).current;
   const blink = useRef(new Animated.Value(1)).current;
 
-  // the hero makes room for the keyboard so the boxes and button stay on screen
-  useEffect(() => {
-    const show = Keyboard.addListener(Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow", () => setKeyboard(true));
-    const hide = Keyboard.addListener(Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide", () => setKeyboard(false));
-    return () => {
-      show.remove();
-      hide.remove();
-    };
-  }, []);
 
   useEffect(() => {
     if (seconds <= 0) return;
@@ -101,7 +91,7 @@ export default function OtpScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: c.ground }}>
       {/* hero: same peach gradient and doodles as login, with the shop-to-door drawing */}
-      <LinearGradient colors={[...HEADER]} start={{ x: 0, y: 0 }} end={{ x: 0.8, y: 1 }} style={{ paddingTop: insets.top + 8, paddingHorizontal: 20, paddingBottom: keyboard ? 18 : 22, borderBottomLeftRadius: 34, borderBottomRightRadius: 34, overflow: "hidden" }}>
+      <LinearGradient colors={[...HEADER]} start={{ x: 0, y: 0 }} end={{ x: 0.8, y: 1 }} style={{ paddingTop: insets.top + 8, paddingHorizontal: 20, paddingBottom: 22, borderBottomLeftRadius: 34, borderBottomRightRadius: 34, overflow: "hidden" }}>
         <View pointerEvents="none" style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0 }}>
           <Image source={PATTERN} resizeMode="cover" style={{ width: "100%", height: "100%", opacity: 0.18 }} />
         </View>
@@ -117,8 +107,7 @@ export default function OtpScreen() {
           </Pressable>
           <LangToggle />
         </View>
-        {!keyboard && (
-          <View style={{ alignItems: "center", marginTop: 10 }}>
+                  <View style={{ alignItems: "center", marginTop: 10 }}>
             <Image source={JOURNEY} resizeMode="contain" style={{ width: "100%", height: 150 }} />
             {done ? (
               <View style={{ position: "absolute", top: 8, right: 8, width: 36, height: 36, borderRadius: 18, backgroundColor: c.success, alignItems: "center", justifyContent: "center" }}>
@@ -126,7 +115,6 @@ export default function OtpScreen() {
               </View>
             ) : null}
           </View>
-        )}
       </LinearGradient>
 
       <SafeAreaView edges={["bottom"]} style={{ flex: 1, paddingHorizontal: 22, paddingTop: 20 }}>
