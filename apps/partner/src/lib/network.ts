@@ -3,6 +3,14 @@ import NetInfo from "@react-native-community/netinfo";
 import { onlineManager, useIsRestoring, useQueryClient, type QueryClient } from "@tanstack/react-query";
 
 /**
+ * Offline only when the phone has no connection at all. NetInfo's extra
+ * "internet reachable" probe (a fetch to a Google URL) fails or times out on
+ * many Indian mobile networks while everything else works, so it is ignored:
+ * trusting it froze the app with "No internet" on a connected phone.
+ */
+const isOnline = (s: { isConnected: boolean | null }) => s.isConnected !== false;
+
+/**
  * Tell TanStack Query when the phone is offline so queries pause (keeping the
  * last data on screen) instead of failing, and refetch the moment the network
  * comes back.
@@ -11,7 +19,7 @@ export function bindOnlineManager(queryClient: QueryClient) {
   let wasOnline = true;
   onlineManager.setEventListener((setOnline) =>
     NetInfo.addEventListener((state) => {
-      const online = !!state.isConnected && state.isInternetReachable !== false;
+      const online = isOnline(state);
       setOnline(online);
       // Right after reconnecting the radio/DNS can still be flaky; give it a
       // moment, then retry anything that errored.
@@ -30,7 +38,7 @@ export function bindOnlineManager(queryClient: QueryClient) {
 export function useIsOffline(): boolean {
   const [offline, setOffline] = useState(false);
   useEffect(() => {
-    const sub = NetInfo.addEventListener((s) => setOffline(!(s.isConnected && s.isInternetReachable !== false)));
+    const sub = NetInfo.addEventListener((s) => setOffline(!isOnline(s)));
     return () => sub();
   }, []);
   return offline;
