@@ -37,6 +37,7 @@ const SECTIONS: { title: string; items: { to: string; label: string; Icon: typeo
       { to: "/cash", label: "Cash", Icon: IconCash },
       { to: "/support", label: "Support", Icon: IconChat },
       { to: "/offers", label: "Offers", Icon: IconTag },
+      { to: "/pricing", label: "Pricing", Icon: IconCash },
       { to: "/ratings", label: "Ratings", Icon: IconStar },
     ],
   },

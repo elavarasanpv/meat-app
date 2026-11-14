@@ -17,6 +17,7 @@ import { Settings } from "./pages/Settings";
 import { Support } from "./pages/Support";
 import { Offers } from "./pages/Offers";
 import { RatingsPage } from "./pages/Ratings";
+import { PricingPage } from "./pages/Pricing";
 import { Privacy, Terms } from "./pages/Legal";
 
 const queryClient = new QueryClient({
@@ -42,6 +43,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
               <Route path="/cash" element={<Cash />} />
               <Route path="/support" element={<Support />} />
               <Route path="/offers" element={<Offers />} />
+              <Route path="/pricing" element={<PricingPage />} />
               <Route path="/ratings" element={<RatingsPage />} />
               <Route path="/notifications" element={<Notifications />} />
               <Route path="/settings" element={<Settings />} />

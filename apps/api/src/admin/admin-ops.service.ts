@@ -1,5 +1,5 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from "@nestjs/common";
-import type { AdminBroadcastInput, AdminRiderInput, AdminShopInput } from "@freshcut/shared";
+import type { AdminBroadcastInput, AdminRiderInput, AdminSellPriceInput, AdminShopInput, AdminShopPriceInput } from "@freshcut/shared";
 import { SupabaseService } from "../supabase.service";
 import { OrdersService } from "../orders/orders.service";
 import { AssignmentService } from "../dealer/assignment.service";
@@ -33,6 +33,134 @@ export class AdminOpsService {
     private readonly audit: AdminService,
     private readonly push: PushService,
   ) {}
+
+  // ───────────────────────── pricing ─────────────────────────
+  /**
+   * Everything the Pricing page needs in one call: each product's default
+   * selling price, its per-pincode overrides, every shop's cost for it, the
+   * serviceable pincodes and the shops. Profit is worked out in the UI.
+   */
+  async pricing() {
+    const db = this.supabase.admin;
+    const [{ data: products }, { data: overrides }, { data: costs }, { data: dealers }, { data: pins }] = await Promise.all([
+      db.from("products").select("id, name, name_ta, unit, base_price_per_kg, is_active, categories(name, sort)").eq("is_active", true),
+      db.from("product_prices").select("product_id, pincode, price_per_kg"),
+      db.from("dealer_products").select("dealer_id, product_id, price_per_kg"),
+      db.from("dealers").select("id, shop_name").eq("is_active", true).order("shop_name"),
+      db.from("zone_pincodes").select("pincode, area").order("pincode"),
+    ]);
+    const over = new Map<string, Record<string, number>>();
+    for (const o of overrides ?? []) {
+      const m = over.get(o.product_id) ?? {};
+      m[o.pincode] = Number(o.price_per_kg);
+      over.set(o.product_id, m);
+    }
+    const cost = new Map<string, Record<string, number>>();
+    for (const c of costs ?? []) {
+      if (c.price_per_kg == null) continue;
+      const m = cost.get(c.product_id) ?? {};
+      m[c.dealer_id] = Number(c.price_per_kg);
+      cost.set(c.product_id, m);
+    }
+    return {
+      dealers: dealers ?? [],
+      pincodes: pins ?? [],
+      products: (products ?? [])
+        .map((p) => {
+          const c = p.categories as unknown as { name: string; sort: number } | null;
+          return {
+            id: p.id,
+            name: p.name,
+            nameTa: p.name_ta,
+            unit: p.unit,
+            category: c?.name ?? "Other",
+            sort: c?.sort ?? 99,
+            sellingPrice: Number(p.base_price_per_kg),
+            overrides: over.get(p.id as string) ?? {},
+            costs: cost.get(p.id as string) ?? {},
+          };
+        })
+        .sort((a, b) => a.sort - b.sort || a.name.localeCompare(b.name)),
+    };
+  }
+
+  /** Set the selling price: the default (no pincode), or one pincode's override (price null removes it). */
+  async setSellPrice(adminId: string, input: AdminSellPriceInput) {
+    const db = this.supabase.admin;
+    const { data: product } = await db.from("products").select("id, base_price_per_kg").eq("id", input.productId).single();
+    if (!product) throw new NotFoundException("Product not found");
+    const base = Number(product.base_price_per_kg);
+
+    if (!input.pincode) {
+      if (input.price == null) throw new BadRequestException("The default price cannot be removed");
+      await db.from("products").update({ base_price_per_kg: input.price }).eq("id", input.productId);
+      await db.from("price_history").insert({ product_id: input.productId, kind: "sell", pincode: null, old_price: base, new_price: input.price, changed_by: adminId });
+      await this.audit.log(adminId, "price.sell", input.productId, { from: base, to: input.price });
+      return { ok: true };
+    }
+
+    const { data: existing } = await db.from("product_prices").select("price_per_kg").eq("product_id", input.productId).eq("pincode", input.pincode).maybeSingle();
+    const old = existing ? Number(existing.price_per_kg) : null;
+    if (input.price == null) {
+      if (old == null) return { ok: true };
+      await db.from("product_prices").delete().eq("product_id", input.productId).eq("pincode", input.pincode);
+      await db.from("price_history").insert({ product_id: input.productId, kind: "sell", pincode: input.pincode, old_price: old, new_price: base, changed_by: adminId });
+      await this.audit.log(adminId, "price.sell.reset", input.productId, { pincode: input.pincode, from: old, to: base });
+      return { ok: true };
+    }
+    await db.from("product_prices").upsert({ product_id: input.productId, pincode: input.pincode, price_per_kg: input.price, updated_at: new Date().toISOString() }, { onConflict: "product_id,pincode" });
+    await db.from("price_history").insert({ product_id: input.productId, kind: "sell", pincode: input.pincode, old_price: old ?? base, new_price: input.price, changed_by: adminId });
+    await this.audit.log(adminId, "price.sell", input.productId, { pincode: input.pincode, from: old ?? base, to: input.price });
+    return { ok: true };
+  }
+
+  /** Set what we pay one shop for a product (the cost price). */
+  async setShopPrice(adminId: string, input: AdminShopPriceInput) {
+    const db = this.supabase.admin;
+    const { data: existing } = await db.from("dealer_products").select("price_per_kg").eq("dealer_id", input.dealerId).eq("product_id", input.productId).maybeSingle();
+    const old = existing?.price_per_kg == null ? null : Number(existing.price_per_kg);
+    await db.from("dealer_products").upsert({ dealer_id: input.dealerId, product_id: input.productId, price_per_kg: input.price }, { onConflict: "dealer_id,product_id" });
+    await db.from("price_history").insert({ product_id: input.productId, kind: "shop", dealer_id: input.dealerId, old_price: old, new_price: input.price, changed_by: adminId });
+    await this.audit.log(adminId, "price.shop", input.productId, { dealerId: input.dealerId, from: old, to: input.price });
+    return { ok: true };
+  }
+
+  /** Latest price changes, newest first, with the profit each product makes now. */
+  async priceHistory(limit = 12) {
+    const db = this.supabase.admin;
+    const { data: rows } = await db
+      .from("price_history")
+      .select("id, kind, pincode, old_price, new_price, created_at, products(id, name, base_price_per_kg), dealers(shop_name), profiles:changed_by(full_name)")
+      .order("created_at", { ascending: false })
+      .limit(limit);
+    const ids = [...new Set((rows ?? []).map((r) => (r.products as unknown as { id: string } | null)?.id).filter(Boolean))] as string[];
+    const { data: costs } = ids.length ? await db.from("dealer_products").select("product_id, price_per_kg").in("product_id", ids) : { data: [] };
+    const minCost = new Map<string, number>();
+    for (const c of costs ?? []) {
+      if (c.price_per_kg == null) continue;
+      const cur = minCost.get(c.product_id);
+      const v = Number(c.price_per_kg);
+      if (cur == null || v < cur) minCost.set(c.product_id, v);
+    }
+    return (rows ?? []).map((r) => {
+      const p = r.products as unknown as { id: string; name: string; base_price_per_kg: number } | null;
+      const sell = p ? Number(p.base_price_per_kg) : null;
+      const c = p ? minCost.get(p.id) ?? null : null;
+      return {
+        id: r.id,
+        kind: r.kind as "sell" | "shop",
+        product: p?.name ?? "—",
+        pincode: r.pincode,
+        shop: (r.dealers as unknown as { shop_name: string } | null)?.shop_name ?? null,
+        from: r.old_price == null ? null : Number(r.old_price),
+        to: Number(r.new_price),
+        by: (r.profiles as unknown as { full_name: string | null } | null)?.full_name ?? null,
+        at: r.created_at,
+        profitNow: sell != null && c != null ? Math.round((sell - c) * 100) / 100 : null,
+        marginPctNow: sell != null && c != null && sell > 0 ? Math.round(((sell - c) / sell) * 1000) / 10 : null,
+      };
+    });
+  }
 
   // ───────────────────────── promo pushes ─────────────────────────
   /** Sends a promo push to everyone in the audience and records the result. */

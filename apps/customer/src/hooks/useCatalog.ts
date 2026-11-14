@@ -1,5 +1,7 @@
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
+import { useAddresses } from "./useOrders";
 
 export type Category = { id: string; name: string; name_ta: string | null; sort: number };
 export type ProductUnit = "kg" | "piece";
@@ -53,8 +55,29 @@ export function useCategories() {
   });
 }
 
-export function useProducts(categoryId?: string | null) {
+/**
+ * Selling-price overrides for the customer's pincode: admin can price an
+ * area differently; everywhere else sees the default product price.
+ */
+export function useSellPrices() {
+  const pincode = useAddresses().data?.[0]?.pincode;
   return useQuery({
+    queryKey: ["sell_prices", pincode ?? "none"],
+    enabled: !!pincode,
+    staleTime: 5 * 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("product_prices").select("product_id, price_per_kg").eq("pincode", pincode!);
+      if (error) throw error;
+      const out: Record<string, number> = {};
+      for (const r of data) out[r.product_id] = Number(r.price_per_kg);
+      return out;
+    },
+  });
+}
+
+export function useProducts(categoryId?: string | null) {
+  const prices = useSellPrices().data;
+  const q = useQuery({
     queryKey: ["products", categoryId ?? "all"],
     queryFn: async () => {
       let q = supabase
@@ -68,6 +91,12 @@ export function useProducts(categoryId?: string | null) {
       return data as Product[];
     },
   });
+  // overlay the pincode's prices so every screen shows what this customer pays
+  const data = useMemo(
+    () => (q.data && prices && Object.keys(prices).length ? q.data.map((p) => (prices[p.id] != null ? { ...p, base_price_per_kg: prices[p.id] } : p)) : q.data),
+    [q.data, prices],
+  );
+  return { ...q, data };
 }
 
 export type ProductStat = { product_id: string; avg_stars: number | null; rating_count: number; customers: number };

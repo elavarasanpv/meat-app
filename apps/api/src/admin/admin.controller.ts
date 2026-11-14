@@ -1,5 +1,5 @@
 import { BadRequestException, Body, Controller, Delete, Get, Headers, Param, Patch, Post, Query } from "@nestjs/common";
-import { adminHeadlineSchema, adminOfferSchema, ticketResolveSchema, ticketReplySchema, adminInviteSchema, adminProfileSchema, adminCancelSchema, adminCashVerifySchema, adminReassignShopSchema, adminRiderSchema, adminShopSchema, adminBroadcastSchema } from "@freshcut/shared";
+import { adminHeadlineSchema, adminOfferSchema, ticketResolveSchema, ticketReplySchema, adminInviteSchema, adminProfileSchema, adminCancelSchema, adminCashVerifySchema, adminReassignShopSchema, adminRiderSchema, adminShopSchema, adminBroadcastSchema, adminSellPriceSchema, adminShopPriceSchema } from "@freshcut/shared";
 import type { ZodTypeAny, z } from "zod";
 import { AdminOpsService } from "./admin-ops.service";
 import { AdminAccountService } from "./admin-account.service";
@@ -190,6 +190,31 @@ export class AdminController {
     const r = await this.offersSvc.setActive(id, !!body?.active);
     await this.admin.log(a.id, body?.active ? "offer.resume" : "offer.pause", id);
     return r;
+  }
+
+  // ── pricing ──
+  @Get("pricing")
+  async pricing(@Headers("authorization") auth: string | undefined) {
+    await this.guard(auth);
+    return this.ops.pricing();
+  }
+
+  @Post("pricing/sell")
+  async sellPrice(@Headers("authorization") auth: string | undefined, @Body() body: unknown) {
+    const a = await this.guard(auth);
+    return this.ops.setSellPrice(a.id, parse(adminSellPriceSchema, body));
+  }
+
+  @Post("pricing/shop")
+  async shopPrice(@Headers("authorization") auth: string | undefined, @Body() body: unknown) {
+    const a = await this.guard(auth);
+    return this.ops.setShopPrice(a.id, parse(adminShopPriceSchema, body));
+  }
+
+  @Get("pricing/history")
+  async priceHistory(@Headers("authorization") auth: string | undefined) {
+    await this.guard(auth);
+    return this.ops.priceHistory();
   }
 
   // ── promo pushes ──

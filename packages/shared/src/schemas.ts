@@ -326,6 +326,22 @@ export const adminHeadlineSchema = z
   .refine((v) => new Date(v.endsAt) > new Date(v.startsAt), { path: ["endsAt"], message: "Must end after it starts" });
 export type AdminHeadlineInput = z.infer<typeof adminHeadlineSchema>;
 
+/** Admin pricing: selling price (default or one pincode) and shop cost. */
+export const adminSellPriceSchema = z.object({
+  productId: z.string().uuid(),
+  /** null / absent = the default price for every pincode. */
+  pincode: z.string().regex(/^[1-9]\d{5}$/).optional().nullable(),
+  /** null with a pincode = remove that override (back to the default). */
+  price: z.number().positive().max(100000).nullable(),
+});
+export const adminShopPriceSchema = z.object({
+  dealerId: z.string().uuid(),
+  productId: z.string().uuid(),
+  price: z.number().positive().max(100000),
+});
+export type AdminSellPriceInput = z.infer<typeof adminSellPriceSchema>;
+export type AdminShopPriceInput = z.infer<typeof adminShopPriceSchema>;
+
 /** A promo push from the admin: "Sunday special", a new offer, a notice to shops or riders. */
 export const BROADCAST_AUDIENCES = ["customers", "shops", "riders", "all"] as const;
 export const adminBroadcastSchema = z.object({

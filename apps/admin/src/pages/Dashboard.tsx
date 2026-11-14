@@ -4,6 +4,7 @@ import type { AdminMe } from "../auth/Gate";
 import { api } from "../lib/api";
 import { PageHeader, displayName } from "../shell/Shell";
 import { Bars, Donut, FlowChart } from "../ui/charts";
+import { Chip, ago } from "../ui/kit";
 import { IconArrowUp, IconCheck, IconClock, IconMap, IconRider, IconShop, IconX } from "../ui/icons";
 
 type Order = { id: string; displayId: string; status: string; amount: number; createdAt: string; customer: string | null; shop: string | null };
@@ -44,9 +45,12 @@ const STATUS: Record<string, { label: string; tone: "ok" | "warn" | "bad" | "inf
 const tone = (t: "ok" | "warn" | "bad" | "info") =>
   t === "ok" ? "bg-ok-bg text-ok" : t === "warn" ? "bg-warn-bg text-warn" : t === "bad" ? "bg-tint text-bad" : "bg-[#DFEAFB] text-[#2F6FD1]";
 
+type PriceChange = { id: number; kind: "sell" | "shop"; product: string; pincode: string | null; shop: string | null; from: number | null; to: number; by: string | null; at: string; profitNow: number | null; marginPctNow: number | null };
+
 export function Dashboard() {
   const me = useOutletContext<AdminMe>();
   const q = useQuery<Dashboard>({ queryKey: ["admin", "dashboard"], queryFn: () => api("/admin/dashboard"), refetchInterval: 30_000 });
+  const priceChanges = useQuery<PriceChange[]>({ queryKey: ["admin", "price-history"], queryFn: () => api("/admin/pricing/history"), refetchInterval: 60_000 });
   const d = q.data;
   const days = d?.days ?? [];
   const weekOrders = days.reduce((s, x) => s + x.orders, 0);
@@ -217,6 +221,37 @@ export function Dashboard() {
                 </div>
               );
             })}
+          </div>
+        </section>
+
+        <section className="card">
+          <div className="flex items-start justify-between">
+            <div><div className="card-title">Price changes</div><div className="card-sub">selling and shop prices · latest first</div></div>
+            <Link to="/pricing" className="text-[11px] font-bold text-primary">Pricing</Link>
+          </div>
+          <div className="mt-2 divide-y divide-line">
+            {(priceChanges.data ?? []).slice(0, 6).map((c) => {
+              const up = c.from != null && c.to > c.from;
+              const dir = c.from == null ? "" : up ? "▲" : "▼";
+              const dirCls = c.kind === "sell" ? (up ? "text-ok" : "text-bad") : up ? "text-bad" : "text-ok";
+              return (
+                <div key={c.id} className="flex items-center gap-2 py-1.5 text-[12px]">
+                  <Chip tone={c.kind === "sell" ? "info" : "warn"}>{c.kind === "sell" ? "Selling" : "Shop"}</Chip>
+                  <span className="min-w-0 flex-1 truncate">
+                    <b>{c.product}</b>
+                    <span className="text-muted"> {c.kind === "sell" ? (c.pincode ? `· ${c.pincode}` : "· default") : c.shop ? `· ${c.shop}` : ""}</span>
+                  </span>
+                  <span className="whitespace-nowrap font-bold tabular-nums">
+                    {c.from != null ? <span className="text-muted">₹{c.from} → </span> : null}₹{c.to} <span className={dirCls}>{dir}</span>
+                  </span>
+                  <span className="hidden w-24 whitespace-nowrap text-right text-[11px] text-muted sm:inline">
+                    {c.profitNow != null ? `profit ₹${c.profitNow}` : ""}
+                  </span>
+                  <span className="w-14 whitespace-nowrap text-right text-[11px] text-muted">{ago(c.at)}</span>
+                </div>
+              );
+            })}
+            {priceChanges.data && !priceChanges.data.length && <div className="py-3 text-[12px] text-muted">No price changes yet. Set prices on the Pricing page.</div>}
           </div>
         </section>
 
