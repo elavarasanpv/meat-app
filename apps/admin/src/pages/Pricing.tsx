@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
 import { PageHeader } from "../shell/Shell";
 import { Chip, Empty, ErrorBox, Segments, inputCls } from "../ui/kit";
+import { IconCheck, IconX } from "../ui/icons";
 
 type Pricing = {
   dealers: { id: string; shop_name: string }[];
@@ -10,30 +11,62 @@ type Pricing = {
   products: { id: string; name: string; nameTa: string | null; unit: "kg" | "piece"; category: string; sellingPrice: number; overrides: Record<string, number>; costs: Record<string, number> }[];
 };
 
-/** ₹/kg input that saves when you press Enter or click away (only if changed). */
+/**
+ * ₹/kg input with an explicit confirm: as soon as the value differs from the
+ * saved one, a green tick (save) and a grey cross (discard) appear — nothing
+ * is saved until the tick (or Enter). Escape discards. Prices go live in the
+ * customer app, so no silent saves.
+ */
 function PriceCell({ value, placeholder, onSave, saving, label }: { value: number | null; placeholder?: string; onSave: (v: number) => void; saving: boolean; label: string }) {
   const [text, setText] = useState(value == null ? "" : String(value));
   useEffect(() => setText(value == null ? "" : String(value)), [value]);
-  const commit = () => {
-    const v = Number(text);
-    if (!text.trim() || !Number.isFinite(v) || v <= 0 || v === value) {
-      setText(value == null ? "" : String(value));
-      return;
-    }
-    onSave(Math.round(v * 100) / 100);
+  const orig = value == null ? "" : String(value);
+  const num = Number(text);
+  const valid = !!text.trim() && Number.isFinite(num) && num > 0;
+  const dirty = text.trim() !== orig;
+  const save = () => {
+    if (dirty && valid && !saving) onSave(Math.round(num * 100) / 100);
   };
+  const discard = () => setText(orig);
   return (
-    <input
-      aria-label={label}
-      inputMode="decimal"
-      className={`${inputCls} h-8 w-[84px] px-2 text-right font-bold tabular-nums ${saving ? "opacity-50" : ""}`}
-      value={text}
-      placeholder={placeholder}
-      onChange={(e) => setText(e.target.value)}
-      onBlur={commit}
-      onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()}
-      disabled={saving}
-    />
+    <span className="inline-flex items-center gap-1">
+      {dirty && !saving && (
+        <>
+          <button
+            type="button"
+            title="Save this price"
+            aria-label={`Save ${label}`}
+            disabled={!valid}
+            onClick={save}
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-white shadow-sm transition hover:bg-primary-dark disabled:opacity-35"
+          >
+            <IconCheck size={14} />
+          </button>
+          <button
+            type="button"
+            title="Discard the change"
+            aria-label={`Discard change to ${label}`}
+            onClick={discard}
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-line bg-surface text-muted transition hover:border-muted/40 hover:text-ink"
+          >
+            <IconX size={14} />
+          </button>
+        </>
+      )}
+      <input
+        aria-label={label}
+        inputMode="decimal"
+        className={`${inputCls} h-8 w-[84px] px-2 text-right font-bold tabular-nums ${saving ? "opacity-50" : ""} ${dirty ? "border-primary ring-1 ring-primary/40" : ""}`}
+        value={text}
+        placeholder={placeholder}
+        onChange={(e) => setText(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") save();
+          if (e.key === "Escape") discard();
+        }}
+        disabled={saving}
+      />
+    </span>
   );
 }
 
