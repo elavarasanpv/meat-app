@@ -7,9 +7,10 @@ import { AdminModule } from "./admin/admin.module";
 import { SupportModule } from "./support/support.module";
 import { OffersModule } from "./offers/offers.module";
 import { VoiceModule } from "./voice/voice.module";
+import { CatalogModule } from "./catalog/catalog.module";
 
 @Module({
-  imports: [OrdersModule, RiderModule, DealerModule, AdminModule, SupportModule, OffersModule, VoiceModule],
+  imports: [OrdersModule, RiderModule, DealerModule, AdminModule, SupportModule, OffersModule, VoiceModule, CatalogModule],
   controllers: [HealthController],
 })
 export class AppModule {}

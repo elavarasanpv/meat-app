@@ -11,6 +11,7 @@ import { Btn, Chip, Drawer, Empty, ErrorBox, Field, Section, inputCls, inr, phon
 type Shop = {
   id: string;
   name: string;
+  storeType: "meat" | "grocery";
   owner: string | null;
   phone: string | null;
   isActive: boolean;
@@ -31,6 +32,7 @@ export type Catalog = {
 type ShopDetail = {
   id: string;
   shopName: string;
+  storeType: "meat" | "grocery";
   ownerName: string;
   phone: string;
   fssaiNo: string | null;
@@ -81,6 +83,7 @@ export function Shops() {
                   {s.owner ?? "Owner"} · {phone10(s.phone)}
                 </div>
               </div>
+              {s.storeType === "grocery" && <Chip tone="info">Grocery</Chip>}
               {!s.isActive ? <Chip tone="mute">Inactive</Chip> : s.isOpen ? <Chip tone="ok">Open</Chip> : <Chip tone="bad">Closed</Chip>}
             </div>
             <div className="mt-3 grid grid-cols-3 gap-2 text-center">
@@ -140,6 +143,7 @@ function Stat({ label, value }: { label: string; value: string }) {
 }
 
 type Form = {
+  storeType: "meat" | "grocery";
   phone: string;
   ownerName: string;
   shopName: string;
@@ -151,7 +155,7 @@ type Form = {
   prices: Record<string, string>;
   isActive: boolean;
 };
-const blank: Form = { phone: "", ownerName: "", shopName: "", fssaiNo: "", pin: null, pincodes: [], openWindows: [["06:00", "13:00"], ["16:00", "20:00"]], weeklyOff: null, prices: {}, isActive: true };
+const blank: Form = { storeType: "meat", phone: "", ownerName: "", shopName: "", fssaiNo: "", pin: null, pincodes: [], openWindows: [["06:00", "13:00"], ["16:00", "20:00"]], weeklyOff: null, prices: {}, isActive: true };
 
 function ShopForm({ id, onClose }: { id: string | null; onClose: () => void }) {
   const qc = useQueryClient();
@@ -164,6 +168,7 @@ function ShopForm({ id, onClose }: { id: string | null; onClose: () => void }) {
   if (id && detail.data && !form) {
     const d = detail.data;
     setForm({
+      storeType: d.storeType ?? "meat",
       phone: d.phone,
       ownerName: d.ownerName,
       shopName: d.shopName,
@@ -210,7 +215,9 @@ function ShopForm({ id, onClose }: { id: string | null; onClose: () => void }) {
     if (!form!.pincodes.length) return setError("Pick at least one pincode the shop delivers to.");
     const products = Object.entries(form!.prices).map(([productId, v]) => ({ productId, pricePerKg: Number(v) }));
     if (products.some((p) => !(p.pricePerKg > 0))) return setError("Every ticked product needs the shop's price.");
+    if (form!.storeType === "meat" && !products.length) return setError("Tick at least one product the shop sells.");
     save.mutate({
+      storeType: form!.storeType,
       phone: form!.phone,
       ownerName: form!.ownerName,
       shopName: form!.shopName,
@@ -258,6 +265,12 @@ function ShopForm({ id, onClose }: { id: string | null; onClose: () => void }) {
           </Field>
           <Field label="FSSAI number (optional)">
             <input className={inputCls} value={form.fssaiNo} onChange={(e) => set({ fssaiNo: e.target.value })} placeholder="12345678901234" />
+          </Field>
+          <Field label="What the shop sells" hint={form.storeType === "grocery" ? "Products come from the Catalog page (grocery master + imports)." : "Meat & fish, priced per kg below."}>
+            <select className={inputCls} value={form.storeType} onChange={(e) => set({ storeType: e.target.value as Form["storeType"] })}>
+              <option value="meat">Meat & fish</option>
+              <option value="grocery">Grocery</option>
+            </select>
           </Field>
         </div>
         {id && (
@@ -329,6 +342,7 @@ function ShopForm({ id, onClose }: { id: string | null; onClose: () => void }) {
         </div>
       </Section>
 
+      {form.storeType === "meat" && (
       <Section title={`Products and shop price (${chosen.length})`}>
         <div className="mb-2 text-[11.5px] text-muted">Tick what the shop sells and enter what we pay the shop. Customers see the selling price. The difference is our margin.</div>
         <div className="space-y-3">
@@ -369,6 +383,7 @@ function ShopForm({ id, onClose }: { id: string | null; onClose: () => void }) {
           ))}
         </div>
       </Section>
+      )}
     </Drawer>
   );
 }

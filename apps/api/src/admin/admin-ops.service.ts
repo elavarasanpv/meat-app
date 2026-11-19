@@ -438,7 +438,7 @@ export class AdminOpsService {
     const [{ data: shops }, { data: today }] = await Promise.all([
       db
         .from("dealers")
-        .select("id, shop_name, is_open, is_active, closed_until, open_windows, weekly_off, lat, lng, created_at, profiles(full_name, phone), dealer_pincodes(pincode), dealer_products(product_id)")
+        .select("id, shop_name, store_type, is_open, is_active, closed_until, open_windows, weekly_off, lat, lng, created_at, profiles(full_name, phone), dealer_pincodes(pincode), dealer_products(product_id)")
         .order("created_at"),
       db.from("orders").select("dealer_id, status, final_amount, est_amount").gte("created_at", today0).not("dealer_id", "is", null),
     ]);
@@ -449,6 +449,7 @@ export class AdminOpsService {
       return {
         id: s.id,
         name: s.shop_name,
+        storeType: s.store_type ?? "meat",
         owner: p?.full_name ?? null,
         phone: p?.phone ?? null,
         isActive: s.is_active,
@@ -468,7 +469,7 @@ export class AdminOpsService {
   async shopDetail(id: string) {
     const { data: s } = await this.db
       .from("dealers")
-      .select("id, shop_name, fssai_no, lat, lng, is_active, open_windows, weekly_off, profiles(full_name, phone), dealer_pincodes(pincode), dealer_products(product_id, price_per_kg)")
+      .select("id, shop_name, store_type, fssai_no, lat, lng, is_active, open_windows, weekly_off, profiles(full_name, phone), dealer_pincodes(pincode), dealer_products(product_id, price_per_kg)")
       .eq("id", id)
       .maybeSingle();
     if (!s) throw new NotFoundException("Shop not found");
@@ -476,6 +477,7 @@ export class AdminOpsService {
     return {
       id: s.id,
       shopName: s.shop_name,
+      storeType: s.store_type ?? "meat",
       ownerName: p?.full_name ?? "",
       phone: (p?.phone ?? "").replace(/^91/, ""),
       fssaiNo: s.fssai_no,
@@ -516,6 +518,7 @@ export class AdminOpsService {
         open_windows: input.openWindows,
         weekly_off: input.weeklyOff,
         ...(input.isActive === undefined ? {} : { is_active: input.isActive }),
+        ...(input.storeType ? { store_type: input.storeType } : {}),
       })
       .eq("id", dealerId!);
     if (error) throw new BadRequestException(error.message);
@@ -542,6 +545,7 @@ export class AdminOpsService {
       pincodes: input.pincodes,
       products: input.products.length,
       active: input.isActive,
+      storeType: input.storeType,
     });
     return { id: dealerId };
   }

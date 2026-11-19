@@ -205,6 +205,8 @@ export const adminShopSchema = z.object({
   weeklyOff: z.number().int().min(0).max(6).nullable(),
   products: z.array(z.object({ productId: z.string().uuid(), pricePerKg: z.number().positive().max(100000) })),
   isActive: z.boolean().optional(),
+  /** Which vertical the shop sells (G1). Omitted = unchanged (meat for new shops). */
+  storeType: z.enum(["meat", "grocery"]).optional(),
 });
 export type AdminShopInput = z.infer<typeof adminShopSchema>;
 
@@ -354,3 +356,102 @@ export const adminBroadcastSchema = z.object({
   offerId: z.string().uuid().optional().nullable(),
 });
 export type AdminBroadcastInput = z.infer<typeof adminBroadcastSchema>;
+
+// ───────────────────────── catalog (grocery vertical, G1) ─────────────────────────
+// See docs/grocery-g1.md. Meat keeps its legacy products tables; these schemas
+// serve master_products / store_products / catalog_imports.
+export const VERTICALS = ["meat", "grocery"] as const;
+export const verticalSchema = z.enum(VERTICALS);
+export const catalogUnitSchema = z.enum(["piece", "pack", "kg"]);
+const money = z.number().positive().max(100_000);
+const barcode = z.string().trim().regex(/^\d{8,14}$/, "Barcode is 8–14 digits");
+
+export const catalogCategorySchema = z.object({
+  verticalType: verticalSchema,
+  parentId: z.string().uuid().nullable().optional(),
+  name: z.string().trim().min(1).max(80),
+  nameTa: z.string().trim().max(80).nullable().optional(),
+  imagePath: z.string().max(500).nullable().optional(),
+  sort: z.number().int().min(0).max(9999).optional(),
+  isActive: z.boolean().optional(),
+});
+export type CatalogCategoryInput = z.infer<typeof catalogCategorySchema>;
+
+export const masterProductSchema = z.object({
+  verticalType: verticalSchema.optional(),
+  categoryId: z.string().uuid().nullable().optional(),
+  barcode: barcode.nullable().optional(),
+  name: z.string().trim().min(2).max(120),
+  nameTa: z.string().trim().max(120).nullable().optional(),
+  brand: z.string().trim().max(80).nullable().optional(),
+  packSize: z.string().trim().max(40).nullable().optional(),
+  unit: catalogUnitSchema.optional(),
+  minQty: z.number().positive().max(100).optional(),
+  qtyStep: z.number().positive().max(100).optional(),
+  mrp: money.nullable().optional(),
+  imagePath: z.string().max(500).nullable().optional(),
+  isActive: z.boolean().optional(),
+});
+export type MasterProductInput = z.infer<typeof masterProductSchema>;
+
+/** approve = shared master; keep_own = approved but store-only; reject = hidden. */
+export const masterReviewSchema = z.object({
+  action: z.enum(["approve", "keep_own", "reject"]),
+  note: z.string().trim().max(300).optional(),
+});
+export const masterBulkReviewSchema = z.object({
+  ids: z.array(z.string().uuid()).min(1).max(500),
+  action: z.enum(["approve", "reject"]),
+});
+export const masterMergeSchema = z.object({ targetId: z.string().uuid() });
+
+/** A shop listing a master product. selling defaults to shop (mode 'same'). */
+export const storeListingSchema = z.object({
+  masterProductId: z.string().uuid(),
+  shopPrice: money,
+  sellingPrice: money.optional(),
+  priceMode: z.enum(["same", "custom"]).optional(),
+});
+export const storeListingPatchSchema = z.object({
+  shopPrice: money.optional(),
+  sellingPrice: money.optional(),
+  priceMode: z.enum(["same", "custom"]).optional(),
+  outOfStockUntil: z.union([z.string().datetime({ offset: true }), z.literal("infinity"), z.null()]).optional(),
+  stockQty: z.number().int().min(0).max(100_000).nullable().optional(),
+  isActive: z.boolean().optional(),
+});
+/** Admin sets (locks) the customer price; null hands it back to the shop. */
+export const adminStoreSellingSchema = z.object({ sellingPrice: money.nullable() });
+
+/** Shop adds its own item: a pending master row (scope store) + its listing in one call. */
+export const customProductSchema = z.object({
+  name: z.string().trim().min(2).max(120),
+  nameTa: z.string().trim().max(120).nullable().optional(),
+  categoryId: z.string().uuid().nullable().optional(),
+  barcode: barcode.nullable().optional(),
+  unit: catalogUnitSchema,
+  packSize: z.string().trim().max(40).nullable().optional(),
+  mrp: money.nullable().optional(),
+  minQty: z.number().positive().max(100).optional(),
+  qtyStep: z.number().positive().max(100).optional(),
+  shopPrice: money,
+  sellingPrice: money.optional(),
+  priceMode: z.enum(["same", "custom"]).optional(),
+});
+export type CustomProductInput = z.infer<typeof customProductSchema>;
+
+export const importRowDecisionSchema = z.object({
+  action: z.enum(["confirm", "new", "reject"]),
+  masterProductId: z.string().uuid().optional(),
+});
+
+export const feeRuleSchema = z.object({
+  verticalType: verticalSchema,
+  zoneId: z.string().uuid().nullable().optional(),
+  minOrder: z.number().min(0).max(100_000),
+  fee: z.number().min(0).max(10_000),
+  freeAbove: z.number().positive().max(100_000).nullable().optional(),
+  isActive: z.boolean().optional(),
+});
+export const verticalToggleSchema = z.object({ isActive: z.boolean() });
+export const adminStoreTypeSchema = z.object({ storeType: verticalSchema });
