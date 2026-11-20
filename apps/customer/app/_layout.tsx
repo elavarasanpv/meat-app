@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import * as SplashScreen from "expo-splash-screen";
@@ -9,6 +9,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { OfflineBanner } from "@/components/OfflineBanner";
 import { PushBridge } from "@/components/PushBridge";
 import { ExpandSheet } from "@/components/ExpandSheet";
+import { BrandSplash } from "@/components/BrandSplash";
 import { bindOnlineManager } from "@/lib/network";
 import { useFonts } from "expo-font";
 import { Outfit_700Bold, Outfit_800ExtraBold } from "@expo-google-fonts/outfit";
@@ -60,6 +61,8 @@ export default function RootLayout() {
   }, []);
 
   const ready = fontsLoaded && authReady;
+  // The native splash (plain brand red) hands over to the animated one the frame the app is ready.
+  const [splash, setSplash] = useState(true);
   useEffect(() => {
     if (ready) SplashScreen.hideAsync().catch(() => {});
   }, [ready]);
@@ -79,6 +82,7 @@ export default function RootLayout() {
           <Stack.Screen name="grocery/category/[id]" />
           <Stack.Screen name="grocery/bought" />
           <Stack.Screen name="grocery/cart" />
+          <Stack.Screen name="meat/cart" />
           <Stack.Screen name="search" />
           <Stack.Screen name="checkout" />
           <Stack.Screen name="address/new" />
@@ -95,6 +99,7 @@ export default function RootLayout() {
       </Stack>
       {/* the cart bar grows into this sheet; it lives here so it covers the tab bar too */}
       <ExpandSheet />
+      {splash ? <BrandSplash onDone={() => setSplash(false)} /> : null}
     </PersistQueryClientProvider>
   );
 }

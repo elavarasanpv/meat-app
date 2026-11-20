@@ -1,12 +1,15 @@
+import { useState } from "react";
 import { Image, Pressable, ScrollView, View } from "react-native";
 import { useRouter } from "expo-router";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { AppText } from "@/components/AppText";
 import { Button } from "@/components/Button";
+import { DeliverTo } from "@/components/DeliverTo";
+import { GlassDock } from "@/components/GlassDock";
 import { GROCERY, MiniCard } from "@/components/GroceryHome";
 import { Icon } from "@/components/Icon";
 import type { useBill } from "@/components/BillSummary";
+import type { Address } from "@/hooks/useOrders";
 import { useGroceryCatalog, type GroceryItem } from "@/hooks/useGrocery";
 import { useHomePincode } from "@/hooks/useOffers";
 import { useSlots } from "@/hooks/useOrders";
@@ -25,12 +28,12 @@ import { radius, useTheme } from "@/theme";
  */
 type Cta = { label: string; onPress: () => void; busy?: boolean; disabled?: boolean };
 
-export function GroceryCart({ bill, onBack, cta, note }: { bill: ReturnType<typeof useBill>; onBack?: () => void; cta?: Cta; note?: string }) {
+export function GroceryCart({ bill, onBack, cta, address }: { bill: ReturnType<typeof useBill>; onBack?: () => void; cta?: Cta; address?: Address | null }) {
   const { c } = useTheme();
   const t = useT();
   const localName = useLocalName();
   const router = useRouter();
-  const insets = useSafeAreaInsets();
+  const [dockH, setDockH] = useState(150);
   const pincode = useHomePincode();
   const items = useCart((s) => s.items);
   const setQty = useCart((s) => s.setQty);
@@ -81,7 +84,7 @@ export function GroceryCart({ bill, onBack, cta, note }: { bill: ReturnType<type
         </Pressable>
       </View>
 
-      <ScrollView contentContainerStyle={{ padding: 16, paddingTop: 4, gap: 12 }} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={{ padding: 16, paddingTop: 4, gap: 12, paddingBottom: dockH + 16 }} showsVerticalScrollIndicator={false}>
         {/* Slot + lines */}
         <View style={box}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 12, padding: 12, borderBottomWidth: 1, borderBottomColor: c.surface2 }}>
@@ -189,10 +192,10 @@ export function GroceryCart({ bill, onBack, cta, note }: { bill: ReturnType<type
         </View>
       </ScrollView>
 
-      <View style={{ paddingHorizontal: 16, paddingTop: 10, paddingBottom: 12 + insets.bottom, backgroundColor: c.surface, borderTopWidth: 1, borderTopColor: c.border, gap: 6 }}>
-        {note ? <AppText variant="caption" muted numberOfLines={1} style={{ textAlign: "center", fontSize: 11.5 }}>{note}</AppText> : null}
+      <GlassDock onHeight={setDockH}>
+        {address !== undefined ? <DeliverTo address={address} onChange={() => router.push("/checkout")} color={c.primary} /> : null}
         <Button label={cta?.label ?? `${t("placeOrder")} · ₹ ${bill.toPay}`} onPress={cta?.onPress ?? (() => router.push("/checkout"))} loading={cta?.busy} disabled={cta?.disabled ?? bill.belowMin} />
-      </View>
+      </GlassDock>
     </View>
   );
 }

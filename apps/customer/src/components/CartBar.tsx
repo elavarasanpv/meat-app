@@ -51,7 +51,7 @@ export function CartBar({ aboveTabBar = false }: Props) {
   // Tap → the bar grows into a full-screen sheet (ExpandSheet at the root) while the Cart tab opens underneath.
   const barRef = useRef<View>(null);
   function openCart() {
-    const go = () => router.push(grocery ? "/grocery/cart" : "/(tabs)/cart");
+    const go = () => router.push(grocery ? "/grocery/cart" : "/meat/cart");
     if (!barRef.current) return go();
     barRef.current.measureInWindow((x, y, w, h) => {
       if (!w || !h) return go();

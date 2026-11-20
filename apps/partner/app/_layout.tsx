@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { View } from "react-native";
 import { Stack, usePathname, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import { BrandSplash } from "@/components/BrandSplash";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Manrope_500Medium, Manrope_700Bold, useFonts } from "@expo-google-fonts/manrope";
@@ -42,11 +43,13 @@ bindOnlineManager(queryClient);
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({ Manrope_500Medium, Manrope_700Bold });
+  const [splash, setSplash] = useState(true);
   if (!fontsLoaded) return null;
   return (
     <QueryClientProvider client={queryClient}>
       <StatusBar style="auto" />
       <Gate />
+      {splash ? <BrandSplash onDone={() => setSplash(false)} /> : null}
     </QueryClientProvider>
   );
 }

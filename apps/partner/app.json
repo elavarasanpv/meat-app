@@ -63,6 +63,15 @@
             "enableMinifyInReleaseBuilds": true
           }
         }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#E4461F",
+          "android": {
+            "backgroundColor": "#E4461F"
+          }
+        }
       ]
     ],
     "experiments": {
@@ -74,6 +83,10 @@
         "projectId": "ddc074a9-fa36-4745-8c1f-62b417c7e1cb"
       }
     },
-    "owner": "elavarasanp"
+    "owner": "elavarasanp",
+    "splash": {
+      "backgroundColor": "#E4461F",
+      "resizeMode": "contain"
+    }
   }
 }

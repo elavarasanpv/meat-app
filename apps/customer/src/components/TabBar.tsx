@@ -36,7 +36,7 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
         const label = typeof options.title === "string" ? options.title : route.name;
         const onPress = () => {
           // The Cart tab opens the full-screen grocery cart when the basket is grocery.
-          if (route.name === "cart" && cartVertical(useCart.getState().items) === "grocery") return router.push("/grocery/cart");
+          if (route.name === "cart" && useCart.getState().items.length > 0) return router.push(cartVertical(useCart.getState().items) === "grocery" ? "/grocery/cart" : "/meat/cart");
           const e = navigation.emit({ type: "tabPress", target: route.key, canPreventDefault: true });
           if (!focused && !e.defaultPrevented) navigation.navigate(route.name);
         };

@@ -77,7 +77,7 @@ export default function GroceryCartScreen() {
               ? { label: `${t("placeOrder")} · ₹ ${bill.toPay}`, onPress: placeNow, busy: place.isPending, disabled: bill.belowMin || !slot }
               : { label: t("selectAddress"), onPress: () => router.push("/checkout"), disabled: bill.belowMin }
           }
-          note={single ? `${t("deliverToLabel")} ${single.label} · ${single.landmark || single.address_text} · ${t("payCod")}` : undefined}
+          address={single}
         />
         {error ? (
           <View style={{ position: "absolute", left: 16, right: 16, bottom: 92 }}>

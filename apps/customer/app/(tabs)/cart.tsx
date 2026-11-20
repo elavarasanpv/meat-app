@@ -1,31 +1,20 @@
-import { Image, Pressable, ScrollView, View } from "react-native";
+import { Image, View } from "react-native";
 import { Redirect, useRouter } from "expo-router";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppText } from "@/components/AppText";
 import { Button } from "@/components/Button";
 import { EmptyBasket } from "@/components/EmptyBasket";
 const PATTERN = require("@freshcut/assets/images/pattern-doodles.png");
-import { BillSummary, useBill } from "@/components/BillSummary";
-import { useHomePincode } from "@/hooks/useOffers";
-import { Icon } from "@/components/Icon";
-import { cartImage } from "@/lib/images";
-import { FREE_DELIVERY_ABOVE, cartTotals, cartVertical, formatQty, lineTotal, qtyStep, useCart } from "@/store/cart";
-import { useVertical } from "@/store/vertical";
-import { useLocalName, useT } from "@/i18n";
-import { radius, useTheme } from "@/theme";
+import { cartVertical, useCart } from "@/store/cart";
+import { useT } from "@/i18n";
+import { useTheme } from "@/theme";
 
 export default function CartScreen() {
   const { c } = useTheme();
   const t = useT();
-  const localName = useLocalName();
   const router = useRouter();
   const items = useCart((s) => s.items);
-  const setQty = useCart((s) => s.setQty);
-  const remove = useCart((s) => s.remove);
-  const bill = useBill(useHomePincode());
-  const { toPay } = bill;
   const grocery = cartVertical(items) === "grocery";
-  const setVertical = useVertical((s) => s.set);
   const insets = useSafeAreaInsets();
 
   if (items.length === 0) {
@@ -47,98 +36,6 @@ export default function CartScreen() {
     );
   }
 
-  // A grocery basket opens as its own full-screen page (no tab bar).
-  if (grocery) return <Redirect href="/grocery/cart" />;
-
-  return (
-    <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: c.ground }}>
-      <View style={{ paddingHorizontal: 20, paddingTop: 8, height: 40, justifyContent: "center" }}>
-        <AppText variant="title" numberOfLines={1}>
-          {t("tabCart")} · {items.length}
-          {grocery ? ` · ${t("groceryTab")}` : ""}
-        </AppText>
-      </View>
-
-      <ScrollView contentContainerStyle={{ padding: 20, paddingTop: 10, gap: 10 }}>
-        {items.map((item) => {
-          const img = cartImage(item);
-          const step = qtyStep(item.unit, item.step);
-          return (
-            <View
-              key={item.productId}
-              style={{ flexDirection: "row", alignItems: "center", gap: 12, padding: 10, borderRadius: 18, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border }}
-            >
-              <View style={{ width: 56, height: 56, borderRadius: 14, backgroundColor: c.tintSoft, alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
-                {img ? (
-                  <Image source={img} resizeMode="contain" style={{ width: 50, height: 50 }} />
-                ) : (
-                  <AppText variant="title" color={c.price} style={{ fontSize: 18 }}>{item.name.charAt(0)}</AppText>
-                )}
-              </View>
-
-              <View style={{ flex: 1, gap: 2 }}>
-                <AppText variant="bodyBold" numberOfLines={1} style={{ fontSize: 14 }}>{localName({ name: item.name, name_ta: item.nameTa })}</AppText>
-                <AppText variant="caption" muted numberOfLines={1}>
-                  ₹ {item.price} {t(item.unit === "piece" ? "perPiece" : "perKg")}
-                  {item.size ? ` · ${t(item.size === "small" ? "sizeSmall" : item.size === "medium" ? "sizeMedium" : "sizeLarge")}` : ""}
-                </AppText>
-                {item.notes ? (
-                  <AppText variant="caption" muted numberOfLines={1} style={{ fontStyle: "italic" }}>“{item.notes}”</AppText>
-                ) : null}
-                <AppText variant="price" color={c.price} numberOfLines={1} style={{ fontSize: 15, lineHeight: 19 }}>₹ {lineTotal(item)}</AppText>
-              </View>
-
-              <View style={{ alignItems: "flex-end", gap: 6 }}>
-                <View style={{ flexDirection: "row", alignItems: "center", height: 36, borderRadius: radius.pill, borderWidth: 1.5, borderColor: c.border, backgroundColor: c.surface, paddingHorizontal: 3 }}>
-                  <Pressable
-                    onPress={() => setQty(item.productId, Math.round((item.qty - step) * 2) / 2)}
-                    accessibilityRole="button"
-                    accessibilityLabel={`${t("remove")} ${item.name}`}
-                    style={{ width: 30, height: 30, borderRadius: 15, backgroundColor: c.surface2, alignItems: "center", justifyContent: "center" }}
-                  >
-                    <AppText variant="bodyBold" style={{ fontSize: 16 }}>−</AppText>
-                  </Pressable>
-                  <AppText variant="bodyBold" numberOfLines={1} style={{ minWidth: 52, textAlign: "center", fontSize: 12 }}>
-                    {formatQty(item.qty, item.unit)}
-                  </AppText>
-                  <Pressable
-                    onPress={() => setQty(item.productId, Math.round((item.qty + step) * 2) / 2)}
-                    accessibilityRole="button"
-                    accessibilityLabel={`+ ${item.name}`}
-                    style={{ width: 30, height: 30, borderRadius: 15, backgroundColor: c.primary, alignItems: "center", justifyContent: "center" }}
-                  >
-                    <AppText variant="bodyBold" color="#FFFFFF" style={{ fontSize: 16 }}>+</AppText>
-                  </Pressable>
-                </View>
-                <Pressable onPress={() => remove(item.productId)} accessibilityRole="button">
-                  <AppText variant="caption" color={c.danger} numberOfLines={1}>{t("remove")}</AppText>
-                </Pressable>
-              </View>
-            </View>
-          );
-        })}
-
-        {/* Back to Home to add more items */}
-        {/* "Forgot something?" — one slim row back to the catalog */}
-        <Pressable onPress={() => {
-            setVertical(grocery ? "grocery" : "meat");
-            router.push("/(tabs)");
-          }} accessibilityRole="button" style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 10, paddingHorizontal: 14, borderRadius: 999, backgroundColor: c.tintSoft, borderWidth: 1, borderColor: c.tint, opacity: pressed ? 0.9 : 1 })}>
-          <Icon name="cart" color={c.primary} size={18} />
-          <AppText variant="bodyBold" numberOfLines={1} style={{ flex: 1, fontSize: 14 }}>{t("addMoreTitle")}</AppText>
-          <AppText variant="label" color={c.price} numberOfLines={1}>{t("add")}</AppText>
-          <View style={{ transform: [{ rotate: "180deg" }] }}>
-            <Icon name="back" color={c.price} size={14} strokeWidth={2.6} />
-          </View>
-        </Pressable>
-
-        {/* Bill summary with offers and coupon */}
-        <BillSummary bill={bill} />
-      </ScrollView>
-
-      <View style={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 12 + insets.bottom, backgroundColor: c.surface, borderTopWidth: 1, borderTopColor: c.border }}>
-        <Button label={`${t("placeOrder")} · ₹ ${toPay}`} onPress={() => router.push("/checkout")} disabled={bill.belowMin} />
-      </View>
-    </SafeAreaView>
-  );
+  // A basket opens as its own full-screen page (no tab bar); only the empty state lives in the tab.
+  return <Redirect href={grocery ? "/grocery/cart" : "/meat/cart"} />;
 }
