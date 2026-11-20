@@ -4,7 +4,7 @@ import type * as NotificationsT from "expo-notifications";
 import { supabase } from "./supabase";
 
 /**
- * Customer push: "your rider has arrived" with FreshCut's happy jingle, even
+ * Customer push: "your rider has arrived" with Thanjoz Mart's happy jingle, even
  * when the app is closed. Works in the real APK (Firebase configured); Expo Go
  * on Android has no remote push, so the module isn't even loaded there.
  */

@@ -1,7 +1,7 @@
 import Svg, { Circle, Ellipse, Path } from "react-native-svg";
 
 /**
- * FreshCut line doodles: simple outline drawings of what we sell, used in
+ * Thanjoz Mart line doodles: simple outline drawings of what we sell, used in
  * place of generic sparkles — header background, section titles, labels.
  * All on a 24 grid, stroke only, so they tint to any colour.
  */

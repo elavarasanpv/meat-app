@@ -131,7 +131,7 @@ export function Offers() {
                 {when(o.startsAt)} → {when(o.endsAt)}
               </div>
               <div className="text-muted">
-                Shop pays <b className="text-ink">{o.shopSharePct}%</b> · FreshCut <b className="text-ink">{100 - o.shopSharePct}%</b>
+                Shop pays <b className="text-ink">{o.shopSharePct}%</b> · Thanjoz Mart <b className="text-ink">{100 - o.shopSharePct}%</b>
                 {o.firstOrderOnly && " · first order only"}
               </div>
               <div>
@@ -478,14 +478,14 @@ function OfferForm({ offer, kind, onClose }: { offer: Offer | null; kind: "banne
                 <span className="flex h-full items-center border-l border-line bg-surface-2 px-2.5 text-[12.5px] font-extrabold text-ink">%</span>
               </div>
               <span className="text-[12px] text-muted">
-                FreshCut covers the other <b className="text-ink">{Math.max(0, 100 - (Number(f.shopSharePct) || 0))}%</b>.
+                Thanjoz Mart covers the other <b className="text-ink">{Math.max(0, 100 - (Number(f.shopSharePct) || 0))}%</b>.
               </span>
             </div>
           </Field>
           <div className="rounded-xl bg-surface-2/70 px-3 py-2 text-[12px] leading-relaxed text-muted">
             {example > 0 ? (
               <>
-                On a ₹1,000 order the customer saves <b className="text-ink">{inr(example)}</b>: the shop gives <b className="text-ink">{inr(shopPart)}</b>, FreshCut gives <b className="text-ink">{inr(example - shopPart)}</b>.
+                On a ₹1,000 order the customer saves <b className="text-ink">{inr(example)}</b>: the shop gives <b className="text-ink">{inr(shopPart)}</b>, Thanjoz Mart gives <b className="text-ink">{inr(example - shopPart)}</b>.
               </>
             ) : (
               "Enter a discount to see the split."
@@ -601,7 +601,7 @@ function AnnounceCard({ offers }: { offers: Offer[] }) {
   const pickOffer = (id: string) => {
     setOfferId(id);
     const o = offers.find((x) => x.id === id);
-    if (o && !title) { setTitle(o.title.slice(0, 60)); setBody(`${describe(o)} · Open FreshCut to order`.slice(0, 140)); }
+    if (o && !title) { setTitle(o.title.slice(0, 60)); setBody(`${describe(o)} · Open Thanjoz Mart to order`.slice(0, 140)); }
   };
   const ready = title.trim().length >= 3 && body.trim().length >= 3;
 
@@ -629,7 +629,7 @@ function AnnounceCard({ offers }: { offers: Offer[] }) {
       <div className="mt-3 flex items-start gap-3 rounded-xl border border-line bg-surface-2/60 px-3 py-2.5">
         <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-primary text-[13px] font-extrabold text-white">F</span>
         <div className="min-w-0 flex-1">
-          <div className="text-[11px] text-muted">FreshCut · now</div>
+          <div className="text-[11px] text-muted">Thanjoz Mart · now</div>
           <div className="truncate text-[13px] font-extrabold">{title || "Title"}</div>
           <div className="line-clamp-2 text-[12px]">{body || "Message"}</div>
         </div>

@@ -1,6 +1,6 @@
 import { createAudioPlayer, type AudioPlayer } from "expo-audio";
 
-/** FreshCut's own little sounds for customers (small files: 38 KB + 89 KB). */
+/** Thanjoz Mart's own little sounds for customers (small files: 38 KB + 89 KB). */
 const PLACED = require("../../assets/sounds/freshcut_placed.wav");
 const ARRIVED = require("../../assets/sounds/freshcut_arrived.wav");
 

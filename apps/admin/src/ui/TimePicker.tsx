@@ -19,7 +19,7 @@ export function formatTime(v: string) {
   return `${h12}:${String(m).padStart(2, "0")} ${pm ? "pm" : "am"}`;
 }
 
-/** Time field in FreshCut style: tap to open hours, minutes and am/pm. Value is "HH:MM" 24h. */
+/** Time field in Thanjoz Mart style: tap to open hours, minutes and am/pm. Value is "HH:MM" 24h. */
 export function TimePicker({ value, onChange, label }: { value: string; onChange: (v: string) => void; label?: string }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLButtonElement>(null);

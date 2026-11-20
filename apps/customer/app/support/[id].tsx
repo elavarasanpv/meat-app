@@ -9,7 +9,7 @@ import { pickPhotoBase64, useReplyTicket, useTicket } from "@/hooks/useSupport";
 import { useT, type TKey } from "@/i18n";
 import { radius, useTheme } from "@/theme";
 
-/** One support request: the conversation with FreshCut, and a reply box. */
+/** One support request: the conversation with Thanjoz Mart, and a reply box. */
 export default function TicketScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const t = useT();

@@ -76,7 +76,7 @@ export function RatingsPage() {
         <ErrorBox error={q.error} />
       </div>
       <div className="grid gap-4 px-4 pt-4 md:px-6 lg:grid-cols-2">
-        <Overview title="FreshCut app" sub="Overall experience, rated on every delivered order" avg={d?.app.avg ?? null} count={d?.app.count ?? 0} dist={d?.app.dist ?? [0, 0, 0, 0, 0]} />
+        <Overview title="Thanjoz Mart app" sub="Overall experience, rated on every delivered order" avg={d?.app.avg ?? null} count={d?.app.count ?? 0} dist={d?.app.dist ?? [0, 0, 0, 0, 0]} />
         <Overview title="Delivery" sub="How customers rate the rider at the door" avg={d?.rider.avg ?? null} count={d?.rider.count ?? 0} dist={d?.rider.dist ?? [0, 0, 0, 0, 0]} />
       </div>
 

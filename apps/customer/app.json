@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "FreshCut",
+    "name": "Thanjoz Mart",
     "slug": "freshcut-customer",
     "scheme": "freshcut",
     "version": "0.1.0",
@@ -42,7 +42,7 @@
       [
         "expo-image-picker",
         {
-          "cameraPermission": "FreshCut uses the camera so you can show us a photo of your order when something is wrong.",
+          "cameraPermission": "Thanjoz Mart uses the camera so you can show us a photo of your order when something is wrong.",
           "photosPermission": false
         }
       ],

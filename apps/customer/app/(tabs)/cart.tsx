@@ -20,7 +20,7 @@ export default function CartScreen() {
   if (items.length === 0) {
     return (
       <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: c.ground }}>
-        {/* faint FreshCut doodle frame around the empty state */}
+        {/* faint Thanjoz Mart doodle frame around the empty state */}
         <View pointerEvents="none" style={{ position: "absolute", left: 0, right: 0, top: insets.top, bottom: 0 }}>
           <Image source={PATTERN} resizeMode="contain" style={{ width: "100%", height: "100%", opacity: 0.3 }} />
         </View>

@@ -25,7 +25,7 @@ export function Settings() {
 
   return (
     <div className="pb-6">
-      <PageHeader title="Settings" sub="Your account, the admin team and how FreshCut runs." />
+      <PageHeader title="Settings" sub="Your account, the admin team and how Thanjoz Mart runs." />
       <div className="px-4 pt-4 md:hidden">
         <Segments value={tab} onChange={go} items={TABS.map((t) => ({ id: t.id, label: t.label }))} />
       </div>

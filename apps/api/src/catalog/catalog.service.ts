@@ -427,7 +427,7 @@ export class CatalogService {
     const touchesPrice = input.shopPrice !== undefined || input.sellingPrice !== undefined || input.priceMode !== undefined;
     if (touchesPrice) {
       if (!asAdmin && current.selling_set_by === "admin" && (input.sellingPrice !== undefined || input.priceMode !== undefined)) {
-        throw new BadRequestException("The customer price is set by FreshCut — you can change your shop price only");
+        throw new BadRequestException("The customer price is set by Thanjoz Mart — you can change your shop price only");
       }
       const shop = input.shopPrice ?? current.shop_price;
       // admin-locked selling stays unless the admin is the one writing

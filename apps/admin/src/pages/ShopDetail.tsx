@@ -128,7 +128,7 @@ export function ShopDetail({ id, onClose, onEdit }: { id: string; onClose: () =>
               </div>
             </Section>
             <div className="text-[11px] text-muted">
-              Paid to the shop for delivered orders: {inr(d.totals.paidToShop)}. Shop on FreshCut since {new Date(d.since).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}.
+              Paid to the shop for delivered orders: {inr(d.totals.paidToShop)}. Shop on Thanjoz Mart since {new Date(d.since).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}.
             </div>
           </>
         )}

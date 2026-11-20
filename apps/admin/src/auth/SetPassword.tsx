@@ -55,7 +55,7 @@ export function SetPassword() {
   return (
     <div className="flex min-h-screen items-center justify-center p-6">
       <form onSubmit={submit} className="w-full max-w-sm rounded-3xl border border-line bg-surface p-8 shadow-sm">
-        <div className="text-lg font-extrabold">Welcome to FreshCut Admin</div>
+        <div className="text-lg font-extrabold">Welcome to Thanjoz Mart Admin</div>
         <div className="mt-1 text-sm text-muted">Choose your password.</div>
         <label className="mt-6 block text-sm font-bold">New password</label>
         <input

@@ -70,7 +70,7 @@ export default function LoginScreen() {
             <View style={{ width: 40, height: 40, borderRadius: 14, backgroundColor: c.primary, alignItems: "center", justifyContent: "center" }}>
               <Icon name="logo" color="#FFFFFF" size={22} />
             </View>
-            <AppText variant="title" style={{ fontSize: 22 }}>FreshCut</AppText>
+            <AppText variant="title" style={{ fontSize: 22 }}>Thanjoz Mart</AppText>
           </View>
           <LangToggle />
         </View>

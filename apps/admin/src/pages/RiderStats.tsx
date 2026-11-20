@@ -130,7 +130,7 @@ export function RiderStats({ id }: { id: string }) {
           {!d.trips.length && <Empty>No trips in the last 30 days.</Empty>}
         </div>
       </Section>
-      <div className="text-[11px] text-muted">Riding with FreshCut since {new Date(d.since).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}. Delivery time runs from pickup at the shop to handover.</div>
+      <div className="text-[11px] text-muted">Riding with Thanjoz Mart since {new Date(d.since).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}. Delivery time runs from pickup at the shop to handover.</div>
     </div>
   );
 }

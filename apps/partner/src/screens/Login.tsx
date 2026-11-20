@@ -78,11 +78,11 @@ export function Login() {
         <View pointerEvents="none" style={{ position: "absolute", right: -70, top: -90, width: 240, height: 240, borderRadius: 120, backgroundColor: "rgba(255,255,255,0.08)" }} />
         <View pointerEvents="none" style={{ position: "absolute", left: -40, bottom: -60, width: 160, height: 160, borderRadius: 80, backgroundColor: "rgba(255,255,255,0.06)" }} />
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 10, flexShrink: 1, marginRight: 10 }}>
             <View style={{ width: 40, height: 40, borderRadius: 14, backgroundColor: "#FFFFFF", alignItems: "center", justifyContent: "center" }}>
               <Icon name="shop" color={c.primary} size={22} strokeWidth={2.4} />
             </View>
-            <Txt bold size={19} color="#FFFFFF">FreshCut Partner</Txt>
+            <Txt bold size={19} color="#FFFFFF" numberOfLines={1} adjustsFontSizeToFit style={{ flexShrink: 1 }}>Thanjoz Mart Partner</Txt>
           </View>
           <Pressable onPress={toggle} accessibilityRole="button" style={{ height: 36, paddingHorizontal: 14, borderRadius: 18, backgroundColor: "rgba(255,255,255,0.16)", borderWidth: 1, borderColor: "rgba(255,255,255,0.3)", alignItems: "center", justifyContent: "center" }}>
             <Txt bold size={13} color="#FFFFFF">{lang === "ta" ? "English" : "தமிழ்"}</Txt>

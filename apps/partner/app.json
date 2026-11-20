@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "FreshCut Partner",
+    "name": "Thanjoz Mart Partner",
     "slug": "freshcut-partner",
     "scheme": "freshcut-partner",
     "version": "0.1.0",
@@ -31,8 +31,8 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "FreshCut uses your location to show nearby delivery offers and let customers follow your ride.",
-          "locationAlwaysAndWhenInUsePermission": "While you're online, FreshCut shares your location even with the screen off so customers can follow your ride and your trip km are counted.",
+          "locationWhenInUsePermission": "Thanjoz Mart uses your location to show nearby delivery offers and let customers follow your ride.",
+          "locationAlwaysAndWhenInUsePermission": "While you're online, Thanjoz Mart shares your location even with the screen off so customers can follow your ride and your trip km are counted.",
           "isAndroidBackgroundLocationEnabled": true,
           "isAndroidForegroundServiceEnabled": true
         }
@@ -40,7 +40,7 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "FreshCut uses the camera for scale photos of packed orders and doorstep photos on deliveries."
+          "cameraPermission": "Thanjoz Mart uses the camera for scale photos of packed orders and doorstep photos on deliveries."
         }
       ],
       "expo-task-manager",

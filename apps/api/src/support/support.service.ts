@@ -131,7 +131,7 @@ export class SupportService {
     await db.from("ticket_messages").insert({
       ticket_id: ticketId,
       sender: "system",
-      body: `Sorry about that! ₹${amount} has been added to your FreshCut wallet and will be used on your next order.`,
+      body: `Sorry about that! ₹${amount} has been added to your Thanjoz Mart wallet and will be used on your next order.`,
     });
     return { autoCredited: true, amount };
   }
@@ -248,7 +248,7 @@ export class SupportService {
     if (!t) throw new NotFoundException("Ticket not found");
     await db.from("ticket_messages").insert({ ticket_id: ticketId, sender: "admin", sender_id: admin.id, body });
     if (t.status === "open") await db.from("tickets").update({ status: "waiting_customer", assigned_admin: admin.id }).eq("id", ticketId);
-    void this.push.toProfiles([t.customer_id], { title: "FreshCut support", body: body.slice(0, 120), ta: { title: "FreshCut உதவி", body: body.slice(0, 120) }, data: { type: "support", ticketId } });
+    void this.push.toProfiles([t.customer_id], { title: "Thanjoz Mart support", body: body.slice(0, 120), ta: { title: "Thanjoz Mart உதவி", body: body.slice(0, 120) }, data: { type: "support", ticketId } });
     return { sent: true };
   }
 
@@ -281,12 +281,12 @@ export class SupportService {
 
     const text =
       input.resolution === "credit"
-        ? `We've added ₹${input.amount} to your FreshCut wallet. It will be used on your next order.${input.note ? ` ${input.note}` : ""}`
+        ? `We've added ₹${input.amount} to your Thanjoz Mart wallet. It will be used on your next order.${input.note ? ` ${input.note}` : ""}`
         : input.resolution === "refund_upi"
           ? `We'll send your refund by UPI shortly.${input.note ? ` ${input.note}` : ""}`
           : (input.note ?? "Thanks for telling us. We've looked into it.");
     await db.from("ticket_messages").insert({ ticket_id: ticketId, sender: "admin", sender_id: admin.id, body: text });
-    void this.push.toProfiles([t.customer_id], { title: "FreshCut support", body: text.slice(0, 120), ta: { title: "FreshCut உதவி", body: text.slice(0, 120) }, data: { type: "support", ticketId } });
+    void this.push.toProfiles([t.customer_id], { title: "Thanjoz Mart support", body: text.slice(0, 120), ta: { title: "Thanjoz Mart உதவி", body: text.slice(0, 120) }, data: { type: "support", ticketId } });
     return { resolved: true };
   }
 

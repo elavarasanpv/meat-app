@@ -283,7 +283,7 @@ function RiderForm({ rider, onClose }: { rider: Rider | null; onClose: () => voi
   return (
     <Drawer
       title={rider ? `Edit ${rider.name ?? "rider"}` : "Enrol a rider"}
-      sub="The rider signs in to the FreshCut Partner app with this mobile number (OTP)."
+      sub="The rider signs in to the Thanjoz Mart Partner app with this mobile number (OTP)."
       onClose={onClose}
       footer={
         <>
@@ -321,7 +321,7 @@ function RiderForm({ rider, onClose }: { rider: Rider | null; onClose: () => voi
       {!rider && (
         <div className="rounded-xl border border-line bg-surface p-3 text-[12px] text-muted">
           <div className="mb-1 font-bold text-ink">What happens next</div>
-          The rider installs the FreshCut Partner app, signs in with this number and the OTP, and lands on the rider screens. They go online to start getting offers within 5 km of a packed order.
+          The rider installs the Thanjoz Mart Partner app, signs in with this number and the OTP, and lands on the rider screens. They go online to start getting offers within 5 km of a packed order.
         </div>
       )}
     </Drawer>

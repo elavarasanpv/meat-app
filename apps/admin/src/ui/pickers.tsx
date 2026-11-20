@@ -13,7 +13,7 @@ export const formatDate = (v: string) => (v ? parse(v).toLocaleDateString("en-IN
 const fieldBtn = (open: boolean) =>
   `flex items-center justify-between gap-2 rounded-lg border bg-surface px-2.5 py-1.5 text-left text-[13px] font-bold transition ${open ? "border-primary ring-2 ring-primary/15" : "border-line hover:border-muted/50"}`;
 
-/** Date field in FreshCut style: a month grid instead of the browser's picker. Value is "YYYY-MM-DD". */
+/** Date field in Thanjoz Mart style: a month grid instead of the browser's picker. Value is "YYYY-MM-DD". */
 export function DatePicker({ value, onChange, label, min }: { value: string; onChange: (v: string) => void; label?: string; min?: string }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLButtonElement>(null);
@@ -90,7 +90,7 @@ export function DatePicker({ value, onChange, label, min }: { value: string; onC
   );
 }
 
-/** Dropdown in FreshCut style, in place of the browser's <select>. */
+/** Dropdown in Thanjoz Mart style, in place of the browser's <select>. */
 export function Select<T extends string>({ value, onChange, options, placeholder = "Choose…", label }: { value: T | ""; onChange: (v: T) => void; options: { value: T; label: string }[]; placeholder?: string; label?: string }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLButtonElement>(null);
@@ -129,7 +129,7 @@ export function Select<T extends string>({ value, onChange, options, placeholder
   );
 }
 
-/** Tick box in FreshCut style; the whole row is the hit area. */
+/** Tick box in Thanjoz Mart style; the whole row is the hit area. */
 export function Check({ checked, onChange, children, className = "" }: { checked: boolean; onChange: (v: boolean) => void; children: ReactNode; className?: string }) {
   return (
     <label className={`flex cursor-pointer select-none items-center gap-2.5 text-[12.5px] ${className}`}>

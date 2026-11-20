@@ -1,4 +1,4 @@
-# Render Blueprint for the FreshCut API (NestJS).
+# Render Blueprint for the Thanjoz Mart API (NestJS).
 # Render reads this file when you create a "Blueprint" from the GitHub repo.
 # Secrets are NOT stored here: Render asks for each `sync: false` value once, in its dashboard.
 services:

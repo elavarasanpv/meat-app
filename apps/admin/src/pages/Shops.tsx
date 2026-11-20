@@ -236,7 +236,7 @@ function ShopForm({ id, onClose }: { id: string | null; onClose: () => void }) {
     <Drawer
       wide
       title={id ? `Edit ${form.shopName || "shop"}` : "Enrol a shop"}
-      sub="The owner signs in to the FreshCut Partner app with this mobile number (OTP)."
+      sub="The owner signs in to the Thanjoz Mart Partner app with this mobile number (OTP)."
       onClose={onClose}
       footer={
         <>

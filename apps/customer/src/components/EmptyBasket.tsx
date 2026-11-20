@@ -3,7 +3,7 @@ import { Image } from "react-native";
 const BASKET = require("@freshcut/assets/images/empty-basket.png");
 
 /**
- * Empty-cart illustration: the FreshCut line-drawn basket with a "0" tag,
+ * Empty-cart illustration: the Thanjoz Mart line-drawn basket with a "0" tag,
  * in the same single-orange line style as the other illustrations.
  */
 export function EmptyBasket({ size = 220 }: { size?: number }) {

@@ -1,6 +1,6 @@
-# FreshCut — rural meat delivery
+# Thanjoz Mart — rural meat delivery
 
-Monorepo for the FreshCut meat delivery platform (working name).
+Monorepo for the Thanjoz Mart meat delivery platform .
 
 ## Apps
 

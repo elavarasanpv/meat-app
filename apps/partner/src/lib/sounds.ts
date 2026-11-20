@@ -1,7 +1,7 @@
 import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from "expo-audio";
 
 /**
- * FreshCut's own alert sound (the "chop & chime"), played in the app when a
+ * Thanjoz Mart's own alert sound (the "chop & chime"), played in the app when a
  * new order (shop) or a new delivery offer (rider) arrives while the app is
  * open. With the app closed, the same sound comes from the push channel.
  */

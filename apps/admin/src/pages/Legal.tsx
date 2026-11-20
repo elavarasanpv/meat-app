@@ -6,11 +6,11 @@ import { Link } from "react-router-dom";
  * Business details live in BUSINESS so they are easy to update in one place.
  */
 const BUSINESS = {
-  brand: "FreshCut",
-  /** Legal name of the business that runs FreshCut. */
-  legalName: "FreshCut",
+  brand: "Thanjoz Mart",
+  /** Legal name of the business that runs Thanjoz Mart. */
+  legalName: "Thanjoz Mart",
   address: "Chettikulam, Tirunelveli district, Tamil Nadu, India",
-  email: "support@freshcut.in",
+  email: "support@thanjozmart.com",
   /** Shown as the data-protection contact as well. */
   updated: "11 November 2026",
 };

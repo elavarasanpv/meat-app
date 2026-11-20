@@ -340,9 +340,9 @@ export class DealerService {
       await this.push.toProfiles(
         near.map((r) => r.profile_id),
         {
-          title: `New delivery · ${shop?.shop_name ?? "FreshCut"}`,
+          title: `New delivery · ${shop?.shop_name ?? "Thanjoz Mart"}`,
           body: o?.payment_mode === "prepaid_upi" ? `${o?.display_id} · paid online` : `${o?.display_id} · collect ₹${amount}`,
-          ta: { title: `புதிய டெலிவரி · ${shop?.shop_name ?? "FreshCut"}`, body: o?.payment_mode === "prepaid_upi" ? `${o?.display_id} · ஆன்லைனில் செலுத்தப்பட்டது` : `${o?.display_id} · ₹${amount} வசூலிக்கவும்` },
+          ta: { title: `புதிய டெலிவரி · ${shop?.shop_name ?? "Thanjoz Mart"}`, body: o?.payment_mode === "prepaid_upi" ? `${o?.display_id} · ஆன்லைனில் செலுத்தப்பட்டது` : `${o?.display_id} · ₹${amount} வசூலிக்கவும்` },
           data: { kind: "offer", orderId },
           channelId: "orders",
         },

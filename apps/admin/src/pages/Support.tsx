@@ -271,7 +271,7 @@ function ResolveBox({ id, suggested, onDone }: { id: string; suggested: number |
           <select className={inputCls} value={fault} onChange={(e) => setFault(e.target.value as typeof fault)}>
             <option value="shop">Shop</option>
             <option value="rider">Rider</option>
-            <option value="freshcut">FreshCut</option>
+            <option value="freshcut">Thanjoz Mart</option>
             <option value="customer">Customer</option>
             <option value="none">Nobody</option>
           </select>

@@ -1,7 +1,7 @@
 import { createContext, useContext } from "react";
 import { useColorScheme } from "react-native";
 
-/** FreshCut design tokens — from the approved theme canvas (v2). */
+/** Thanjoz Mart design tokens — from the approved theme canvas (v2). */
 export const palette = {
   light: {
     primary: "#E4461F",

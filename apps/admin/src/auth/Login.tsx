@@ -66,7 +66,7 @@ export function Login() {
             <h1 className="text-center text-4xl font-extrabold tracking-tight">Welcome!</h1>
             <div className="mt-4 flex items-center justify-center gap-2">
               <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-base font-extrabold text-white">F</div>
-              <span className="text-xl font-bold">FreshCut</span>
+              <span className="text-xl font-bold">Thanjoz Mart</span>
               <span className="rounded-full bg-tint px-2 py-0.5 text-xs font-bold text-primary">Admin</span>
             </div>
 
