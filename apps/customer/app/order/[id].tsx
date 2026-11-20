@@ -8,7 +8,7 @@ import { Button } from "@/components/Button";
 import { Icon } from "@/components/Icon";
 import { StatusBadge } from "@/components/StatusBadge";
 import { ErrorState, Skeleton } from "@/components/States";
-import { ArrivedPanel } from "@/components/ArrivedPanel";
+import { ARRIVED_OVERLAP, ArrivedPanel } from "@/components/ArrivedPanel";
 import { CancelSheet } from "@/components/CancelSheet";
 import { DeliveryInfoCard } from "@/components/DeliveryInfoCard";
 import { OrderJourney } from "@/components/OrderJourney";
@@ -105,7 +105,7 @@ export default function OrderDetailScreen() {
   const helpOpen = !helpClosesAt || helpClosesAt.getTime() > Date.now();
   const showOtp = !!o && !arrived && !["DELIVERED", "CANCELLED", "RETURNED", "REFUNDED"].includes(o.status) && !!otp.data;
   const card = { padding: 16, borderRadius: 22, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, gap: 10 } as const;
-  const mapH = Math.round(screenH * (arrived ? 0.26 : 0.42));
+  const mapH = Math.round(screenH * (arrived ? 0.34 : 0.42));
 
   const back = () => (router.canGoBack() ? router.back() : router.replace("/(tabs)/orders"));
 
@@ -122,7 +122,7 @@ export default function OrderDetailScreen() {
           <>
             {/* Map hero with floating controls */}
             <View>
-              <TrackingMap rider={rider} pickup={pickup} home={home} height={mapH} />
+              <TrackingMap rider={rider} pickup={pickup} home={home} height={mapH} topInset={insets.top + 52} overlap={arrived ? ARRIVED_OVERLAP : 36} />
               <View style={{ position: "absolute", top: insets.top + 8, left: 16, right: 16, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
                 <Pressable
                   onPress={back}

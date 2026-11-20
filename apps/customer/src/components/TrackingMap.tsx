@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Platform, Pressable, View } from "react-native";
 import MapView, { AnimatedRegion, Marker, MarkerAnimated, Polyline, PROVIDER_GOOGLE } from "react-native-maps";
+import { haversineKm } from "@freshcut/shared";
 import { Icon } from "./Icon";
 import { MapTypeToggle } from "./MapTypeToggle";
 import { RURAL_MAP_STYLE, type MapKind } from "@/lib/mapStyle";
@@ -21,18 +22,23 @@ type Props = {
   pickup: Point | null;
   home: Point | null;
   height: number;
+  /** Space the floating header covers at the top of the map. */
+  topInset?: number;
+  /** How far the card below slides up over the bottom of the map. */
+  overlap?: number;
 };
 
 
 
 const DEFAULT = { lat: 8.2426, lng: 77.6759 }; // Chettikulam
 
-
 /**
- * Zepto-style live map: shop and home pins, the rider glides between updates,
- * a dashed straight line shows the way home (road-snapped routes come later).
+ * Zepto-style live map: shop and home pins joined by a dashed straight line
+ * (road-snapped routes come later), with the rider gliding between updates.
+ * It zooms to fit the shop, the house and the rider in the visible part of
+ * the map, clear of the header above and the card overlapping it below.
  */
-export function TrackingMap({ rider, pickup, home, height }: Props) {
+export function TrackingMap({ rider, pickup, home, height, topInset = 0, overlap = 0 }: Props) {
   const { c } = useTheme();
   const mapRef = useRef<MapView>(null);
   const [kind, setKind] = useState<MapKind>("standard");
@@ -51,23 +57,44 @@ export function TrackingMap({ rider, pickup, home, height }: Props) {
     coord.timing({ latitude: rider.lat, longitude: rider.lng, duration: 1200, useNativeDriver: false } as any).start();
   }, [rider?.lat, rider?.lng]);
 
+  // The view is the shop-to-house trip. The rider joins it only while near
+  // that trip: a stray GPS fix far away must not zoom the map out to the country.
+  const anchor = home ?? pickup;
+  const reach = Math.max(5, pickup && home ? haversineKm(pickup, home) * 2 : 0);
+  const riderNear = !!rider && (!anchor || haversineKm(rider, anchor) <= reach);
+  const lineFrom = pickup ?? (riderNear ? rider : null);
+
   const fit = (animated = true) => {
-    const pts = [rider && { latitude: rider.lat, longitude: rider.lng }, home && { latitude: home.lat, longitude: home.lng }].filter(Boolean) as { latitude: number; longitude: number }[];
+    const pts = [pickup, home, riderNear ? rider : null].filter(Boolean).map((p) => ({ latitude: p!.lat, longitude: p!.lng }));
     if (pts.length === 0) return;
-    if (pts.length === 1) {
-      mapRef.current?.animateToRegion({ ...pts[0], latitudeDelta: 0.012, longitudeDelta: 0.012 }, animated ? 600 : 0);
+    const lats = pts.map((p) => p.latitude);
+    const lngs = pts.map((p) => p.longitude);
+    const span = Math.max(Math.max(...lats) - Math.min(...lats), Math.max(...lngs) - Math.min(...lngs));
+    // One point, or all of them on the same spot (rider at the door, no shop pin): a street-level view.
+    if (span < 0.0004) {
+      mapRef.current?.animateToRegion({ latitude: lats[0], longitude: lngs[0], latitudeDelta: 0.006, longitudeDelta: 0.006 }, animated ? 600 : 0);
       return;
     }
-    mapRef.current?.fitToCoordinates(pts, { edgePadding: { top: 90, bottom: 120, left: 70, right: 70 }, animated });
+    // Keep the pins clear of the header and the overlapping card, but never
+    // let the padding eat the whole map: that zooms it out to the world.
+    let top = topInset + 64; // pins are drawn upwards from their point
+    let bottom = overlap + 28;
+    const room = height - 70;
+    if (top + bottom > room) {
+      const k = room / (top + bottom);
+      top *= k;
+      bottom *= k;
+    }
+    mapRef.current?.fitToCoordinates(pts, { edgePadding: { top, bottom, left: 56, right: 56 }, animated });
   };
 
   // Re-fit when the rider first appears or home changes; afterwards the user may pan freely.
   useEffect(() => {
     const id = setTimeout(() => fit(true), 400);
     return () => clearTimeout(id);
-  }, [!!rider, home?.lat, home?.lng]);
+  }, [riderNear, home?.lat, home?.lng, pickup?.lat, pickup?.lng, height]);
 
-  const center = rider ?? home ?? pickup ?? DEFAULT;
+  const center = home ?? pickup ?? rider ?? DEFAULT;
 
   return (
     <View style={{ height, overflow: "hidden" }}>
@@ -84,10 +111,11 @@ export function TrackingMap({ rider, pickup, home, height }: Props) {
         rotateEnabled={false}
         onMapReady={() => fit(false)}
       >
-        {rider && home ? (
+        {/* The way from the shop to the house; from the rider when the shop has no pin */}
+        {home && lineFrom ? (
           <Polyline
             coordinates={[
-              { latitude: rider.lat, longitude: rider.lng },
+              { latitude: lineFrom.lat, longitude: lineFrom.lng },
               { latitude: home.lat, longitude: home.lng },
             ]}
             strokeColor={c.primary}
@@ -110,7 +138,7 @@ export function TrackingMap({ rider, pickup, home, height }: Props) {
       </MapView>
 
       {/* Map / Satellite */}
-      <View style={{ position: "absolute", left: 14, bottom: 14 }}>
+      <View style={{ position: "absolute", left: 14, bottom: 14 + overlap }}>
         <MapTypeToggle value={kind} onChange={setKind} />
       </View>
 
@@ -119,7 +147,7 @@ export function TrackingMap({ rider, pickup, home, height }: Props) {
         onPress={() => fit(true)}
         accessibilityRole="button"
         accessibilityLabel="Recenter map"
-        style={{ position: "absolute", right: 14, bottom: 14, width: 44, height: 44, borderRadius: 22, backgroundColor: c.surface, alignItems: "center", justifyContent: "center", elevation: 4, shadowColor: "#000", shadowOpacity: 0.15, shadowRadius: 4, shadowOffset: { width: 0, height: 2 } }}
+        style={{ position: "absolute", right: 14, bottom: 14 + overlap, width: 44, height: 44, borderRadius: 22, backgroundColor: c.surface, alignItems: "center", justifyContent: "center", elevation: 4, shadowColor: "#000", shadowOpacity: 0.15, shadowRadius: 4, shadowOffset: { width: 0, height: 2 } }}
       >
         <Icon name="pin" color={c.primary} size={20} />
       </Pressable>

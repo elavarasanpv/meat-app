@@ -10,6 +10,9 @@ import { fonts, useTheme } from "@/theme";
 const rider = require("@freshcut/assets/images/rider-arrived.png");
 const chime = require("../../assets/sounds/arrived.wav");
 
+/** How far the panel slides up over the map above it. */
+export const ARRIVED_OVERLAP = 28;
+
 type Props = {
   amount: number;
   paymentMode: "cod" | "upi_on_delivery" | "prepaid_upi";
@@ -57,7 +60,7 @@ export function ArrivedPanel({ amount, paymentMode, otp, riderPhone }: Props) {
   return (
     <Animated.View
       style={{
-        marginTop: -40,
+        marginTop: -ARRIVED_OVERLAP,
         marginHorizontal: 16,
         borderRadius: 28,
         overflow: "hidden",
@@ -71,12 +74,12 @@ export function ArrivedPanel({ amount, paymentMode, otp, riderPhone }: Props) {
       }}
     >
       {/* Hero band: ember gradient feel via two layers + the rider illustration */}
-      <View style={{ backgroundColor: c.primary, height: 150, overflow: "hidden" }}>
+      <View style={{ backgroundColor: c.primary, height: 140, overflow: "hidden" }}>
         <View style={{ position: "absolute", left: -40, top: -60, width: 220, height: 220, borderRadius: 110, backgroundColor: "rgba(255,255,255,0.12)" }} />
         <View style={{ position: "absolute", left: 60, bottom: -90, width: 180, height: 180, borderRadius: 90, backgroundColor: "rgba(0,0,0,0.08)" }} />
-        <Image source={rider} resizeMode="contain" style={{ position: "absolute", right: -4, bottom: -6, width: 108, height: 160 }} />
+        <Image source={rider} resizeMode="contain" style={{ position: "absolute", right: 0, bottom: -8, width: 100, height: 148 }} />
 
-        <View style={{ padding: 16, paddingRight: 118, gap: 6, flex: 1, justifyContent: "center" }}>
+        <View style={{ padding: 18, paddingRight: 112, gap: 6, flex: 1, justifyContent: "center" }}>
           <Animated.View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255,255,255,0.22)", alignItems: "center", justifyContent: "center", transform: [{ scale: pulse }] }}>
             <Icon name="bell" color="#FFFFFF" size={20} />
           </Animated.View>
@@ -90,19 +93,19 @@ export function ArrivedPanel({ amount, paymentMode, otp, riderPhone }: Props) {
       </View>
 
       {/* What to do now: OTP and amount side by side, then Call */}
-      <View style={{ padding: 14, gap: 10 }}>
-        <View style={{ flexDirection: "row", gap: 10 }}>
-          <View style={{ flex: 1, padding: 12, borderRadius: 18, backgroundColor: c.tint, borderWidth: 1.5, borderColor: c.primary, alignItems: "center", gap: 2 }}>
-            <AppText variant="label" color={c.price} numberOfLines={1} style={{ fontSize: 11 }}>{t("yourOtp")}</AppText>
-            <AppText style={{ fontFamily: fonts.display, fontSize: 30, lineHeight: 36, letterSpacing: 5 }} color={c.ink} numberOfLines={1}>{otp ?? "— — — —"}</AppText>
-            <AppText variant="caption" muted numberOfLines={1} style={{ fontSize: 10 }}>{t("tellRider")}</AppText>
+      <View style={{ padding: 16, gap: 14 }}>
+        <View style={{ flexDirection: "row", gap: 12 }}>
+          <View style={{ flex: 1, paddingVertical: 14, paddingHorizontal: 8, borderRadius: 18, backgroundColor: c.tint, borderWidth: 1, borderColor: c.primary, alignItems: "center", gap: 4 }}>
+            <AppText variant="label" color={c.price} numberOfLines={1} style={{ fontSize: 12 }}>{t("yourOtp")}</AppText>
+            <AppText style={{ fontFamily: fonts.display, fontSize: 28, lineHeight: 34, letterSpacing: 4 }} color={c.ink} numberOfLines={1} adjustsFontSizeToFit>{otp ?? "— — — —"}</AppText>
+            <AppText variant="caption" muted numberOfLines={1} style={{ fontSize: 11.5 }}>{t("tellRider")}</AppText>
           </View>
-          <View style={{ flex: 1, padding: 12, borderRadius: 18, backgroundColor: c.surface2, alignItems: "center", gap: 2 }}>
-            <AppText variant="label" muted numberOfLines={1} style={{ fontSize: 11 }}>{t("amountDue")}</AppText>
-            <AppText style={{ fontFamily: fonts.display, fontSize: 30, lineHeight: 36 }} color={paymentMode === "prepaid_upi" ? c.successText : c.price} numberOfLines={1}>
+          <View style={{ flex: 1, paddingVertical: 14, paddingHorizontal: 8, borderRadius: 18, backgroundColor: c.surface2, borderWidth: 1, borderColor: c.border, alignItems: "center", gap: 4 }}>
+            <AppText variant="label" muted numberOfLines={1} style={{ fontSize: 12 }}>{t("amountDue")}</AppText>
+            <AppText style={{ fontFamily: fonts.display, fontSize: 28, lineHeight: 34 }} color={paymentMode === "prepaid_upi" ? c.successText : c.price} numberOfLines={1} adjustsFontSizeToFit>
               {paymentMode === "prepaid_upi" ? "✓" : `₹${amount}`}
             </AppText>
-            <AppText variant="caption" muted numberOfLines={1} style={{ fontSize: 10 }}>{payLabel}</AppText>
+            <AppText variant="caption" muted numberOfLines={1} style={{ fontSize: 11.5 }}>{payLabel}</AppText>
           </View>
         </View>
 
