@@ -34,6 +34,21 @@ export const addOrderItemsSchema = z.object({
   items: z.array(orderItemInputSchema).min(1).max(10),
 });
 
+/** Grocery line: a master product from the chosen shop; qty in packs/pieces, or kg for loose items. */
+export const groceryOrderItemSchema = z.object({
+  masterProductId: z.string().uuid(),
+  qty: z.number().positive().max(99),
+  notes: z.string().max(300).optional(),
+});
+/** POST /orders/grocery — items for the address's pincode; the server picks the shop(s). No coupons in G2. */
+export const placeGroceryOrderSchema = z.object({
+  addressId: z.string().uuid(),
+  slot: deliverySlotSchema,
+  paymentMode: z.enum(["cod", "upi_on_delivery"]),
+  items: z.array(groceryOrderItemSchema).min(1).max(40),
+});
+export type PlaceGroceryOrderInput = z.infer<typeof placeGroceryOrderSchema>;
+
 export const addressInputSchema = z.object({
   label: z.string().min(1).max(30),
   addressText: z.string().min(5).max(300),
@@ -390,6 +405,8 @@ export const masterProductSchema = z.object({
   qtyStep: z.number().positive().max(100).optional(),
   mrp: money.nullable().optional(),
   imagePath: z.string().max(500).nullable().optional(),
+  description: z.string().trim().max(600).nullable().optional(),
+  descriptionTa: z.string().trim().max(600).nullable().optional(),
   isActive: z.boolean().optional(),
 });
 export type MasterProductInput = z.infer<typeof masterProductSchema>;

@@ -20,13 +20,31 @@ export type OrderSummary = {
   id: string;
   display_id: string;
   status: OrderStatus;
+  vertical_type: "meat" | "grocery";
+  dealer_id: string | null;
   est_amount: number;
   final_amount: number | null;
   payment_mode: "cod" | "upi_on_delivery" | "prepaid_upi";
   created_at: string;
   delivery_slots: { starts_at: string; ends_at: string } | null;
-  order_items: { id: string; product_id: string; requested_kg: number; size: string | null; unavailable: boolean; products: { name: string; name_ta: string | null; unit: "kg" | "piece"; image_path: string | null; base_price_per_kg: number; is_active: boolean } | null }[];
+  order_items: { id: string; product_id: string | null; master_product_id: string | null; requested_kg: number; unit_price_per_kg: number; size: string | null; unavailable: boolean; products: { name: string; name_ta: string | null; unit: "kg" | "piece"; image_path: string | null; base_price_per_kg: number; is_active: boolean; min_qty?: number; qty_step?: number } | null }[];
 };
+
+type MasterEmbed = { name: string; name_ta: string | null; unit: "piece" | "pack" | "kg"; image_path?: string | null; is_active?: boolean; status?: string; min_qty?: number; qty_step?: number } | null;
+/**
+ * Grocery lines embed master_products instead of products. Present them in the
+ * products shape so the order screens render both the same way.
+ */
+function normaliseItems<T extends { order_items: ({ products?: unknown; master_products?: MasterEmbed; unit_price_per_kg?: number } & Record<string, unknown>)[] }>(o: T): T {
+  return {
+    ...o,
+    order_items: o.order_items.map(({ master_products, ...it }) =>
+      it.products || !master_products
+        ? it
+        : { ...it, products: { name: master_products.name, name_ta: master_products.name_ta, unit: master_products.unit === "kg" ? "kg" : "piece", image_path: master_products.image_path ?? null, base_price_per_kg: Number(it.unit_price_per_kg ?? 0), is_active: master_products.is_active !== false && master_products.status !== "rejected", min_qty: master_products.min_qty == null ? undefined : Number(master_products.min_qty), qty_step: master_products.qty_step == null ? undefined : Number(master_products.qty_step) } },
+    ),
+  };
+}
 
 export type OrderDetail = Omit<OrderSummary, "order_items"> & {
   rider_id: string | null;
@@ -150,6 +168,16 @@ export function usePlaceOrder() {
   });
 }
 
+/** Grocery basket → POST /orders/grocery (the shop is the one the basket was built from). */
+export function usePlaceGroceryOrder() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { addressId: string; slot: { startsAt: string; endsAt: string }; paymentMode: "cod" | "upi_on_delivery"; items: { masterProductId: string; qty: number; notes?: string }[] }) =>
+      api<PlaceOrderResult>("/orders/grocery", { method: "POST", body }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["orders"] }),
+  });
+}
+
 /** Add items to an order already placed; the server refuses (409) once the shop has accepted. */
 export function useAddOrderItems(orderId: string) {
   const qc = useQueryClient();
@@ -169,18 +197,18 @@ export function useCancelOrder() {
   });
 }
 
-const SUMMARY = "id,display_id,status,est_amount,final_amount,payment_mode,created_at,delivery_slots(starts_at,ends_at),order_items(id,product_id,requested_kg,size,unavailable,products(name,name_ta,unit,image_path,base_price_per_kg,is_active))";
+const SUMMARY = "id,display_id,status,vertical_type,dealer_id,est_amount,final_amount,payment_mode,created_at,delivery_slots(starts_at,ends_at),order_items(id,product_id,master_product_id,requested_kg,unit_price_per_kg,size,unavailable,products(name,name_ta,unit,image_path,base_price_per_kg,is_active),master_products(name,name_ta,unit,image_path,is_active,status,min_qty,qty_step))";
 
 export function useOrders() {
   const userId = useAuth((s) => s.session?.user.id);
   return useQuery({
-    // "v2": the summary now embeds products, so copies saved by older builds are skipped
-    queryKey: ["orders", userId, "v2"],
+    // "v3": grocery lines embed master_products; copies saved by older builds are skipped
+    queryKey: ["orders", userId, "v3"],
     enabled: !!userId,
     queryFn: async () => {
       const { data, error } = await supabase.from("orders").select(SUMMARY).order("created_at", { ascending: false });
       if (error) throw error;
-      return data as unknown as OrderSummary[];
+      return (data as unknown as OrderSummary[]).map(normaliseItems);
     },
   });
 }
@@ -197,15 +225,15 @@ export function useOrder(id: string | undefined) {
     queryFn: async () => {
       // PostgREST rejects whitespace in select and duplicate embeds, so build it compact.
       const select = [
-        "id,display_id,status,est_amount,final_amount,payment_mode,created_at,rider_id,arrived_at,cancel_reason,pickup_lat,pickup_lng",
+        "id,display_id,status,vertical_type,dealer_id,est_amount,final_amount,payment_mode,created_at,rider_id,arrived_at,cancel_reason,pickup_lat,pickup_lng",
         "delivery_slots(starts_at,ends_at)",
         "addresses(label,address_text,landmark,lat,lng)",
-        "order_items(id,requested_kg,actual_kg,unit_price_per_kg,size,notes,products(name,name_ta,unit))",
+        "order_items(id,requested_kg,actual_kg,unit_price_per_kg,size,notes,products(name,name_ta,unit),master_products(name,name_ta,unit))",
         "order_status_history(to_status,created_at)",
       ].join(",");
       const { data, error } = await supabase.from("orders").select(select).eq("id", id!).single();
       if (error) throw error;
-      return data as unknown as OrderDetail;
+      return normaliseItems(data as unknown as OrderDetail);
     },
   });
 }

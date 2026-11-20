@@ -24,7 +24,7 @@ export type OrderStatus = (typeof ORDER_STATUSES)[number];
 const TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
   PLACED: ["DEALER_ASSIGNED", "CANCELLED"],
   DEALER_ASSIGNED: ["ACCEPTED", "DEALER_ASSIGNED", "CANCELLED"], // re-assign allowed
-  ACCEPTED: ["PACKING", "CANCELLED"],
+  ACCEPTED: ["PACKING", "PACKED", "CANCELLED"], // grocery: accept = ready for a rider, no cut/weigh step
   PACKING: ["PACKED", "CANCELLED"],
   PACKED: ["RIDER_ASSIGNED", "CANCELLED"], // admin may cancel before a rider takes it
   RIDER_ASSIGNED: ["PICKED_UP", "RIDER_ASSIGNED", "PACKED"], // re-assign allowed; admin release → back to PACKED

@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, Get, Headers, Param, Patch, Post, Query, UploadedFile, UseInterceptors } from "@nestjs/common";
+import { BadRequestException, Body, Controller, Delete, Get, Headers, Param, Patch, Post, Query, UploadedFile, UseInterceptors } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
 import type { ZodTypeAny, z } from "zod";
 import {
@@ -16,6 +16,7 @@ import {
 } from "@freshcut/shared";
 import { SupabaseService } from "../supabase.service";
 import { requireAdmin } from "../admin/admin.guard";
+import { ImagesService } from "../images/images.service";
 import { CatalogService } from "./catalog.service";
 
 type Upload = { buffer: Buffer; originalname?: string; mimetype?: string; size: number };
@@ -33,6 +34,7 @@ export class CatalogAdminController {
   constructor(
     private readonly supabase: SupabaseService,
     private readonly catalog: CatalogService,
+    private readonly images: ImagesService,
   ) {}
 
   private guard(auth: string | undefined) {
@@ -72,6 +74,19 @@ export class CatalogAdminController {
   }
 
   // ── master ──
+  @Post("categories/:id/image")
+  @UseInterceptors(FileInterceptor("file", { limits: { fileSize: 6_000_000 } }))
+  async categoryImage(@Headers("authorization") auth: string | undefined, @Param("id") id: string, @UploadedFile() file: Upload | undefined) {
+    await this.guard(auth);
+    return this.catalog.setCategoryImage(id, file ? await this.images.store("catalog_category", id, file) : null, this.images);
+  }
+
+  @Delete("categories/:id/image")
+  async clearCategoryImage(@Headers("authorization") auth: string | undefined, @Param("id") id: string) {
+    await this.guard(auth);
+    return this.catalog.setCategoryImage(id, null, this.images);
+  }
+
   @Get("master")
   async master(
     @Headers("authorization") auth: string | undefined,
@@ -103,6 +118,20 @@ export class CatalogAdminController {
   async updateMaster(@Headers("authorization") auth: string | undefined, @Param("id") id: string, @Body() body: unknown) {
     await this.guard(auth);
     return this.catalog.updateMaster(id, parse(masterProductSchema.partial(), body));
+  }
+
+  /** Upload (replace) a master product's photo; resized to WebP, stored in product-images. */
+  @Post("master/:id/image")
+  @UseInterceptors(FileInterceptor("file", { limits: { fileSize: 6_000_000 } }))
+  async masterImage(@Headers("authorization") auth: string | undefined, @Param("id") id: string, @UploadedFile() file: Upload | undefined) {
+    await this.guard(auth);
+    return this.catalog.setMasterImage(id, file ? await this.images.store("master", id, file) : null, this.images);
+  }
+
+  @Delete("master/:id/image")
+  async clearMasterImage(@Headers("authorization") auth: string | undefined, @Param("id") id: string) {
+    await this.guard(auth);
+    return this.catalog.setMasterImage(id, null, this.images);
   }
 
   @Post("master/:id/review")

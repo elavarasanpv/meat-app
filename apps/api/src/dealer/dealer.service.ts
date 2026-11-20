@@ -3,6 +3,7 @@ import { RIDER_MAX_ACTIVE_ORDERS, RIDER_OFFER_RADIUS_KM, haversineKm } from "@fr
 import type { DealerAcceptInput, DealerRejectInput, ItemPhotoInput, ItemUnavailableInput, ShopStateInput, StockInput, WeighItemInput } from "@freshcut/shared";
 import { DELIVERY_FEE, FREE_DELIVERY_ABOVE } from "@freshcut/shared";
 import { SupabaseService } from "../supabase.service";
+import { withProductShapes } from "../orders/item-shape";
 import { PushService } from "../push/push.service";
 import { OffersService } from "../offers/offers.service";
 import { OrdersService } from "../orders/orders.service";
@@ -40,7 +41,7 @@ export class DealerService {
     const { data: orders, error } = await db
       .from("orders")
       .select(
-        "id, display_id, status, ready_by, est_amount, created_at, items_added_at, rider_id, delivery_slots(starts_at, ends_at), order_items(id, product_id, requested_kg, actual_kg, size, notes, unavailable, unit_price_per_kg, products(name, name_ta, unit))",
+        "id, display_id, status, vertical_type, ready_by, est_amount, created_at, items_added_at, rider_id, delivery_slots(starts_at, ends_at), order_items(id, product_id, master_product_id, requested_kg, actual_kg, size, notes, unavailable, unit_price_per_kg, shop_unit_price, products(name, name_ta, unit), master_products(name, name_ta, unit))",
       )
       .eq("dealer_id", dealerId)
       .in("status", SHOP_ACTIVE)
@@ -82,9 +83,10 @@ export class DealerService {
       ...o,
       rider: rider_id ? riderOf.get(rider_id) ?? null : null,
       accept_deadline: deadlines.get(o.id) ?? null,
-      order_items: (o.order_items as Record<string, unknown>[]).map((it) => ({
+      order_items: withProductShapes(o.order_items as Record<string, unknown>[]).map((it) => ({
         ...it,
-        shop_price_per_kg: shopPrice.get(it.product_id as string) ?? Number(it.unit_price_per_kg),
+        // grocery lines snapshot the shop price; meat reads the current dealer_products price
+        shop_price_per_kg: it.shop_unit_price != null ? Number(it.shop_unit_price) : shopPrice.get(it.product_id as string) ?? Number(it.unit_price_per_kg),
         photo_path: photoOf.get(it.id as string) ?? null,
       })),
     }));
@@ -129,7 +131,7 @@ export class DealerService {
     const db = this.supabase.admin;
     const { data, error } = await db
       .from("orders")
-      .select("id, display_id, status, created_at, order_items(product_id, requested_kg, actual_kg, unavailable, products(name, name_ta))")
+      .select("id, display_id, status, created_at, order_items(product_id, requested_kg, actual_kg, unavailable, shop_unit_price, products(name, name_ta), master_products(name, name_ta))")
       .eq("dealer_id", dealerId)
       .not("status", "in", `(${SHOP_ACTIVE.join(",")})`)
       .order("created_at", { ascending: false })
@@ -137,10 +139,10 @@ export class DealerService {
     if (error) throw new BadRequestException(error.message);
     const shopPrice = await this.shopPrices(dealerId);
     return (data ?? []).map((o) => {
-      const items = o.order_items as unknown as { product_id: string; requested_kg: number; actual_kg: number | null; unavailable: boolean; products: { name: string; name_ta: string | null } }[];
+      const items = withProductShapes(o.order_items as unknown as { product_id: string; requested_kg: number; actual_kg: number | null; unavailable: boolean; shop_unit_price: number | null; products: { name: string; name_ta: string | null } | null; master_products: { name: string; name_ta: string | null } | null }[]);
       const shopAmount = items
         .filter((i) => !i.unavailable)
-        .reduce((s, i) => s + Math.round((shopPrice.get(i.product_id) ?? 0) * Number(i.actual_kg ?? i.requested_kg)), 0);
+        .reduce((s, i) => s + Math.round((i.shop_unit_price != null ? Number(i.shop_unit_price) : shopPrice.get(i.product_id) ?? 0) * Number(i.actual_kg ?? i.requested_kg)), 0);
       return { id: o.id, display_id: o.display_id, status: o.status, created_at: o.created_at, shop_amount: shopAmount, items: items.map((i) => i.products) };
     });
   }
@@ -160,6 +162,17 @@ export class DealerService {
     await this.orders.transition({ orderId: input.orderId, to: "ACCEPTED", actorId: profileId, note: `ready in ${input.readyMinutes} min` });
     await db.from("orders").update({ ready_by: readyBy }).eq("id", input.orderId);
     await db.from("order_assignments").update({ outcome: "accepted", responded_at: new Date().toISOString() }).eq("id", assignment.id);
+
+    // Grocery: nothing to cut or weigh, so accepting is the shop's whole job
+    // before pickup. The bill is the estimate, and riders are rung at once so
+    // one is on the way while the shop packs.
+    const { data: o } = await db.from("orders").select("vertical_type, est_amount").eq("id", input.orderId).single();
+    if (o?.vertical_type === "grocery") {
+      const amount = Number(o.est_amount);
+      await db.from("orders").update({ final_amount: amount }).eq("id", input.orderId);
+      await this.orders.transition({ orderId: input.orderId, to: "PACKED", actorId: profileId, note: "grocery: ready for a rider" });
+      void this.ringRiders(input.orderId, dealer.id, amount);
+    }
     return { orderId: input.orderId, readyBy };
   }
 

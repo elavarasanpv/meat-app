@@ -1,4 +1,5 @@
-import { BadRequestException, Body, Controller, Delete, Get, Headers, Param, Patch, Post, Query } from "@nestjs/common";
+import { BadRequestException, Body, Controller, Delete, Get, Headers, Param, Patch, Post, Query, UploadedFile, UseInterceptors } from "@nestjs/common";
+import { FileInterceptor } from "@nestjs/platform-express";
 import { adminHeadlineSchema, adminOfferSchema, ticketResolveSchema, ticketReplySchema, adminInviteSchema, adminProfileSchema, adminCancelSchema, adminCashVerifySchema, adminReassignShopSchema, adminRiderSchema, adminShopSchema, adminBroadcastSchema, adminSellPriceSchema, adminShopPriceSchema } from "@freshcut/shared";
 import type { ZodTypeAny, z } from "zod";
 import { AdminOpsService } from "./admin-ops.service";
@@ -8,6 +9,7 @@ import { OffersService } from "../offers/offers.service";
 import { SupabaseService } from "../supabase.service";
 import { AdminService } from "./admin.service";
 import { requireAdmin } from "./admin.guard";
+import { ImagesService } from "../images/images.service";
 
 @Controller("admin")
 export class AdminController {
@@ -18,6 +20,7 @@ export class AdminController {
     private readonly account: AdminAccountService,
     private readonly support: SupportService,
     private readonly offersSvc: OffersService,
+    private readonly images: ImagesService,
   ) {}
 
   private guard(auth: string | undefined) {
@@ -193,6 +196,31 @@ export class AdminController {
   }
 
   // ── pricing ──
+  /** POST /admin/products/:id/image — a meat product's photo (resized to WebP). DELETE clears it. */
+  @Post("products/:id/image")
+  @UseInterceptors(FileInterceptor("file", { limits: { fileSize: 6_000_000 } }))
+  async productImage(@Headers("authorization") auth: string | undefined, @Param("id") id: string, @UploadedFile() file: { buffer: Buffer; mimetype?: string; size: number } | undefined) {
+    await this.guard(auth);
+    return this.setProductImage(id, file ? await this.images.store("product", id, file) : null);
+  }
+
+  @Delete("products/:id/image")
+  async clearProductImage(@Headers("authorization") auth: string | undefined, @Param("id") id: string) {
+    await this.guard(auth);
+    return this.setProductImage(id, null);
+  }
+
+  private async setProductImage(id: string, stored: { path: string } | null) {
+    const db = this.supabase.admin;
+    const { data: row } = await db.from("products").select("image_path").eq("id", id).maybeSingle();
+    if (!row) throw new BadRequestException("Product not found");
+    const { error } = await db.from("products").update({ image_path: stored?.path ?? null }).eq("id", id);
+    if (error) throw new BadRequestException(error.message);
+    // Only files we stored (kind/id/stamp.webp) are deleted; bundled-style paths from the seed stay.
+    if (row.image_path && row.image_path !== stored?.path && /^product\//.test(row.image_path as string)) await this.images.remove(row.image_path as string);
+    return { id, image_path: stored?.path ?? null };
+  }
+
   @Get("pricing")
   async pricing(@Headers("authorization") auth: string | undefined) {
     await this.guard(auth);

@@ -59,6 +59,21 @@ export function suggestionImage(kind: "habit" | "favourite" | "last" | "popular"
  * Image for a product: uploaded image if it has one, otherwise a bundled
  * cut-out matched by name, otherwise none (card shows the gradient alone).
  */
+/** Grocery items: the master product image or nothing (the row shows an initial). Never the meat name-match fallbacks. */
+export function groceryImage(imagePath: string | null | undefined): ImageSourcePropType | undefined {
+  return imagePath ? { uri: supabase.storage.from("product-images").getPublicUrl(imagePath).data.publicUrl } : undefined;
+}
+
+/** The 300 px twin the API stores next to every admin upload (lists, cart rows). Seed paths without a twin fall back to the main file. */
+export function groceryThumb(imagePath: string | null | undefined): ImageSourcePropType | undefined {
+  return imagePath ? groceryImage(/\.webp$/.test(imagePath) ? imagePath.replace(/\.webp$/, "-300.webp") : imagePath) : undefined;
+}
+
+/** Image for a cart line, whichever vertical it came from. */
+export function cartImage(it: { name: string; imagePath?: string | null; vertical?: "meat" | "grocery" }): ImageSourcePropType | undefined {
+  return it.vertical === "grocery" ? groceryImage(it.imagePath) : productImage(it.name, null);
+}
+
 export function productImage(name: string, imagePath: string | null): ImageSourcePropType | undefined {
   if (imagePath) {
     return { uri: supabase.storage.from("product-images").getPublicUrl(imagePath).data.publicUrl };

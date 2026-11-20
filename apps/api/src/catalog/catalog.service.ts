@@ -62,7 +62,7 @@ type Listing = {
 };
 
 const MASTER_COLS =
-  "id, vertical_type, category_id, barcode, name, name_ta, brand, pack_size, unit, min_qty, qty_step, mrp, image_path, scope, status, owner_dealer_id, reviewed_by, reviewed_at, review_note, is_active, created_at, updated_at";
+  "id, vertical_type, category_id, barcode, name, name_ta, brand, pack_size, unit, min_qty, qty_step, mrp, image_path, description, description_ta, scope, status, owner_dealer_id, reviewed_by, reviewed_at, review_note, is_active, created_at, updated_at";
 const LISTING_COLS =
   "dealer_id, master_product_id, shop_price, selling_price, mrp, price_mode, selling_set_by, out_of_stock_until, stock_qty, is_active, updated_at";
 
@@ -184,6 +184,8 @@ export class CatalogService {
         qty_step: input.qtyStep ?? (input.unit === "kg" ? 0.25 : 1),
         mrp: input.mrp ?? null,
         image_path: input.imagePath ?? null,
+        description: input.description ?? null,
+        description_ta: input.descriptionTa ?? null,
         scope: "shared",
         status: "approved", // admin-created items are approved by definition
         reviewed_by: actor.id,
@@ -195,8 +197,29 @@ export class CatalogService {
     return data as Master;
   }
 
+  /** Point a master product at a freshly stored photo (or none); the previous files are removed. */
+  async setMasterImage(id: string, stored: { path: string } | null, images: { remove(p: string | null | undefined): Promise<void> }) {
+    const { data: row } = await this.db.from("master_products").select("image_path").eq("id", id).maybeSingle();
+    if (!row) throw new NotFoundException("Product not found");
+    const { error } = await this.db.from("master_products").update({ image_path: stored?.path ?? null }).eq("id", id);
+    if (error) throw new BadRequestException(error.message);
+    if (row.image_path && row.image_path !== stored?.path) await images.remove(row.image_path as string);
+    return { id, image_path: stored?.path ?? null };
+  }
+
+  async setCategoryImage(id: string, stored: { path: string } | null, images: { remove(p: string | null | undefined): Promise<void> }) {
+    const { data: row } = await this.db.from("catalog_categories").select("image_path").eq("id", id).maybeSingle();
+    if (!row) throw new NotFoundException("Category not found");
+    const { error } = await this.db.from("catalog_categories").update({ image_path: stored?.path ?? null }).eq("id", id);
+    if (error) throw new BadRequestException(error.message);
+    if (row.image_path && row.image_path !== stored?.path) await images.remove(row.image_path as string);
+    return { id, image_path: stored?.path ?? null };
+  }
+
   async updateMaster(id: string, input: Partial<MasterProductInput>) {
     const patch: Record<string, unknown> = {};
+    if (input.description !== undefined) patch.description = input.description;
+    if (input.descriptionTa !== undefined) patch.description_ta = input.descriptionTa;
     if (input.categoryId !== undefined) patch.category_id = input.categoryId;
     if (input.barcode !== undefined) {
       if (input.barcode) await this.assertBarcodeFree(input.barcode, id);

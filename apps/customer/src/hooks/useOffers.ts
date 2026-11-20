@@ -54,7 +54,7 @@ export function useOfferForProduct() {
 }
 
 /** Server preview of the best discount for this cart (+ typed coupon). The order re-checks it. */
-export function useOfferQuote(items: CartItem[], coupon: string | null, pincode?: string) {
+export function useOfferQuote(items: CartItem[], coupon: string | null, pincode?: string, enabled = true) {
   const key = items.map((i) => `${i.productId}:${i.qty}`).sort().join(",");
   return useQuery({
     queryKey: ["offer-quote", key, coupon ?? "", pincode ?? ""],
@@ -63,7 +63,7 @@ export function useOfferQuote(items: CartItem[], coupon: string | null, pincode?
         method: "POST",
         body: { items: items.map((i) => ({ productId: i.productId, qty: i.qty, price: i.price })), couponCode: coupon ?? undefined, pincode },
       }),
-    enabled: items.length > 0,
+    enabled: enabled && items.length > 0,
     staleTime: 30_000,
   });
 }

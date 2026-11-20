@@ -1,3 +1,4 @@
+import { createContext, useContext } from "react";
 import { useColorScheme } from "react-native";
 
 /** FreshCut design tokens — from the approved theme canvas (v2). */
@@ -80,11 +81,26 @@ export const fonts = {
   tamilBold: "NotoSansTamil_700Bold",
 } as const;
 
+/** Grocery accent: the brand's green/yellow half. Wrap a subtree in <Accent vertical="grocery"> to swap it in. */
+export const GROCERY_ACCENT: Partial<Colors> = {
+  primary: "#1E8A4F",
+  primaryPressed: "#166B3D",
+  tint: "#E3F3E9",
+  tintSoft: "#F1F8F3",
+  price: "#1E8A4F",
+};
+export const AccentContext = createContext<"meat" | "grocery">("meat");
+export const Accent = AccentContext.Provider;
+export function withAccent(c: Colors, vertical?: "meat" | "grocery" | null): Colors {
+  return vertical === "grocery" ? { ...c, ...GROCERY_ACCENT } : c;
+}
+
 export function useTheme() {
   const scheme = useColorScheme() === "dark" ? "dark" : "light";
+  const vertical = useContext(AccentContext);
   return {
     scheme,
-    c: palette[scheme] as Colors,
+    c: withAccent(palette[scheme] as Colors, vertical),
     productGradient: scheme === "dark" ? gradients.productCardDark : gradients.productCard,
     productBorder: scheme === "dark" ? gradients.productCardBorderDark : gradients.productCardBorder,
   };

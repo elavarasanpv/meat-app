@@ -1,4 +1,5 @@
 import { Module } from "@nestjs/common";
+import { ImagesModule } from "../images/images.module";
 import { AdminController } from "./admin.controller";
 import { AdminService } from "./admin.service";
 import { SupabaseService } from "../supabase.service";
@@ -11,7 +12,7 @@ import { OrdersService } from "../orders/orders.service";
 import { PushService } from "../push/push.service";
 
 @Module({
-  imports: [DealerModule, SupportModule, OffersModule],
+  imports: [DealerModule, SupportModule, OffersModule, ImagesModule],
   controllers: [AdminController],
   providers: [AdminService, AdminOpsService, AdminAccountService, OrdersService, PushService, SupabaseService],
   exports: [AdminService],

@@ -1,6 +1,6 @@
 import { BadRequestException, Body, Controller, ForbiddenException, Get, Headers, Param, Post } from "@nestjs/common";
 import { z } from "zod";
-import { addOrderItemsSchema, cancelOrderSchema, orderStatusSchema, placeOrderSchema, upcomingSlots, rateOrderSchema } from "@freshcut/shared";
+import { addOrderItemsSchema, cancelOrderSchema, orderStatusSchema, placeGroceryOrderSchema, placeOrderSchema, upcomingSlots, rateOrderSchema } from "@freshcut/shared";
 import { OrdersService } from "./orders.service";
 import { SuggestionsService } from "./suggestions.service";
 import { OffersService } from "../offers/offers.service";
@@ -57,6 +57,19 @@ export class OrdersController {
     if (placed) Object.assign(result, { estAmount: Number(placed.est_amount), discount: Number(placed.discount_amount ?? 0) });
     // Offer the order to the nearest open shop; a failure here never blocks checkout.
     await this.assignment.offer(result.orderId).catch((e) => console.error("[assign] offer", e));
+    return result;
+  }
+
+  /** POST /orders/grocery — place a grocery basket; the server split it into one order per shop. */
+  @Post("grocery")
+  async placeGrocery(@Headers("authorization") auth: string | undefined, @Body() body: unknown) {
+    const user = await requireUser(this.supabase, auth);
+    const input = parse(placeGroceryOrderSchema, body);
+    const result = await this.orders.placeGroceryOrder(user.id, input);
+    // Each order goes straight to the shop the server chose (same accept window + ring).
+    for (const o of result.orders) {
+      await this.assignment.offerTo(o.orderId, o.dealerId).catch((e) => console.error("[assign] grocery offer", e));
+    }
     return result;
   }
 

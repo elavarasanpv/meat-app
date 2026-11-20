@@ -1,7 +1,7 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from "@nestjs/common";
 import { randomInt } from "node:crypto";
 import * as bcrypt from "bcryptjs";
-import { CUSTOMER_CANCELLABLE, canTransition, type AddOrderItemsInput, type CancelOrderInput, type OrderStatus, type PlaceOrderInput, type RateOrderInput } from "@freshcut/shared";
+import { CUSTOMER_CANCELLABLE, canTransition, type AddOrderItemsInput, type CancelOrderInput, type OrderStatus, type PlaceGroceryOrderInput, type PlaceOrderInput, type RateOrderInput } from "@freshcut/shared";
 import { PushService } from "../push/push.service";
 import { SupabaseService } from "../supabase.service";
 
@@ -36,6 +36,36 @@ export class OrdersService {
     }
     const row = (Array.isArray(data) ? data[0] : data) as { order_id: string; display_id: string; est_amount: number };
     return { orderId: row.order_id, displayId: row.display_id, estAmount: Number(row.est_amount), otp };
+  }
+
+  /**
+   * Place a grocery basket. The customer never picks a shop: create_grocery_order()
+   * splits the lines across the shops serving the pincode (fewest shops first)
+   * and returns one row per order. Same OTP for the whole group, fee read from
+   * delivery_fee_rules. The meat create_order() is untouched.
+   */
+  async placeGroceryOrder(customerId: string, input: PlaceGroceryOrderInput) {
+    const otp = String(randomInt(1000, 10000));
+    const otpHash = await bcrypt.hash(otp, 8);
+    const { data, error } = await this.supabase.admin.rpc("create_grocery_order", {
+      p_customer: customerId,
+      p_address: input.addressId,
+      p_slot_start: input.slot.startsAt,
+      p_slot_end: input.slot.endsAt,
+      p_payment: input.paymentMode,
+      p_items: input.items.map((i) => ({ master_product_id: i.masterProductId, qty: i.qty, notes: i.notes ?? null })),
+      p_otp_hash: otpHash,
+      p_otp: otp,
+    });
+    if (error) {
+      if (error.code === "P0002") throw new NotFoundException(error.message);
+      if (error.code === "FC409") throw new ConflictException(error.message);
+      throw new BadRequestException(error.message);
+    }
+    const rows = (Array.isArray(data) ? data : [data]) as { order_id: string; display_id: string; est_amount: number; dealer_id: string }[];
+    const orders = rows.map((r) => ({ orderId: r.order_id, displayId: r.display_id, estAmount: Number(r.est_amount), dealerId: r.dealer_id }));
+    // The first order carries the fee and the most lines; the app opens that one.
+    return { ...orders[0], estAmount: orders.reduce((s, o) => s + o.estAmount, 0), otp, orders };
   }
 
   /**
@@ -167,11 +197,11 @@ export class OrdersService {
    * their own cancellation needs none. Fire-and-forget.
    */
   private async notifyCustomer(orderId: string, to: OrderStatus) {
-    const text = CUSTOMER_STATUS_PUSH[to];
-    if (!text) return;
     try {
-      const { data: o } = await this.supabase.admin.from("orders").select("customer_id, display_id").eq("id", orderId).single();
+      const { data: o } = await this.supabase.admin.from("orders").select("customer_id, display_id, vertical_type").eq("id", orderId).single();
       if (!o) return;
+      const text = o.vertical_type === "grocery" && to in GROCERY_STATUS_PUSH ? GROCERY_STATUS_PUSH[to] : CUSTOMER_STATUS_PUSH[to];
+      if (!text) return;
       await this.push.toProfiles([o.customer_id], {
         title: text.title,
         body: `${o.display_id} · ${text.body}`,
@@ -187,6 +217,11 @@ export class OrdersService {
 
 /** Customer-facing status pushes in English and Tamil; statuses missing here send nothing. */
 type PushText = { title: string; body: string; ta: { title: string; body: string } };
+/** Grocery overrides: the shop accepts and packs in one go, so PACKED (automatic) stays silent. */
+const GROCERY_STATUS_PUSH: Partial<Record<OrderStatus, PushText | undefined>> = {
+  ACCEPTED: { title: "Shop accepted your order", body: "They're packing it now; a rider will be assigned soon.", ta: { title: "கடை உங்கள் ஆர்டரை ஏற்றது", body: "இப்போது பேக் செய்கிறார்கள்; விரைவில் ரைடர் ஒதுக்கப்படுவார்." } },
+  PACKED: undefined,
+};
 const CUSTOMER_STATUS_PUSH: Partial<Record<OrderStatus, PushText>> = {
   ACCEPTED: { title: "Shop accepted your order", body: "They're cutting it fresh for you now.", ta: { title: "கடை உங்கள் ஆர்டரை ஏற்றது", body: "உங்களுக்காக இப்போது புதிதாக வெட்டுகிறார்கள்." } },
   PACKED: { title: "Your order is packed", body: "Weighed, photographed and waiting for a rider.", ta: { title: "உங்கள் ஆர்டர் பேக் ஆகிவிட்டது", body: "எடை போட்டு, புகைப்படம் எடுத்து, ரைடருக்காகக் காத்திருக்கிறது." } },

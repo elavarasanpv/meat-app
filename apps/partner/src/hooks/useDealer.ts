@@ -25,6 +25,8 @@ export type DealerOrder = {
   id: string;
   display_id: string;
   status: "DEALER_ASSIGNED" | "ACCEPTED" | "PACKING" | "PACKED" | "RIDER_ASSIGNED";
+  /** meat (cut · weigh · pack) or grocery (pack while the rider comes). */
+  vertical_type?: "meat" | "grocery";
   /** Set once a rider has accepted the pickup. */
   rider: RiderInfo | null;
   ready_by: string | null;

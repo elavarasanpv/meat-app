@@ -175,9 +175,9 @@ export function OrderCard({ o, compact }: { o: DealerOrder; compact?: boolean })
       ) : null}
 
       {o.status === "PACKED" ? (
-        <View style={{ height: 52, borderRadius: 26, backgroundColor: c.successBg, flexDirection: "row", gap: 10, alignItems: "center", justifyContent: "center" }}>
+        <View style={{ minHeight: 52, paddingHorizontal: 14, borderRadius: 26, backgroundColor: c.successBg, flexDirection: "row", gap: 10, alignItems: "center", justifyContent: "center" }}>
           <Icon name="scooter" color={c.success} size={30} />
-          <Txt bold size={15} color={c.success}>{t("waitingRider")}</Txt>
+          <Txt bold size={15} color={c.success} style={{ flexShrink: 1 }}>{t(o.vertical_type === "grocery" ? "packGrocery" : "waitingRider")}</Txt>
         </View>
       ) : null}
 

@@ -1,6 +1,7 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from "@nestjs/common";
 import type { AdminBroadcastInput, AdminRiderInput, AdminSellPriceInput, AdminShopInput, AdminShopPriceInput } from "@freshcut/shared";
 import { SupabaseService } from "../supabase.service";
+import { withProductShapes } from "../orders/item-shape";
 import { OrdersService } from "../orders/orders.service";
 import { AssignmentService } from "../dealer/assignment.service";
 import { AdminService } from "./admin.service";
@@ -237,7 +238,7 @@ export class AdminOpsService {
     const { data: o, error } = await db
       .from("orders")
       .select(
-        "id, display_id, status, payment_mode, payment_status, est_amount, final_amount, cancel_reason, created_at, ready_by, dealer_id, rider_id, profiles!orders_customer_id_fkey(full_name, phone), addresses(address_text, landmark, pincode, lat, lng), dealers(id, shop_name, profiles(full_name, phone)), delivery_partners(id, vehicle, profiles(full_name, phone)), order_items(id, requested_kg, cut, size, unavailable, unit_price_per_kg, products(name, unit))",
+        "id, display_id, status, payment_mode, payment_status, est_amount, final_amount, cancel_reason, created_at, ready_by, dealer_id, rider_id, profiles!orders_customer_id_fkey(full_name, phone), addresses(address_text, landmark, pincode, lat, lng), dealers(id, shop_name, profiles(full_name, phone)), delivery_partners(id, vehicle, profiles(full_name, phone)), order_items(id, requested_kg, cut, size, unavailable, unit_price_per_kg, products(name, unit), master_products(name, unit))",
       )
       .eq("id", id)
       .maybeSingle();
@@ -273,7 +274,7 @@ export class AdminOpsService {
       address: o.addresses,
       shop: shop ? { id: shop.id, name: shop.shop_name, owner: shop.profiles?.full_name ?? null, phone: shop.profiles?.phone ?? null } : null,
       rider: rider ? { id: rider.id, name: rider.profiles?.full_name ?? null, phone: rider.profiles?.phone ?? null, vehicle: rider.vehicle } : null,
-      items: (o.order_items as unknown as { id: string; requested_kg: number; cut: string; size: string | null; unavailable: boolean; unit_price_per_kg: number; products: { name: string; unit: string } | null }[]).map((i) => ({
+      items: withProductShapes(o.order_items as unknown as { id: string; requested_kg: number; cut: string; size: string | null; unavailable: boolean; unit_price_per_kg: number; products: { name: string; unit: string } | null; master_products: { name: string; unit: string } | null }[]).map((i) => ({
         id: i.id,
         name: i.products?.name ?? "Item",
         unit: i.products?.unit ?? "kg",
@@ -561,7 +562,7 @@ export class AdminOpsService {
       db.from("dealers").select("id, shop_name, is_open, is_active, closed_until, created_at, profiles(full_name, phone), dealer_pincodes(pincode)").eq("id", id).maybeSingle(),
       db
         .from("orders")
-        .select("id, display_id, status, est_amount, final_amount, created_at, ready_by, profiles!orders_customer_id_fkey(full_name), order_items(product_id, requested_kg, unavailable, products(name, unit)), order_status_history(to_status, created_at)")
+        .select("id, display_id, status, est_amount, final_amount, created_at, ready_by, profiles!orders_customer_id_fkey(full_name), order_items(product_id, master_product_id, requested_kg, unavailable, shop_unit_price, products(name, unit), master_products(name, unit)), order_status_history(to_status, created_at)")
         .eq("dealer_id", id)
         .gte("created_at", from)
         .order("created_at", { ascending: false }),
@@ -577,7 +578,8 @@ export class AdminOpsService {
     let onTime = 0, timed = 0;
     const products = new Map<string, { name: string; unit: string; qty: number; orders: number }>();
     type H = { to_status: string; created_at: string };
-    type It = { product_id: string; requested_kg: number; unavailable: boolean; products: { name: string; unit: string } | null };
+    type It = { product_id: string | null; master_product_id: string | null; requested_kg: number; unavailable: boolean; shop_unit_price: number | null; products: { name: string; unit: string } | null; master_products: { name: string; unit: string } | null };
+    for (const o of orders ?? []) o.order_items = withProductShapes(o.order_items as unknown as It[]) as unknown as typeof o.order_items;
 
     for (const o of orders ?? []) {
       const idx = Math.floor((new Date(o.created_at).getTime() - (today0 - (DAYS - 1) * 86_400_000)) / 86_400_000);
@@ -589,17 +591,18 @@ export class AdminOpsService {
         if (days[idx]) days[idx].sales += amount;
         for (const it of o.order_items as unknown as It[]) {
           if (it.unavailable) continue;
-          spend += (cost.get(it.product_id) ?? 0) * Number(it.requested_kg);
+          spend += (it.shop_unit_price != null ? Number(it.shop_unit_price) : cost.get(it.product_id ?? "") ?? 0) * Number(it.requested_kg);
         }
       }
       if (o.status === "CANCELLED" || o.status === "REFUNDED") cancelled += 1;
       if (o.status === "DELIVERY_FAILED" || o.status === "RETURNED") failed += 1;
       for (const it of o.order_items as unknown as It[]) {
         if (it.unavailable || !it.products) continue;
-        const cur = products.get(it.product_id) ?? { name: it.products.name, unit: it.products.unit, qty: 0, orders: 0 };
+        const key = it.product_id ?? it.master_product_id ?? "";
+        const cur = products.get(key) ?? { name: it.products.name, unit: it.products.unit, qty: 0, orders: 0 };
         cur.qty += Number(it.requested_kg);
         cur.orders += 1;
-        products.set(it.product_id, cur);
+        products.set(key, cur);
       }
       const h = o.order_status_history as unknown as H[];
       const acc = h.find((x) => x.to_status === "ACCEPTED");

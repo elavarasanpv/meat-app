@@ -8,7 +8,9 @@ import { JOURNEY_ART, JOURNEY_MARKER, type JourneyStop } from "@/lib/journeyArt"
 import { useT, type TKey } from "@/i18n";
 import { useTheme } from "@/theme";
 
-const STOPS: JourneyStop[] = ["placed", "shop", "cutting", "packed", "rider"];
+const MEAT_STOPS: JourneyStop[] = ["placed", "shop", "cutting", "packed", "rider"];
+/** Grocery has no cutting or weighing: the shop accepts and packs, then a rider collects. */
+const GROCERY_STOPS: JourneyStop[] = ["placed", "shop", "rider"];
 
 /** Which stop each order status lands on. */
 const STOP_OF: Partial<Record<OrderStatus, number>> = {
@@ -20,12 +22,22 @@ const STOP_OF: Partial<Record<OrderStatus, number>> = {
   RIDER_ASSIGNED: 4,
   PICKED_UP: 4,
 };
+const GROCERY_STOP_OF: Partial<Record<OrderStatus, number>> = {
+  PLACED: 0,
+  DEALER_ASSIGNED: 0,
+  ACCEPTED: 1,
+  PACKING: 1,
+  PACKED: 1,
+  RIDER_ASSIGNED: 2,
+  PICKED_UP: 2,
+};
+const GREEN = { primary: "#1E8A4F", tint: "#E3F3E9" };
 
 const PAD = 28; // road inset from the card edge
 const STOP = 52; // stop artwork size
 const MARK = 30; // marker size
 
-type Props = { status: OrderStatus };
+type Props = { status: OrderStatus; vertical?: "meat" | "grocery" };
 
 /**
  * Horizontal order journey: a road with five stops (placed → shop → cutting
@@ -34,10 +46,17 @@ type Props = { status: OrderStatus };
  * two-frame chop/ride when PNG frames are provided). All vector/tiny PNG,
  * nothing fetched — works the same on 2G.
  */
-export function OrderJourney({ status }: Props) {
+export function OrderJourney({ status, vertical = "meat" }: Props) {
   const { c } = useTheme();
   const t = useT();
-  const idx = STOP_OF[status] ?? 0;
+  const grocery = vertical === "grocery";
+  const STOPS = grocery ? GROCERY_STOPS : MEAT_STOPS;
+  const idx = (grocery ? GROCERY_STOP_OF : STOP_OF)[status] ?? 0;
+  // Grocery copy differs at the shop stop (packing, not cutting) and uses the green accent.
+  const key = (s: string) => (grocery && s === "shop" ? "jrg_shop" : `jr_${s}`);
+  const primary = grocery ? GREEN.primary : c.primary;
+  const price = grocery ? GREEN.primary : c.price;
+  const tint = grocery ? GREEN.tint : c.tint;
   const [width, setWidth] = useState(0);
   const span = Math.max(0, width - PAD * 2);
   const xOf = (i: number) => PAD + (span * i) / (STOPS.length - 1);
@@ -101,17 +120,17 @@ export function OrderJourney({ status }: Props) {
                           {live && art.frames[1] ? <Animated.Image source={art.frames[1]} style={{ position: "absolute", width: STOP, height: STOP, opacity: flip.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0, 1, 1] }) }} resizeMode="contain" /> : null}
                         </>
                       ) : (
-                        <View style={{ width: 44, height: 44, borderRadius: 16, backgroundColor: done ? c.successBg : on || next ? c.tint : c.surface2, alignItems: "center", justifyContent: "center" }}>
-                          <Icon name={art.icon} color={done ? c.success : on || next ? c.primary : c.muted} size={22} />
+                        <View style={{ width: 44, height: 44, borderRadius: 16, backgroundColor: done ? c.successBg : on || next ? tint : c.surface2, alignItems: "center", justifyContent: "center" }}>
+                          <Icon name={art.icon} color={done ? c.success : on || next ? primary : c.muted} size={22} />
                         </View>
                       )}
                     </Animated.View>
                     {/* stop dot on the road */}
-                    <View style={{ marginTop: 2, width: 14, height: 14, borderRadius: 7, backgroundColor: done ? c.success : c.surface, borderWidth: 2.5, borderColor: done ? c.success : on || next ? c.primary : c.border, alignItems: "center", justifyContent: "center" }}>
+                    <View style={{ marginTop: 2, width: 14, height: 14, borderRadius: 7, backgroundColor: done ? c.success : c.surface, borderWidth: 2.5, borderColor: done ? c.success : on || next ? primary : c.border, alignItems: "center", justifyContent: "center" }}>
                       {done ? <Icon name="check" color="#FFFFFF" size={8} strokeWidth={3.5} /> : null}
                     </View>
-                    <AppText variant="caption" color={done ? c.ink : on || next ? c.price : c.muted} numberOfLines={1} style={{ fontSize: 10, marginTop: 4, width: 64, textAlign: "center" }}>
-                      {t(`jr_${s}` as TKey)}
+                    <AppText variant="caption" color={done ? c.ink : on || next ? price : c.muted} numberOfLines={1} style={{ fontSize: 10, marginTop: 4, width: 64, textAlign: "center" }}>
+                      {t(key(s) as TKey)}
                     </AppText>
                   </View>
                 );
@@ -122,7 +141,7 @@ export function OrderJourney({ status }: Props) {
                 {JOURNEY_MARKER ? (
                   <Image source={JOURNEY_MARKER} style={{ width: MARK, height: MARK }} resizeMode="contain" />
                 ) : (
-                  <View style={{ width: MARK, height: MARK, borderRadius: MARK / 2, backgroundColor: c.primary, borderWidth: 3, borderColor: "#FFFFFF", alignItems: "center", justifyContent: "center", elevation: 3, shadowColor: "#000", shadowOpacity: 0.2, shadowRadius: 3, shadowOffset: { width: 0, height: 2 } }}>
+                  <View style={{ width: MARK, height: MARK, borderRadius: MARK / 2, backgroundColor: primary, borderWidth: 3, borderColor: "#FFFFFF", alignItems: "center", justifyContent: "center", elevation: 3, shadowColor: "#000", shadowOpacity: 0.2, shadowRadius: 3, shadowOffset: { width: 0, height: 2 } }}>
                     <Icon name="home" color="#FFFFFF" size={14} strokeWidth={2.6} />
                   </View>
                 )}
@@ -133,8 +152,8 @@ export function OrderJourney({ status }: Props) {
 
         {/* What is happening now */}
         <View style={{ paddingHorizontal: 18, marginTop: 8 }}>
-          <AppText variant="title" numberOfLines={1} style={{ fontSize: 18, lineHeight: 24 }}>{t(`jr_${cur}_title` as TKey)}</AppText>
-          <AppText variant="caption" muted numberOfLines={2} style={{ marginTop: 2 }}>{t(`jr_${cur}_body` as TKey)}</AppText>
+          <AppText variant="title" numberOfLines={1} style={{ fontSize: 18, lineHeight: 24 }}>{t(`${key(cur)}_title` as TKey)}</AppText>
+          <AppText variant="caption" muted numberOfLines={2} style={{ marginTop: 2 }}>{t(`${key(cur)}_body` as TKey)}</AppText>
         </View>
       </View>
     </View>

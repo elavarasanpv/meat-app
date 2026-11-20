@@ -1,3 +1,5 @@
+import { useRouter } from "expo-router";
+import { cartVertical, useCart } from "@/store/cart";
 import { useEffect, useRef, useState } from "react";
 import { Animated, Easing, Pressable, View, type LayoutChangeEvent } from "react-native";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
@@ -19,6 +21,7 @@ const ACTIVE_RATIO = 2.1;
 const GAP = 4;
 export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const { c } = useTheme();
+  const router = useRouter();
   const insets = useSafeAreaInsets();
   // tab widths come from the bar's measured width so they can be animated as numbers
   const [barWidth, setBarWidth] = useState(0);
@@ -32,6 +35,8 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
         const { options } = descriptors[route.key];
         const label = typeof options.title === "string" ? options.title : route.name;
         const onPress = () => {
+          // The Cart tab opens the full-screen grocery cart when the basket is grocery.
+          if (route.name === "cart" && cartVertical(useCart.getState().items) === "grocery") return router.push("/grocery/cart");
           const e = navigation.emit({ type: "tabPress", target: route.key, canPreventDefault: true });
           if (!focused && !e.defaultPrevented) navigation.navigate(route.name);
         };

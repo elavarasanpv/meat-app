@@ -14,6 +14,7 @@ import {
 import { OrdersService } from "../orders/orders.service";
 import { SupabaseService } from "../supabase.service";
 import { SupportService } from "../support/support.service";
+import { withProductShapes, type MasterLite } from "../orders/item-shape";
 
 /** Orders a rider is still responsible for. */
 const RIDER_ACTIVE = ["RIDER_ASSIGNED", "PICKED_UP", "OUT_FOR_DELIVERY", "DELIVERY_FAILED"];
@@ -21,7 +22,13 @@ const RIDER_ACTIVE = ["RIDER_ASSIGNED", "PICKED_UP", "OUT_FOR_DELIVERY", "DELIVE
 const ORDER_SELECT =
   "id, display_id, status, est_amount, final_amount, payment_mode, rider_fee, created_at, pickup_lat, pickup_lng, arrived_at, " +
   "dealers(shop_name, lat, lng), addresses(label, address_text, landmark, lat, lng), " +
-  "delivery_slots(starts_at, ends_at), order_items(id, requested_kg, size, notes, unavailable, products(name, name_ta, unit))";
+  "delivery_slots(starts_at, ends_at), order_items(id, requested_kg, size, notes, unavailable, products(name, name_ta, unit), master_products(name, name_ta, unit))";
+
+/** Grocery lines carry master_products; present them as products for the app. */
+const normaliseItems = (o: unknown): Record<string, unknown> => {
+  const row = o as { order_items?: { products?: unknown; master_products?: MasterLite }[] } & Record<string, unknown>;
+  return { ...row, order_items: withProductShapes(row.order_items) };
+};
 
 @Injectable()
 export class RiderService {
@@ -136,7 +143,7 @@ export class RiderService {
       .is("rider_id", null)
       .order("created_at");
     type Row = { id: string; dealers: unknown; addresses: unknown } & Record<string, unknown>;
-    const packed = (data ?? []) as unknown as Row[];
+    const packed = (data ?? []).map(normaliseItems) as unknown as Row[];
     if (!packed.length) return [];
 
     // Orders this rider already declined stay hidden.
@@ -204,7 +211,8 @@ export class RiderService {
       .select(ORDER_SELECT)
       .eq("rider_id", rider.id)
       .in("status", RIDER_ACTIVE)
-      .order("created_at");
+      .order("created_at")
+      .then((r) => ({ ...r, data: r.data?.map(normaliseItems) }));
 
     const { data: trip } = await db
       .from("trips")

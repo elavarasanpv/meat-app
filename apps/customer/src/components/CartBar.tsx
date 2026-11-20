@@ -7,8 +7,9 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppText } from "./AppText";
 import { Icon } from "./Icon";
 import { useLang, useT } from "@/i18n";
-import { productImage } from "@/lib/images";
-import { cartTotals, useCart } from "@/store/cart";
+import { cartImage } from "@/lib/images";
+import { cartTotals, cartVertical, useCart } from "@/store/cart";
+import { GROCERY } from "@/components/GroceryHome";
 import { useExpand } from "@/store/expand";
 import { EXPAND_MS } from "./ExpandSheet";
 import { radius, useTheme } from "@/theme";
@@ -38,7 +39,11 @@ export function CartBar({ aboveTabBar = false }: Props) {
   const insets = useSafeAreaInsets();
   const items = useCart((s) => s.items);
   const lastAdded = useCart((s) => s.lastAdded);
-  const { itemTotal } = cartTotals(items);
+  const feeRule = useCart((s) => s.feeRule);
+  const grocery = cartVertical(items) === "grocery";
+  const { itemTotal, freeAbove, delivery } = cartTotals(items, feeRule);
+  const primary = grocery ? GROCERY.primary : c.primary;
+  const price = grocery ? GROCERY.primary : c.price;
   const visible = items.length > 0;
 
   const slide = useRef(new Animated.Value(visible ? 0 : 1)).current;
@@ -46,7 +51,7 @@ export function CartBar({ aboveTabBar = false }: Props) {
   // Tap → the bar grows into a full-screen sheet (ExpandSheet at the root) while the Cart tab opens underneath.
   const barRef = useRef<View>(null);
   function openCart() {
-    const go = () => router.push("/(tabs)/cart");
+    const go = () => router.push(grocery ? "/grocery/cart" : "/(tabs)/cart");
     if (!barRef.current) return go();
     barRef.current.measureInWindow((x, y, w, h) => {
       if (!w || !h) return go();
@@ -123,13 +128,13 @@ export function CartBar({ aboveTabBar = false }: Props) {
               {/* Avatar group: fixed width so the text column never shifts */}
               <View style={{ width: 48 + (recent.length - 1) * AVATAR_STEP, height: 48 }}>
                 {recent.map((it, i) => {
-                  const img = productImage(it.name, null);
+                  const img = cartImage(it);
                   return (
                     <View
                       key={it.productId}
                       style={{ position: "absolute", left: i * AVATAR_STEP, zIndex: i + 1, width: 48, height: 48, borderRadius: 24, backgroundColor: "#FFFFFF", borderWidth: 2, borderColor: "#FFFFFF", alignItems: "center", justifyContent: "center", overflow: "hidden", elevation: 2, shadowColor: "#000", shadowOpacity: 0.12, shadowRadius: 4, shadowOffset: { width: 0, height: 2 } }}
                     >
-                      {img ? <Image source={img} resizeMode="contain" style={{ width: 38, height: 38 }} /> : <Icon name="cart" color={c.primary} size={20} />}
+                      {img ? <Image source={img} resizeMode="contain" style={{ width: 38, height: 38 }} /> : <Icon name="cart" color={primary} size={20} />}
                     </View>
                   );
                 })}
@@ -138,8 +143,8 @@ export function CartBar({ aboveTabBar = false }: Props) {
                 <AppText variant="bodyBold" color={c.ink} numberOfLines={1}>
                   {flash ? t("addedToCart", { name: addedName }) : summary}
                 </AppText>
-                <AppText variant="caption" color={c.price} numberOfLines={1}>
-                  {flash ? summary : t("shopMore")}
+                <AppText variant="caption" color={price} numberOfLines={1}>
+                  {flash ? summary : grocery && freeAbove != null && delivery > 0 ? t("freeAbove", { n: freeAbove }) : t("shopMore")}
                 </AppText>
               </View>
 
@@ -150,7 +155,7 @@ export function CartBar({ aboveTabBar = false }: Props) {
                 end={{ x: 0.3, y: 1 }}
                 style={{ padding: 1.5, borderRadius: 24 }}
               >
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 4, height: 44, paddingLeft: 16, paddingRight: 12, borderRadius: 22.5, backgroundColor: c.primary, overflow: "hidden" }}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 4, height: 44, paddingLeft: 16, paddingRight: 12, borderRadius: 22.5, backgroundColor: primary, overflow: "hidden" }}>
                   <LinearGradient
                     pointerEvents="none"
                     colors={["rgba(255,255,255,0.45)", "rgba(255,255,255,0)"]}

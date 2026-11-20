@@ -12,7 +12,7 @@ import { useOrders, type OrderSummary } from "@/hooks/useOrders";
 import { usePullRefresh } from "@/hooks/usePullRefresh";
 import { dateTime } from "@/lib/format";
 import { productImage } from "@/lib/images";
-import { useCart } from "@/store/cart";
+import { cartVertical, useCart } from "@/store/cart";
 import { useT } from "@/i18n";
 import { useTheme } from "@/theme";
 import { queryState } from "@/lib/network";
@@ -27,6 +27,8 @@ function OrderCard({ o }: { o: OrderSummary }) {
   const t = useT();
   const router = useRouter();
   const upsert = useCart((s) => s.upsert);
+  const clearCart = useCart((s) => s.clear);
+  const cartItems = useCart((s) => s.items);
   const [added, setAdded] = useState(false);
   const items = o.order_items.filter((i) => i.products);
   const closed = CLOSED.includes(o.status);
@@ -36,9 +38,21 @@ function OrderCard({ o }: { o: OrderSummary }) {
   function orderAgain() {
     const sellable = items.filter((i) => i.products!.is_active);
     if (!sellable.length) return;
+    const grocery = o.vertical_type === "grocery";
+    // Baskets never mix verticals: ordering again replaces a basket from the other half.
+    if (cartItems.length && cartVertical(cartItems) !== (grocery ? "grocery" : "meat")) clearCart();
     for (const i of sellable) {
       const p = i.products!;
-      upsert({ productId: i.product_id, name: p.name, nameTa: p.name_ta ?? undefined, unit: p.unit, price: Number(p.base_price_per_kg), qty: Number(i.requested_kg), size: (i.size as "small" | "medium" | "large" | null) ?? undefined });
+      upsert({
+        productId: (grocery ? i.master_product_id : i.product_id) ?? "",
+        name: p.name,
+        nameTa: p.name_ta ?? undefined,
+        unit: p.unit,
+        price: Number(p.base_price_per_kg),
+        qty: Number(i.requested_kg),
+        size: (i.size as "small" | "medium" | "large" | null) ?? undefined,
+        ...(grocery ? { vertical: "grocery" as const, imagePath: p.image_path, step: p.qty_step, minQty: p.min_qty } : {}),
+      });
     }
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
     setAdded(true);
@@ -52,7 +66,7 @@ function OrderCard({ o }: { o: OrderSummary }) {
         <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
           <View style={{ flex: 1, gap: 2 }}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-              <StatusBadge status={o.status} />
+              <StatusBadge status={o.status} vertical={o.vertical_type} />
               <AppText variant="caption" muted numberOfLines={1}>{o.display_id}</AppText>
             </View>
             <AppText variant="caption" muted numberOfLines={1}>{t("placedAt", { when: dateTime(o.created_at) })}</AppText>

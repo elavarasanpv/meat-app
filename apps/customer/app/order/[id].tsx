@@ -12,6 +12,7 @@ import { ArrivedPanel } from "@/components/ArrivedPanel";
 import { CancelSheet } from "@/components/CancelSheet";
 import { DeliveryInfoCard } from "@/components/DeliveryInfoCard";
 import { OrderJourney } from "@/components/OrderJourney";
+import { GroceryTracker } from "@/components/GroceryTracker";
 import { PlacedFlash } from "@/components/PlacedFlash";
 import { AddMoreSheet } from "@/components/AddMoreSheet";
 import { DeliveredCard } from "@/components/DeliveredCard";
@@ -22,7 +23,7 @@ import { useCancelOrder, useOrder, useOrderOtp, useRiderContact, useRiderQueue }
 import { usePullRefresh } from "@/hooks/usePullRefresh";
 import { dateTime, dayLabel, slotWindow } from "@/lib/format";
 import { useLocalName, useT, type TKey } from "@/i18n";
-import { fonts, useTheme } from "@/theme";
+import { Accent, fonts, useTheme, withAccent } from "@/theme";
 import { queryState } from "@/lib/network";
 import { playArrived } from "@/lib/sounds";
 
@@ -36,7 +37,7 @@ const TRACKABLE: OrderStatus[] = ["PICKED_UP", "OUT_FOR_DELIVERY"];
 const STALE_MS = 3 * 60_000;
 
 export default function OrderDetailScreen() {
-  const { c } = useTheme();
+  const theme = useTheme();
   const refresh = usePullRefresh([["orders"]]);
   const t = useT();
   const localName = useLocalName();
@@ -57,6 +58,8 @@ export default function OrderDetailScreen() {
     }
   }, [order.data?.arrived_at, order.data?.status]);
   const o = order.data;
+  // Grocery orders use the green/yellow accent on every control of this screen.
+  const c = withAccent(theme.c, o?.vertical_type);
   const tracking = useRiderLocation(id, o?.rider_id);
   const rider = tracking.data;
   const showTracking = !!o?.rider_id && TRACKABLE.includes(o.status);
@@ -66,6 +69,12 @@ export default function OrderDetailScreen() {
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelError, setCancelError] = useState<string | null>(null);
   const canCancel = !!o && CUSTOMER_CANCELLABLE.includes(o.status);
+  // Adding to a placed order (add_order_items) is meat-only; a grocery basket is one shop's listing.
+  const canAddMore = canCancel && o?.vertical_type !== "grocery";
+  const groceryOrder = o?.vertical_type === "grocery";
+  const accent = groceryOrder ? "#1E8A4F" : c.primary;
+  const accentText = groceryOrder ? "#1E8A4F" : c.price;
+  const accentTint = groceryOrder ? "#E3F3E9" : c.tint;
   // "Forgot something?": offered right after checkout, and from a card while the shop hasn't accepted.
   const [addOpen, setAddOpen] = useState(false);
   const isCancelled = o?.status === "CANCELLED";
@@ -101,6 +110,7 @@ export default function OrderDetailScreen() {
   const back = () => (router.canGoBack() ? router.back() : router.replace("/(tabs)/orders"));
 
   return (
+    <Accent value={o?.vertical_type === "grocery" ? "grocery" : "meat"}>
     <View style={{ flex: 1, backgroundColor: c.ground }}>
       <ScrollView
         contentContainerStyle={{ paddingBottom: 32 + insets.bottom }}
@@ -208,7 +218,7 @@ export default function OrderDetailScreen() {
                 <Icon name="back" color={c.ink} />
               </Pressable>
               <AppText variant="title" numberOfLines={1} style={{ flex: 1 }}>{o?.display_id ?? "…"}</AppText>
-              {o ? <StatusBadge status={o.status} /> : null}
+              {o ? <StatusBadge status={o.status} vertical={o.vertical_type} /> : null}
             </View>
           </SafeAreaView>
         )}
@@ -225,12 +235,18 @@ export default function OrderDetailScreen() {
             <ErrorState title={queryState(order).failed ? undefined : t("orderNotFound")} onRetry={queryState(order).failed ? () => order.refetch() : undefined} />
           ) : null}
 
-          {showTimeline && o ? <OrderJourney status={o.status} /> : null}
+          {showTimeline && o ? (
+            o.vertical_type === "grocery" ? (
+              isCancelled ? null : <GroceryTracker status={o.status} window={o.delivery_slots ? `${dayLabel(o.delivery_slots.starts_at, { today: t("today"), tomorrow: t("tomorrow") })} · ${slotWindow(o.delivery_slots.starts_at, o.delivery_slots.ends_at)}` : null} />
+            ) : (
+              <OrderJourney status={o.status} />
+            )
+          ) : null}
 
           {showOtp ? (
-            <View style={{ padding: 16, borderRadius: 22, backgroundColor: c.tint, borderWidth: 1.5, borderColor: c.primary, flexDirection: "row", alignItems: "center", gap: 14 }}>
+            <View style={{ padding: 16, borderRadius: 22, backgroundColor: accentTint, borderWidth: 1.5, borderColor: accent, flexDirection: "row", alignItems: "center", gap: 14 }}>
               <View style={{ flex: 1 }}>
-                <AppText variant="label" color={c.price} numberOfLines={1}>{t("yourOtp")}</AppText>
+                <AppText variant="label" color={accentText} numberOfLines={1}>{t("yourOtp")}</AppText>
                 <AppText variant="caption" muted numberOfLines={2}>{t("shareOtp")}</AppText>
               </View>
               <View style={{ paddingHorizontal: 14, height: 56, borderRadius: 16, backgroundColor: c.surface, justifyContent: "center" }}>
@@ -241,8 +257,8 @@ export default function OrderDetailScreen() {
 
           {/* Cancelled */}
           {isCancelled && o ? (
-            <View style={{ padding: 16, borderRadius: 22, backgroundColor: c.tint, borderWidth: 1, borderColor: c.primary, gap: 4 }}>
-              <AppText variant="subtitle" color={c.price} numberOfLines={1}>{t("cancelled")}</AppText>
+            <View style={{ padding: 16, borderRadius: 22, backgroundColor: theme.c.tint, borderWidth: 1, borderColor: theme.c.primary, gap: 4 }}>
+              <AppText variant="subtitle" color={theme.c.price} numberOfLines={1}>{t("cancelled")}</AppText>
               {o.cancel_reason ? (
                 <AppText variant="caption" muted numberOfLines={2}>
                   {t("cancelReasonLabel")}: {t((`reason_${o.cancel_reason.split(":")[0]}`) as TKey)}
@@ -324,7 +340,7 @@ export default function OrderDetailScreen() {
             </View>
           ) : null}
 
-          {canCancel ? (
+          {canAddMore ? (
             <View style={{ ...card, flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: c.tintSoft, borderColor: c.tint }}>
               <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: c.tint, alignItems: "center", justifyContent: "center" }}>
                 <Icon name="cart" color={c.primary} size={22} />
@@ -373,8 +389,9 @@ export default function OrderDetailScreen() {
         }}
       />
 
-      {placed === "1" ? <PlacedFlash onDone={() => setAddOpen(true)} /> : null}
+      {placed === "1" ? <PlacedFlash onDone={() => canAddMore && setAddOpen(true)} /> : null}
       {o ? <AddMoreSheet orderId={o.id} status={o.status} visible={addOpen} onClose={() => setAddOpen(false)} /> : null}
     </View>
+    </Accent>
   );
 }

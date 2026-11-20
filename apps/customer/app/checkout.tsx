@@ -7,10 +7,10 @@ import { Button } from "@/components/Button";
 import { ConfirmSheet } from "@/components/ConfirmSheet";
 import { Icon } from "@/components/Icon";
 import { ErrorState, Skeleton } from "@/components/States";
-import { useAddresses, useDeleteAddress, usePlaceOrder, useSlots, type Slot } from "@/hooks/useOrders";
+import { useAddresses, useDeleteAddress, usePlaceGroceryOrder, usePlaceOrder, useSlots, type Slot } from "@/hooks/useOrders";
 import { useT } from "@/i18n";
 import { errorMessage, queryState } from "@/lib/network";
-import { useCart } from "@/store/cart";
+import { cartVertical, useCart } from "@/store/cart";
 import { BillSummary, useBill } from "@/components/BillSummary";
 import { radius, useTheme } from "@/theme";
 
@@ -28,6 +28,8 @@ export default function CheckoutScreen() {
   const removeAddress = useDeleteAddress();
   const slots = useSlots();
   const place = usePlaceOrder();
+  const placeGrocery = usePlaceGroceryOrder();
+  const vertical = cartVertical(items);
 
   const [addressId, setAddressId] = useState<string | null>(null);
   const [slot, setSlot] = useState<Slot | null>(null);
@@ -57,19 +59,27 @@ export default function CheckoutScreen() {
   const { toPay } = bill;
   const coupon = useCart((s) => s.coupon);
 
-  const canPlace = items.length > 0 && !!addressId && !!slot && !place.isPending;
+  const canPlace = items.length > 0 && !!addressId && !!slot && !bill.belowMin && !place.isPending && !placeGrocery.isPending;
 
   async function placeOrder() {
     if (!addressId || !slot) return;
     setError(null);
     try {
-      const result = await place.mutateAsync({
-        addressId,
-        slot: { startsAt: slot.startsAt, endsAt: slot.endsAt },
-        paymentMode: payment,
-        items: items.map((i) => ({ productId: i.productId, qty: i.qty, size: i.size, notes: i.notes })),
-        couponCode: coupon ?? undefined,
-      });
+      const result =
+        vertical === "grocery"
+          ? await placeGrocery.mutateAsync({
+              addressId,
+              slot: { startsAt: slot.startsAt, endsAt: slot.endsAt },
+              paymentMode: payment,
+              items: items.map((i) => ({ masterProductId: i.productId, qty: i.qty, notes: i.notes })),
+            })
+          : await place.mutateAsync({
+              addressId,
+              slot: { startsAt: slot.startsAt, endsAt: slot.endsAt },
+              paymentMode: payment,
+              items: items.map((i) => ({ productId: i.productId, qty: i.qty, size: i.size, notes: i.notes })),
+              couponCode: coupon ?? undefined,
+            });
       clearCart();
       router.replace({ pathname: "/order/[id]", params: { id: result.orderId, placed: "1" } });
     } catch (e) {
@@ -239,7 +249,7 @@ export default function CheckoutScreen() {
       </ScrollView>
 
       <View style={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 12 + insets.bottom, backgroundColor: c.surface, borderTopWidth: 1, borderTopColor: c.border }}>
-        <Button label={`${t("placeOrder")} · ₹ ${toPay}`} onPress={placeOrder} disabled={!canPlace} loading={place.isPending} />
+        <Button label={`${t("placeOrder")} · ₹ ${toPay}`} onPress={placeOrder} disabled={!canPlace} loading={place.isPending || placeGrocery.isPending} />
       </View>
 
       <ConfirmSheet

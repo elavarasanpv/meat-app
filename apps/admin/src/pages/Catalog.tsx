@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { api } from "../lib/api";
+import { api, upload } from "../lib/api";
+import { ImageField, imageUrl } from "../ui/ImageField";
 import { supabase } from "../lib/supabase";
 import { PageHeader } from "../shell/Shell";
 import { IconAlert, IconCheck, IconPlus, IconX } from "../ui/icons";
@@ -18,7 +19,7 @@ const VERTICAL = "grocery";
 const BASE = (import.meta.env.VITE_API_URL ?? "http://localhost:3001").replace(/\/$/, "");
 
 type Vertical = { type: string; label: string; label_ta: string | null; sort: number; is_active: boolean };
-type Category = { id: string; vertical_type: string; parent_id: string | null; name: string; name_ta: string | null; sort: number; is_active: boolean };
+type Category = { id: string; vertical_type: string; parent_id: string | null; name: string; name_ta: string | null; image_path: string | null; sort: number; is_active: boolean };
 type Master = {
   id: string;
   category_id: string | null;
@@ -29,6 +30,9 @@ type Master = {
   pack_size: string | null;
   unit: "piece" | "pack" | "kg";
   mrp: number | null;
+  image_path: string | null;
+  description: string | null;
+  description_ta: string | null;
   scope: "shared" | "store";
   status: "pending" | "approved" | "rejected";
   owner_shop: string | null;
@@ -61,23 +65,6 @@ const TABS = [
 type Tab = (typeof TABS)[number]["id"];
 
 /** Multipart upload with the admin's token (the JSON `api` helper can't carry a file). */
-async function upload<T>(path: string, file: File): Promise<T> {
-  const { data } = await supabase.auth.getSession();
-  const form = new FormData();
-  form.append("file", file);
-  const res = await fetch(BASE + path, { method: "POST", headers: { Authorization: `Bearer ${data.session?.access_token ?? ""}` }, body: form });
-  const text = await res.text();
-  if (!res.ok) {
-    let message = text;
-    try {
-      message = (JSON.parse(text) as { message?: string }).message ?? text;
-    } catch {
-      /* raw */
-    }
-    throw new Error(message || `HTTP ${res.status}`);
-  }
-  return JSON.parse(text) as T;
-}
 
 export function CatalogPage() {
   const [params, setParams] = useSearchParams();
@@ -127,7 +114,7 @@ export function CatalogPage() {
         {tab === "fees" && <FeesTab />}
       </div>
       {confirmLive && (
-        <Modal title="Switch grocery on for customers?" sub="Every active grocery shop and approved product becomes visible in the customer app immediately." onClose={() => setConfirmLive(false)}>
+        <Modal pad title="Switch grocery on for customers?" sub="Every active grocery shop and approved product becomes visible in the customer app immediately." onClose={() => setConfirmLive(false)}>
           <div className="flex justify-end gap-2">
             <Btn kind="ghost" onClick={() => setConfirmLive(false)}>
               Not yet
@@ -206,14 +193,30 @@ function CategoriesTab() {
         ))}
       </ul>
       {editing && (
-        <Modal title={editing.id ? "Edit category" : editing.parent_id ? "New sub-category" : "New category"} onClose={() => setEditing(null)}>
+        <Modal pad title={editing.id ? "Edit category" : editing.parent_id ? "New sub-category" : "New category"} onClose={() => setEditing(null)}>
           <div className="space-y-3">
+            {editing.id ? (
+              <ImageField path={editing.image_path} endpoint={`/admin/catalog/categories/${editing.id}/image`} onChange={(p) => { setEditing({ ...editing, image_path: p }); void qc.invalidateQueries({ queryKey: ["catalog", "categories"] }); }} label="Tile photo" />
+            ) : (
+              <div className="text-[11.5px] text-muted">Save the category first, then add its tile photo.</div>
+            )}
             <Field label="Name (English)">
               <input className={inputCls} value={editing.name ?? ""} onChange={(e) => setEditing({ ...editing, name: e.target.value })} placeholder="Staples" />
             </Field>
             <Field label="Name (Tamil)" hint="Shown when the customer's language is Tamil.">
               <input className={inputCls} value={editing.name_ta ?? ""} onChange={(e) => setEditing({ ...editing, name_ta: e.target.value })} placeholder="மளிகை" />
             </Field>
+            {editing.parent_id && (
+              <Field label="Group" hint="The heading this tile sits under on the customer's home.">
+                <select className={inputCls} value={editing.parent_id} onChange={(e) => setEditing({ ...editing, parent_id: e.target.value })}>
+                  {tops.map((g) => (
+                    <option key={g.id} value={g.id}>
+                      {g.name}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            )}
             <div className="grid grid-cols-2 gap-3">
               <Field label="Sort">
                 <input className={inputCls} type="number" value={editing.sort ?? 0} onChange={(e) => setEditing({ ...editing, sort: Number(e.target.value) })} />
@@ -269,7 +272,7 @@ function MasterTab({ status }: { status: "approved" | "pending" }) {
   });
   const save = useMutation({
     mutationFn: (m: Partial<Master>) => {
-      const body = { name: m.name, nameTa: m.name_ta ?? null, brand: m.brand ?? null, packSize: m.pack_size ?? null, unit: m.unit ?? "piece", mrp: m.mrp ?? null, barcode: m.barcode || null, categoryId: m.category_id ?? null };
+      const body = { name: m.name, nameTa: m.name_ta ?? null, brand: m.brand ?? null, packSize: m.pack_size ?? null, unit: m.unit ?? "piece", mrp: m.mrp ?? null, description: m.description ?? null, descriptionTa: m.description_ta ?? null, barcode: m.barcode || null, categoryId: m.category_id ?? null };
       return m.id ? api(`/admin/catalog/master/${m.id}`, { method: "PATCH", body }) : api("/admin/catalog/master", { method: "POST", body: { ...body, verticalType: VERTICAL } });
     },
     onSuccess: () => {
@@ -291,14 +294,14 @@ function MasterTab({ status }: { status: "approved" | "pending" }) {
   return (
     <section className="card">
       <div className="mb-3 flex flex-wrap items-center gap-2">
-        <div className="mr-auto">
+        <div className="mr-auto min-w-0 flex-1 basis-72">
           <div className="card-title">{status === "pending" ? "Pending approval" : "Master catalog"}</div>
           <div className="card-sub">
             {status === "pending" ? "Items shops added that aren't in the shared master yet. They're already sellable in the shop that added them." : "Approved shared products every grocery shop can list."}
             {list.data ? ` · ${list.data.total}` : ""}
           </div>
         </div>
-        <input className={`${inputCls} w-56`} value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search name or barcode" />
+        <input className={`${inputCls} !w-60`} value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search name or barcode" />
         {status === "pending" && selected.size > 0 && (
           <>
             <Btn kind="primary" busy={bulk.isPending} onClick={() => bulk.mutate("approve")}>
@@ -319,29 +322,29 @@ function MasterTab({ status }: { status: "approved" | "pending" }) {
       {items.length === 0 ? (
         <Empty>{status === "pending" ? "Nothing waiting. Shop imports and custom items land here." : "No products yet — add one or import a shop's billing export."}</Empty>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-[12.5px]">
+        <div className="-mx-4 overflow-x-auto md:-mx-5">
+          <table className="w-full min-w-[720px] border-collapse text-[12.5px]">
             <thead>
-              <tr className="text-left text-muted">
+              <tr className="bg-surface-2/60 text-left text-[10.5px] font-extrabold uppercase tracking-wide text-muted">
                 {status === "pending" && (
-                  <th className="pb-2 pr-2">
+                  <th className="w-px py-2 pl-4 pr-1 md:pl-5">
                     <input type="checkbox" checked={allSelected} onChange={(e) => setSelected(e.target.checked ? new Set(items.map((m) => m.id)) : new Set())} />
                   </th>
                 )}
-                <th className="pb-2 pr-3 font-bold">Product</th>
-                <th className="pb-2 pr-3 font-bold">Category</th>
-                <th className="pb-2 pr-3 font-bold">Barcode</th>
-                <th className="pb-2 pr-3 text-right font-bold">MRP</th>
-                <th className="pb-2 pr-3 text-right font-bold">Shops</th>
-                <th className="pb-2 font-bold">{status === "pending" ? "From" : ""}</th>
-                <th className="pb-2" />
+                <th className="px-4 py-2 md:px-5">Product</th>
+                <th className="w-px whitespace-nowrap px-3 py-2">Category</th>
+                <th className="w-px whitespace-nowrap px-3 py-2">Barcode</th>
+                <th className="w-px whitespace-nowrap px-3 py-2 text-right">MRP</th>
+                <th className="w-px whitespace-nowrap px-3 py-2 text-right">Shops</th>
+                <th className="w-px whitespace-nowrap px-3 py-2">{status === "pending" ? "From" : ""}</th>
+                <th className="w-px py-2 pl-3 pr-4 md:pr-5" />
               </tr>
             </thead>
-            <tbody className="divide-y divide-line">
+            <tbody>
               {items.map((m) => (
-                <tr key={m.id}>
+                <tr key={m.id} className="border-t border-line hover:bg-surface-2/40">
                   {status === "pending" && (
-                    <td className="py-2 pr-2">
+                    <td className="w-px py-2 pl-4 pr-1 md:pl-5">
                       <input
                         type="checkbox"
                         checked={selected.has(m.id)}
@@ -354,17 +357,24 @@ function MasterTab({ status }: { status: "approved" | "pending" }) {
                       />
                     </td>
                   )}
-                  <td className="py-2 pr-3">
+                  <td className="px-4 py-2.5 md:px-5">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-line bg-surface-2 text-[9px] font-bold text-muted">
+                        {imageUrl(m.image_path, true) ? <img src={imageUrl(m.image_path, true)!} alt="" className="h-full w-full object-contain" /> : "no photo"}
+                      </div>
+                      <div>
                     <div className="font-bold">{m.name}</div>
                     <div className="text-[11px] text-muted">
                       {[m.brand, m.pack_size, m.unit === "kg" ? "per kg" : null, m.name_ta].filter(Boolean).join(" · ")}
                     </div>
+                      </div>
+                    </div>
                   </td>
-                  <td className="py-2 pr-3 text-muted">{m.category_id ? catName.get(m.category_id) ?? "—" : <span className="text-warn">none</span>}</td>
-                  <td className="py-2 pr-3 font-mono text-[11px] text-muted">{m.barcode ?? "—"}</td>
-                  <td className="py-2 pr-3 text-right tabular-nums">{m.mrp != null ? inr(m.mrp) : "—"}</td>
-                  <td className="py-2 pr-3 text-right tabular-nums text-muted">{m.listed_by}</td>
-                  <td className="py-2 pr-3 text-[11px] text-muted">
+                  <td className="w-px whitespace-nowrap px-3 py-2.5 text-muted">{m.category_id ? catName.get(m.category_id) ?? "—" : <span className="text-warn">none</span>}</td>
+                  <td className="w-px whitespace-nowrap px-3 py-2.5 font-mono text-[11px] text-muted">{m.barcode ?? "—"}</td>
+                  <td className="w-px whitespace-nowrap px-3 py-2.5 text-right tabular-nums">{m.mrp != null ? inr(m.mrp) : "—"}</td>
+                  <td className="w-px whitespace-nowrap px-3 py-2.5 text-right tabular-nums text-muted">{m.listed_by}</td>
+                  <td className="w-px whitespace-nowrap px-3 py-2.5 text-[11px] text-muted">
                     {status === "pending" ? (
                       <>
                         {m.owner_shop ?? "—"} · {ago(m.created_at)}
@@ -373,7 +383,7 @@ function MasterTab({ status }: { status: "approved" | "pending" }) {
                       <Chip tone="info">store-only · {m.owner_shop}</Chip>
                     ) : null}
                   </td>
-                  <td className="py-2 text-right whitespace-nowrap">
+                  <td className="w-px whitespace-nowrap py-2 pl-3 pr-4 text-right md:pr-5">
                     <Btn kind="ghost" onClick={() => setEditing(m)}>
                       Edit
                     </Btn>
@@ -402,8 +412,13 @@ function MasterTab({ status }: { status: "approved" | "pending" }) {
         </div>
       )}
       {editing && (
-        <Modal title={editing.id ? "Edit product" : "New product"} sub="Name and MRP are what customers see; the barcode is what shops scan." onClose={() => setEditing(null)}>
+        <Modal pad title={editing.id ? "Edit product" : "New product"} sub="Name and MRP are what customers see; the barcode is what shops scan." onClose={() => setEditing(null)}>
           <div className="space-y-3">
+            {editing.id ? (
+              <ImageField path={editing.image_path} endpoint={`/admin/catalog/master/${editing.id}/image`} onChange={(p) => { setEditing({ ...editing, image_path: p }); refresh(); }} />
+            ) : (
+              <div className="text-[11.5px] text-muted">Save the product first, then add its photo.</div>
+            )}
             <Field label="Name (English)">
               <input className={inputCls} value={editing.name ?? ""} onChange={(e) => setEditing({ ...editing, name: e.target.value })} placeholder="Aachi Chilli Powder" />
             </Field>
@@ -441,6 +456,12 @@ function MasterTab({ status }: { status: "approved" | "pending" }) {
                 </select>
               </Field>
             </div>
+            <Field label="Description" hint="Shown on the product page. Keep it to two or three lines.">
+              <textarea className={`${inputCls} h-20 resize-none`} value={editing.description ?? ""} onChange={(e) => setEditing({ ...editing, description: e.target.value })} placeholder="Old-crop Thanjavur ponni, double boiled. Cooks fluffy." />
+            </Field>
+            <Field label="Description (Tamil)">
+              <textarea className={`${inputCls} h-20 resize-none`} value={editing.description_ta ?? ""} onChange={(e) => setEditing({ ...editing, description_ta: e.target.value })} />
+            </Field>
             <ErrorBox error={save.error} />
             <div className="flex justify-end gap-2">
               <Btn kind="ghost" onClick={() => setEditing(null)}>
@@ -465,7 +486,7 @@ function MergeModal({ source, onClose, onMerge, busy }: { source: Master; onClos
     queryFn: () => api<{ items: Master[] }>(`/admin/catalog/master?vertical=${VERTICAL}&status=approved&q=${encodeURIComponent(q)}&limit=20`),
   });
   return (
-    <Modal title={`Merge "${source.name}" into…`} sub="Its shop listings move to the product you pick; this one is retired." onClose={onClose}>
+    <Modal pad title={`Merge "${source.name}" into…`} sub="Its shop listings move to the product you pick; this one is retired." onClose={onClose}>
       <input className={inputCls} value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search the master" />
       <ul className="mt-3 max-h-72 divide-y divide-line overflow-y-auto">
         {(list.data?.items ?? [])
@@ -509,9 +530,11 @@ function ImportsTab() {
         <div className="card-title">Billing-software imports</div>
         <div className="card-sub">Upload a shop's item export (CSV from Tally, Marg, Vyapar, GoFrugal, Busy…). Barcodes match automatically; the rest you confirm.</div>
       </div>
-      <div className="mb-4 flex flex-wrap items-end gap-2 rounded-2xl border border-line bg-surface-2/50 p-3">
+      <div className="mb-4 rounded-2xl border border-line bg-surface-2/50 p-3">
+        <div className="flex flex-wrap items-end gap-3">
+        <div className="w-64">
         <Field label="Shop">
-          <select className={`${inputCls} w-56`} value={dealerId} onChange={(e) => setDealerId(e.target.value)}>
+          <select className={inputCls} value={dealerId} onChange={(e) => setDealerId(e.target.value)}>
             <option value="">{shops.data && shops.data.length === 0 ? "No grocery shops yet — set a shop's type on the Shops page" : "Pick a shop…"}</option>
             {(shops.data ?? []).map((s) => (
               <option key={s.id} value={s.id}>
@@ -520,12 +543,21 @@ function ImportsTab() {
             ))}
           </select>
         </Field>
-        <Field label="CSV file" hint="Columns we look for: Item name · Barcode · MRP · Rate · Unit">
-          <input className={inputCls} type="file" accept=".csv,text/csv" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+        </div>
+        <div className="min-w-0 flex-1 basis-64">
+        <Field label="CSV file">
+          <label className={`${inputCls} flex cursor-pointer items-center gap-2`}>
+            <span className="shrink-0 rounded-md border border-line bg-surface-2 px-2 py-0.5 text-[11.5px] font-bold">Choose file</span>
+            <span className={`truncate ${file ? "" : "text-muted/60"}`}>{file ? file.name : "No file chosen"}</span>
+            <input className="sr-only" type="file" accept=".csv,text/csv" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+          </label>
         </Field>
+        </div>
         <Btn kind="primary" busy={start.isPending} disabled={!dealerId || !file} onClick={() => start.mutate()}>
           Upload & match
         </Btn>
+        </div>
+        <div className="mt-2 text-[11px] text-muted">Columns we look for: Item name · Barcode · MRP · Rate · Unit</div>
       </div>
       <ErrorBox error={start.error} />
       {imports.data && imports.data.length === 0 && <Empty>No imports yet.</Empty>}
@@ -573,6 +605,7 @@ function ImportReview({ id, onClose }: { id: string; onClose: () => void }) {
   const toneOf = (s: ImportRow["match_status"]) => (s === "matched" || s === "applied" ? "ok" : s === "review" ? "warn" : s === "rejected" ? "bad" : "info");
   return (
     <Modal
+      pad
       title={`Import · ${imp.data?.shop ?? ""}`}
       sub={imp.data ? `${imp.data.matched} matched · ${imp.data.needs_review} to confirm · ${imp.data.new_items} new · status ${imp.data.status}` : "Loading…"}
       onClose={onClose}
@@ -707,7 +740,7 @@ function FeesTab() {
           ))}
       </ul>
       {editing && (
-        <Modal title={editing.id ? "Edit fee rule" : "New fee rule"} onClose={() => setEditing(null)}>
+        <Modal pad title={editing.id ? "Edit fee rule" : "New fee rule"} onClose={() => setEditing(null)}>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Minimum order (₹)">
               <input className={inputCls} type="number" value={editing.min_order ?? 0} onChange={(e) => setEditing({ ...editing, min_order: Number(e.target.value) })} />

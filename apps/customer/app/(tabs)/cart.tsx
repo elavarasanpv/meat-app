@@ -1,5 +1,5 @@
 import { Image, Pressable, ScrollView, View } from "react-native";
-import { useRouter } from "expo-router";
+import { Redirect, useRouter } from "expo-router";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppText } from "@/components/AppText";
 import { Button } from "@/components/Button";
@@ -8,8 +8,9 @@ const PATTERN = require("@freshcut/assets/images/pattern-doodles.png");
 import { BillSummary, useBill } from "@/components/BillSummary";
 import { useHomePincode } from "@/hooks/useOffers";
 import { Icon } from "@/components/Icon";
-import { productImage } from "@/lib/images";
-import { FREE_DELIVERY_ABOVE, cartTotals, formatQty, lineTotal, qtyStep, useCart } from "@/store/cart";
+import { cartImage } from "@/lib/images";
+import { FREE_DELIVERY_ABOVE, cartTotals, cartVertical, formatQty, lineTotal, qtyStep, useCart } from "@/store/cart";
+import { useVertical } from "@/store/vertical";
 import { useLocalName, useT } from "@/i18n";
 import { radius, useTheme } from "@/theme";
 
@@ -23,6 +24,8 @@ export default function CartScreen() {
   const remove = useCart((s) => s.remove);
   const bill = useBill(useHomePincode());
   const { toPay } = bill;
+  const grocery = cartVertical(items) === "grocery";
+  const setVertical = useVertical((s) => s.set);
   const insets = useSafeAreaInsets();
 
   if (items.length === 0) {
@@ -44,18 +47,22 @@ export default function CartScreen() {
     );
   }
 
+  // A grocery basket opens as its own full-screen page (no tab bar).
+  if (grocery) return <Redirect href="/grocery/cart" />;
+
   return (
     <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: c.ground }}>
       <View style={{ paddingHorizontal: 20, paddingTop: 8, height: 40, justifyContent: "center" }}>
         <AppText variant="title" numberOfLines={1}>
           {t("tabCart")} · {items.length}
+          {grocery ? ` · ${t("groceryTab")}` : ""}
         </AppText>
       </View>
 
       <ScrollView contentContainerStyle={{ padding: 20, paddingTop: 10, gap: 10 }}>
         {items.map((item) => {
-          const img = productImage(item.name, null);
-          const step = qtyStep(item.unit);
+          const img = cartImage(item);
+          const step = qtyStep(item.unit, item.step);
           return (
             <View
               key={item.productId}
@@ -113,7 +120,10 @@ export default function CartScreen() {
 
         {/* Back to Home to add more items */}
         {/* "Forgot something?" — one slim row back to the catalog */}
-        <Pressable onPress={() => router.push("/(tabs)")} accessibilityRole="button" style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 10, paddingHorizontal: 14, borderRadius: 999, backgroundColor: c.tintSoft, borderWidth: 1, borderColor: c.tint, opacity: pressed ? 0.9 : 1 })}>
+        <Pressable onPress={() => {
+            setVertical(grocery ? "grocery" : "meat");
+            router.push("/(tabs)");
+          }} accessibilityRole="button" style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 10, paddingHorizontal: 14, borderRadius: 999, backgroundColor: c.tintSoft, borderWidth: 1, borderColor: c.tint, opacity: pressed ? 0.9 : 1 })}>
           <Icon name="cart" color={c.primary} size={18} />
           <AppText variant="bodyBold" numberOfLines={1} style={{ flex: 1, fontSize: 14 }}>{t("addMoreTitle")}</AppText>
           <AppText variant="label" color={c.price} numberOfLines={1}>{t("add")}</AppText>
@@ -127,7 +137,7 @@ export default function CartScreen() {
       </ScrollView>
 
       <View style={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 12 + insets.bottom, backgroundColor: c.surface, borderTopWidth: 1, borderTopColor: c.border }}>
-        <Button label={`${t("placeOrder")} · ₹ ${toPay}`} onPress={() => router.push("/checkout")} />
+        <Button label={`${t("placeOrder")} · ₹ ${toPay}`} onPress={() => router.push("/checkout")} disabled={bill.belowMin} />
       </View>
     </SafeAreaView>
   );

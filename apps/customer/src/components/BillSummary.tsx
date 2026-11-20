@@ -1,9 +1,10 @@
 import { View } from "react-native";
 import { AppText } from "./AppText";
 import { Icon } from "./Icon";
+import { useGroceryFee } from "@/hooks/useGrocery";
 import { useOfferQuote } from "@/hooks/useOffers";
 import { CouponCard } from "./CouponCard";
-import { DELIVERY_FEE, FREE_DELIVERY_ABOVE, useCart } from "@/store/cart";
+import { cartTotals, cartVertical, useCart } from "@/store/cart";
 import { useT } from "@/i18n";
 import { useTheme } from "@/theme";
 
@@ -15,11 +16,16 @@ import { useTheme } from "@/theme";
 export function useBill(pincode?: string) {
   const items = useCart((s) => s.items);
   const coupon = useCart((s) => s.coupon);
-  const quote = useOfferQuote(items, coupon, pincode);
-  const itemTotal = items.reduce((t, i) => t + Math.round(i.price * i.qty), 0);
-  const discount = quote.data?.discount ?? 0;
-  const delivery = itemTotal === 0 || itemTotal >= FREE_DELIVERY_ABOVE ? 0 : DELIVERY_FEE;
-  return { itemTotal, discount, delivery, toPay: itemTotal - discount + delivery, quote: quote.data, quoting: quote.isFetching };
+  const feeRule = useCart((s) => s.feeRule);
+  const vertical = cartVertical(items);
+  // Offers are meat-only for now; a grocery basket never asks for a quote.
+  const quote = useOfferQuote(items, coupon, pincode, vertical === "meat");
+  // Grocery: the rule for the address being checked out wins over the one captured in the shop;
+  // the basket's copy covers the moment before the lookup answers.
+  const liveFee = useGroceryFee(vertical === "grocery" ? pincode : undefined);
+  const totals = cartTotals(items, liveFee.data !== undefined ? liveFee.data : feeRule);
+  const discount = vertical === "meat" ? quote.data?.discount ?? 0 : 0;
+  return { ...totals, vertical, discount, toPay: totals.itemTotal - discount + totals.delivery, quote: vertical === "meat" ? quote.data : undefined, quoting: vertical === "meat" && quote.isFetching };
 }
 
 
@@ -30,7 +36,7 @@ export function BillSummary({ bill }: { bill: ReturnType<typeof useBill> }) {
   const row = { flexDirection: "row", justifyContent: "space-between", alignItems: "center" } as const;
   return (
     <View style={{ gap: 12 }}>
-      <CouponCard quote={q} quoting={bill.quoting} />
+      {bill.vertical === "meat" && <CouponCard quote={q} quoting={bill.quoting} />}
       <View style={{ padding: 16, borderRadius: 20, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, gap: 8 }}>
         <View style={row}>
           <AppText variant="caption" muted>{t("itemTotal")}</AppText>
@@ -49,8 +55,10 @@ export function BillSummary({ bill }: { bill: ReturnType<typeof useBill> }) {
         )}
         <View style={row}>
           <AppText variant="caption" muted>{t("deliveryFee")}</AppText>
-          {bill.delivery === 0 ? (
-            <AppText variant="caption" color={c.successText}>{t("freeAbove", { n: FREE_DELIVERY_ABOVE })}</AppText>
+          {bill.delivery === 0 && bill.freeAbove != null && bill.itemTotal >= bill.freeAbove ? (
+            <AppText variant="caption" color={c.successText}>{t("freeAbove", { n: bill.freeAbove })}</AppText>
+          ) : bill.delivery === 0 ? (
+            <AppText variant="caption" color={c.successText}>{t("free")}</AppText>
           ) : (
             <AppText variant="bodyBold" style={{ fontSize: 13 }}>₹ {bill.delivery}</AppText>
           )}
@@ -65,7 +73,10 @@ export function BillSummary({ bill }: { bill: ReturnType<typeof useBill> }) {
             <AppText variant="label" color="#1E8A4F" style={{ fontSize: 11.5 }}>{t("youSave", { amt: bill.discount })}</AppText>
           </View>
         )}
-        <AppText variant="caption" muted numberOfLines={2} style={{ lineHeight: 16 }}>{t("weightNote")}</AppText>
+        {bill.belowMin && (
+          <AppText variant="caption" color={c.price} numberOfLines={2} style={{ lineHeight: 16 }}>{t("groceryBelowMin", { n: bill.minOrder - bill.itemTotal })}</AppText>
+        )}
+        <AppText variant="caption" muted numberOfLines={2} style={{ lineHeight: 16 }}>{t(bill.vertical === "grocery" ? "groceryNote" : "weightNote")}</AppText>
       </View>
     </View>
   );

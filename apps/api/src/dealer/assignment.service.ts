@@ -37,10 +37,21 @@ export class AssignmentService implements OnModuleInit, OnModuleDestroy {
     const db = this.supabase.admin;
     const { data: order } = await db
       .from("orders")
-      .select("id, status, dealer_id, addresses(pincode, lat, lng), order_items(product_id, unavailable)")
+      .select("id, status, dealer_id, vertical_type, addresses(pincode, lat, lng), order_items(product_id, unavailable)")
       .eq("id", orderId)
       .maybeSingle();
     if (!order || !["PLACED", "DEALER_ASSIGNED"].includes(order.status)) return { assigned: false };
+    // Grocery: the customer chose the shop, so there is nobody else to try.
+    // Ring the same shop again (up to 3 offers), then leave it for admin.
+    if (order.vertical_type === "grocery") {
+      if (!order.dealer_id) return { assigned: false };
+      const { count } = await db.from("order_assignments").select("id", { count: "exact", head: true }).eq("order_id", orderId);
+      if ((count ?? 0) >= 3) {
+        console.warn(`[assign] grocery order ${orderId}: shop did not answer after ${count} offers`);
+        return { assigned: false };
+      }
+      return this.offerTo(orderId, order.dealer_id);
+    }
     const addr = order.addresses as unknown as { pincode: string; lat: number | null; lng: number | null } | null;
     if (!addr) return { assigned: false };
 
@@ -98,6 +109,25 @@ export class AssignmentService implements OnModuleInit, OnModuleDestroy {
       await this.orders.transition({ orderId, to: "DEALER_ASSIGNED", actorId: dealer.profile_id, note: "offered to shop" });
     }
     // Ring the shop's phones (even with the app closed). Never blocks the offer.
+    void this.ringShop(orderId, dealer.profile_id);
+    return { assigned: true, dealerId: dealer.id };
+  }
+
+  /** Offer the order to one specific shop (grocery: the one the customer picked). */
+  async offerTo(orderId: string, dealerId: string): Promise<{ assigned: boolean; dealerId?: string }> {
+    const db = this.supabase.admin;
+    const [{ data: order }, { data: dealer }] = await Promise.all([
+      db.from("orders").select("id, status").eq("id", orderId).maybeSingle(),
+      db.from("dealers").select("id, profile_id").eq("id", dealerId).maybeSingle(),
+    ]);
+    if (!order || !dealer || !["PLACED", "DEALER_ASSIGNED"].includes(order.status)) return { assigned: false };
+    const deadline = new Date(Date.now() + ACCEPT_WINDOW_MIN * 60_000).toISOString();
+    const { error } = await db.from("order_assignments").insert({ order_id: orderId, dealer_id: dealer.id, deadline_at: deadline });
+    if (error) throw new Error(error.message);
+    await db.from("orders").update({ dealer_id: dealer.id }).eq("id", orderId);
+    if (order.status === "PLACED") {
+      await this.orders.transition({ orderId, to: "DEALER_ASSIGNED", actorId: dealer.profile_id, note: "offered to shop" });
+    }
     void this.ringShop(orderId, dealer.profile_id);
     return { assigned: true, dealerId: dealer.id };
   }
