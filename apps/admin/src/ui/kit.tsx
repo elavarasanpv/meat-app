@@ -181,7 +181,8 @@ export function Avatar({ name, size = 32, ring }: { name: string; size?: number;
 }
 
 /** Centred dialog over the page (full screen on phones). Esc closes it. */
-export function Modal({ title, sub, onClose, children, wide, aside }: { title: ReactNode; sub?: ReactNode; onClose: () => void; children: ReactNode; wide?: boolean; aside?: ReactNode }) {
+/** `pad` gives the body the standard inset; leave it off when the children lay out their own sections. */
+export function Modal({ title, sub, onClose, children, wide, aside, pad }: { title: ReactNode; sub?: ReactNode; onClose: () => void; children: ReactNode; wide?: boolean; aside?: ReactNode; pad?: boolean }) {
   useEffect(() => {
     const h = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     window.addEventListener("keydown", h);
@@ -201,7 +202,7 @@ export function Modal({ title, sub, onClose, children, wide, aside }: { title: R
             <IconX size={15} />
           </button>
         </div>
-        <div className="min-h-0 flex-1 overflow-y-auto">{children}</div>
+        <div className={`min-h-0 flex-1 overflow-y-auto ${pad ? "px-5 py-4" : ""}`}>{children}</div>
       </div>
     </div>
   );

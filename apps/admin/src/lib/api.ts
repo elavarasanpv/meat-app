@@ -32,3 +32,22 @@ export async function api<T>(path: string, init: { method?: "GET" | "POST" | "PA
   }
   return (text ? JSON.parse(text) : null) as T;
 }
+
+/** Multipart upload to the API (one file under "file"); same auth and error shape as api(). */
+export async function upload<T>(path: string, file: File): Promise<T> {
+  const { data } = await supabase.auth.getSession();
+  const form = new FormData();
+  form.append("file", file);
+  const res = await fetch(BASE + path, { method: "POST", headers: { Authorization: `Bearer ${data.session?.access_token ?? ""}` }, body: form });
+  const text = await res.text();
+  if (!res.ok) {
+    let message = text;
+    try {
+      message = (JSON.parse(text) as { message?: string }).message ?? text;
+    } catch {
+      /* raw */
+    }
+    throw new ApiError(message || `HTTP ${res.status}`, res.status);
+  }
+  return (text ? JSON.parse(text) : null) as T;
+}
