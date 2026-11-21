@@ -10,15 +10,17 @@ type Props = Omit<PressableProps, "style"> & {
   /** Optional icon drawn before the label. */
   icon?: IconName;
   loading?: boolean;
+  /** Destructive action (cancel, delete): red label and border, whatever the accent. */
+  danger?: boolean;
   style?: ViewStyle;
 };
 
 /** Pill button. Primary = ember fill; outline = ember border; soft = neutral fill. */
-export function Button({ label, variant = "primary", size = "lg", icon, loading, disabled, style, ...rest }: Props) {
+export function Button({ label, variant = "primary", size = "lg", icon, loading, danger, disabled, style, ...rest }: Props) {
   const { c } = useTheme();
   const height = size === "lg" ? 56 : 40;
   const isDisabled = disabled || loading;
-  const fg = variant === "primary" ? c.onPrimary : variant === "outline" ? c.price : c.ink;
+  const fg = danger && variant !== "primary" ? c.danger : variant === "primary" ? c.onPrimary : variant === "outline" ? c.price : c.ink;
 
   return (
     <Pressable
@@ -38,6 +40,7 @@ export function Button({ label, variant = "primary", size = "lg", icon, loading,
         variant === "primary" && { backgroundColor: pressed ? c.primaryPressed : c.primary },
         variant === "outline" && { borderWidth: 2, borderColor: c.primary, backgroundColor: pressed ? c.tint : c.surface },
         variant === "soft" && { backgroundColor: pressed ? c.border : c.surface2 },
+        danger && variant === "outline" && { borderColor: c.danger },
         style,
       ]}
       {...rest}

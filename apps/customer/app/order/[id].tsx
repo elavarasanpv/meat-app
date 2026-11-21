@@ -376,7 +376,7 @@ export default function OrderDetailScreen() {
 
           {canCancel ? (
             <View style={{ gap: 6, alignItems: "center" }}>
-              <Button label={t("cancelOrder")} variant="outline" onPress={() => { setCancelError(null); setCancelOpen(true); }} style={{ borderColor: c.danger, alignSelf: "stretch" }} />
+              <Button label={t("cancelOrder")} variant="outline" danger onPress={() => { setCancelError(null); setCancelOpen(true); }} style={{ alignSelf: "stretch" }} />
               <AppText variant="caption" muted numberOfLines={1}>{t("cancelUntil")}</AppText>
             </View>
           ) : null}

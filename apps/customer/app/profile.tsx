@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Alert, Pressable, ScrollView, TextInput, View } from "react-native";
+import { useEffect, useState } from "react";
+import { Alert, Keyboard, Pressable, ScrollView, TextInput, View } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import Constants from "expo-constants";
@@ -33,6 +33,12 @@ export default function ProfileScreen() {
   const address = useAddresses().data?.[0];
   const [draft, setDraft] = useState<string | null>(null); // null = not editing
 
+  // Android's back key hides the keyboard without blurring the input, so close on hide too.
+  useEffect(() => {
+    const sub = Keyboard.addListener("keyboardDidHide", () => setDraft(null));
+    return () => sub.remove();
+  }, []);
+
   const name = profile.data?.full_name?.trim() ?? "";
   const phone = prettyPhone(profile.data?.phone ?? session?.user.phone);
   const openAddress = () => router.push(address ? { pathname: "/address/new", params: { id: address.id } } : "/address/location");
@@ -51,7 +57,7 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: c.ground }}>
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 16, paddingVertical: 10 }}>
+      <View onTouchEnd={Keyboard.dismiss} style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 16, paddingVertical: 10 }}>
         <Pressable onPress={() => router.back()} hitSlop={10} accessibilityRole="button">
           <Icon name="back" color={c.ink} size={20} />
         </Pressable>
@@ -81,6 +87,8 @@ export default function ProfileScreen() {
                 placeholder={t("profileNamePlaceholder")}
                 placeholderTextColor={c.muted}
                 returnKeyType="done"
+                onSubmitEditing={() => saveName.mutate(draft, { onSuccess: () => setDraft(null) })}
+                onBlur={() => setDraft(null)} // tapping anywhere else closes the editor
                 style={{ flex: 1, height: 44, backgroundColor: c.surface, borderRadius: radius.input, borderWidth: 1, borderColor: c.border, paddingHorizontal: 12, color: c.ink, fontFamily: fonts.bodyBold, fontSize: 15 }}
               />
               <Button
