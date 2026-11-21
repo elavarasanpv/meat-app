@@ -14,6 +14,8 @@ export const ROAD_FACTOR = 1.4;
 export const AVG_RIDER_SPEED_KMH = 22;
 /** Under this distance we say "arriving now". */
 export const ARRIVING_KM = 0.15;
+/** Under this distance the customer gets the "arriving soon" push (about two minutes out). */
+export const NEARING_KM = 0.5;
 
 /** Rough ETA range in whole minutes, e.g. [6, 9]. Range on purpose: never falsely precise. */
 export function etaMinutesRange(straightKm: number): [number, number] {

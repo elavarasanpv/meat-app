@@ -1,5 +1,5 @@
 import { Injectable, OnModuleDestroy, OnModuleInit } from "@nestjs/common";
-import { haversineKm } from "@freshcut/shared";
+import { haversineKm } from "@thanjozmart/shared";
 import { SupabaseService } from "../supabase.service";
 import { PushService } from "../push/push.service";
 import { OrdersService } from "../orders/orders.service";

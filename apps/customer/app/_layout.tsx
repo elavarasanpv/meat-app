@@ -38,7 +38,7 @@ const queryClient = new QueryClient({
   },
 });
 bindOnlineManager(queryClient);
-const persister = createAsyncStoragePersister({ storage: AsyncStorage, key: "freshcut.query-cache" });
+const persister = createAsyncStoragePersister({ storage: AsyncStorage, key: "thanjozmart.query-cache" });
 
 export default function RootLayout() {
   const { c, scheme } = useTheme();

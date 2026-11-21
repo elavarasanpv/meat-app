@@ -5,7 +5,7 @@ import * as Haptics from "expo-haptics";
 import { AppText } from "./AppText";
 import { Icon } from "./Icon";
 import { Doodle, type DoodleName } from "./Doodles";
-const FOR_YOU_ICON = require("@freshcut/assets/images/icon-for-you.png");
+const FOR_YOU_ICON = require("@thanjozmart/assets/images/icon-for-you.png");
 import { useSuggestions, type Suggestion } from "@/hooks/useSuggestions";
 import { useHeadline, useLiveOffers, type LiveOffer } from "@/hooks/useOffers";
 import { useRouter } from "expo-router";

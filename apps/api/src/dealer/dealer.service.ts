@@ -1,7 +1,7 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
-import { RIDER_MAX_ACTIVE_ORDERS, RIDER_OFFER_RADIUS_KM, haversineKm } from "@freshcut/shared";
-import type { DealerAcceptInput, DealerRejectInput, ItemPhotoInput, ItemUnavailableInput, ShopStateInput, StockInput, WeighItemInput } from "@freshcut/shared";
-import { DELIVERY_FEE, FREE_DELIVERY_ABOVE } from "@freshcut/shared";
+import { RIDER_MAX_ACTIVE_ORDERS, RIDER_OFFER_RADIUS_KM, haversineKm } from "@thanjozmart/shared";
+import type { DealerAcceptInput, DealerRejectInput, ItemPhotoInput, ItemUnavailableInput, ShopStateInput, StockInput, WeighItemInput } from "@thanjozmart/shared";
+import { DELIVERY_FEE, FREE_DELIVERY_ABOVE } from "@thanjozmart/shared";
 import { SupabaseService } from "../supabase.service";
 import { withProductShapes } from "../orders/item-shape";
 import { PushService } from "../push/push.service";

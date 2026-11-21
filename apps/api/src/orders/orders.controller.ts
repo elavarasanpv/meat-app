@@ -1,6 +1,6 @@
 import { BadRequestException, Body, Controller, ForbiddenException, Get, Headers, Param, Post } from "@nestjs/common";
 import { z } from "zod";
-import { addOrderItemsSchema, cancelOrderSchema, orderStatusSchema, placeGroceryOrderSchema, placeOrderSchema, upcomingSlots, rateOrderSchema } from "@freshcut/shared";
+import { addOrderItemsSchema, cancelOrderSchema, orderStatusSchema, placeGroceryOrderSchema, placeOrderSchema, upcomingSlots, rateOrderSchema } from "@thanjozmart/shared";
 import { OrdersService } from "./orders.service";
 import { SuggestionsService } from "./suggestions.service";
 import { OffersService } from "../offers/offers.service";
@@ -20,6 +20,31 @@ function parse<T>(schema: z.ZodType<T>, body: unknown): T {
   const r = schema.safeParse(body);
   if (!r.success) throw new BadRequestException(r.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; "));
   return r.data;
+}
+
+/** Google's encoded polyline format → points. */
+function decodePolyline(encoded: string): { lat: number; lng: number }[] {
+  const out: { lat: number; lng: number }[] = [];
+  let i = 0;
+  let lat = 0;
+  let lng = 0;
+  const next = () => {
+    let shift = 0;
+    let result = 0;
+    let b: number;
+    do {
+      b = encoded.charCodeAt(i++) - 63;
+      result |= (b & 0x1f) << shift;
+      shift += 5;
+    } while (b >= 0x20);
+    return result & 1 ? ~(result >> 1) : result >> 1;
+  };
+  while (i < encoded.length) {
+    lat += next();
+    lng += next();
+    out.push({ lat: lat / 1e5, lng: lng / 1e5 });
+  }
+  return out;
 }
 
 @Controller("orders")
@@ -112,6 +137,42 @@ export class OrdersController {
     const { data: rider } = await db.from("delivery_partners").select("vehicle, profiles(full_name, phone)").eq("id", order.rider_id).maybeSingle();
     const p = rider?.profiles as unknown as { full_name: string | null; phone: string | null } | null;
     return { name: p?.full_name ?? null, phone: p?.phone ? `+${p.phone}` : null, vehicle: rider?.vehicle ?? null };
+  }
+
+  /** Road routes already fetched, by order: the shop and the house don't move, so one lookup per order. */
+  private readonly routes = new Map<string, { lat: number; lng: number }[]>();
+
+  /**
+   * GET /orders/:id/route — the road from the shop to the customer's house,
+   * as points for the tracking map. null without GOOGLE_MAPS_SERVER_KEY or
+   * when Google has no route; the app then draws its straight dashed line.
+   */
+  @Get(":id/route")
+  async route(@Headers("authorization") auth: string | undefined, @Param("id") id: string) {
+    const user = await requireUser(this.supabase, auth);
+    const { data: order } = await this.supabase.admin.from("orders").select("id, customer_id, pickup_lat, pickup_lng, addresses(lat, lng)").eq("id", id).maybeSingle();
+    if (!order || order.customer_id !== user.id) throw new ForbiddenException("Not your order");
+    const cached = this.routes.get(id);
+    if (cached) return { points: cached };
+    const key = process.env.GOOGLE_MAPS_SERVER_KEY;
+    const home = order.addresses as unknown as { lat: number | null; lng: number | null } | null;
+    if (!key || order.pickup_lat == null || order.pickup_lng == null || home?.lat == null || home?.lng == null) return null;
+    try {
+      const url = `https://maps.googleapis.com/maps/api/directions/json?origin=${order.pickup_lat},${order.pickup_lng}&destination=${home.lat},${home.lng}&mode=driving&key=${key}`;
+      const res = (await (await fetch(url)).json()) as { status: string; routes?: { overview_polyline?: { points?: string } }[] };
+      const encoded = res.routes?.[0]?.overview_polyline?.points;
+      if (res.status !== "OK" || !encoded) {
+        console.warn("[route]", res.status);
+        return null;
+      }
+      const points = decodePolyline(encoded);
+      if (this.routes.size > 500) this.routes.clear();
+      this.routes.set(id, points);
+      return { points };
+    } catch (e) {
+      console.warn("[route]", (e as Error).message);
+      return null;
+    }
   }
 
   /** GET /orders/:id/rating — what this customer rated, or null. */

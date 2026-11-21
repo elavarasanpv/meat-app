@@ -13,9 +13,9 @@ import { productImage } from "@/lib/images";
 import { useLocalName, useT, type TKey } from "@/i18n";
 import { fonts, radius, useTheme } from "@/theme";
 
-const SCOOTER = require("@freshcut/assets/images/rate-scooter.png");
-const THANKS = require("@freshcut/assets/images/rate-thanks.png");
-const LOGO = require("@freshcut/assets/images/icon-for-you.png");
+const SCOOTER = require("@thanjozmart/assets/images/rate-scooter.png");
+const THANKS = require("@thanjozmart/assets/images/rate-thanks.png");
+const LOGO = require("@thanjozmart/assets/images/icon-for-you.png");
 
 /** Chips offered under the delivery stars: praise for 4–5, what went wrong for 1–3. */
 const GOOD = ["fast", "polite", "packaging", "careful"] as const;

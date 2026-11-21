@@ -79,7 +79,7 @@ export const useCart = create<CartState>()(
       remove: (productId) => set((s) => ({ items: s.items.filter((i) => i.productId !== productId) })),
       clear: () => set({ items: [], lastAdded: null, coupon: null, feeRule: null }),
     }),
-    { name: "freshcut.cart", storage: createJSONStorage(() => AsyncStorage), partialize: (s) => ({ items: s.items, coupon: s.coupon, feeRule: s.feeRule }) },
+    { name: "thanjozmart.cart", storage: createJSONStorage(() => AsyncStorage), partialize: (s) => ({ items: s.items, coupon: s.coupon, feeRule: s.feeRule }) },
   ),
 );
 

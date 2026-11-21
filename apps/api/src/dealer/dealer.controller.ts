@@ -1,6 +1,6 @@
 import { BadRequestException, Body, Controller, Get, Headers, Param, Post } from "@nestjs/common";
 import { z } from "zod";
-import { dealerAcceptSchema, dealerRejectSchema, itemPhotoSchema, itemUnavailableSchema, shopStateSchema, stockSchema, weighItemSchema } from "@freshcut/shared";
+import { dealerAcceptSchema, dealerRejectSchema, itemPhotoSchema, itemUnavailableSchema, shopStateSchema, stockSchema, weighItemSchema } from "@thanjozmart/shared";
 import { SupabaseService } from "../supabase.service";
 import { requireUser } from "../auth";
 import { DealerService } from "./dealer.service";

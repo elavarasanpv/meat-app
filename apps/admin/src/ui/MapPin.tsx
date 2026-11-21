@@ -3,7 +3,7 @@ import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from "react-lea
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
-import shopIcon from "@freshcut/assets/images/icon-shop.png";
+import shopIcon from "@thanjozmart/assets/images/icon-shop.png";
 
 /** Shop marker: white pin with the orange shop icon, pointing at the spot. */
 const pin = L.divIcon({

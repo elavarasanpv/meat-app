@@ -1,29 +1,43 @@
 import { useEffect, useRef } from "react";
-import { Animated, Easing, StyleSheet, Text, View } from "react-native";
+import { Animated, Easing, StyleSheet, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { StatusBar } from "expo-status-bar";
 import { BRAND } from "@/lib/brand";
+import { Logo } from "./Logo";
 import { fonts } from "@/theme";
 
-const IN_MS = 520;
-const HOLD_MS = 650;
-const OUT_MS = 380;
+const LIFT_MS = 420;
+const LETTER_MS = 320;
+const STAGGER_MS = 38;
+const HOLD_MS = 700;
+const OUT_MS = 320;
+/** How far the mark sits below its resting place at the start, so it begins where the system splash drew it. */
+const LIFT = 46;
+const LETTERS = BRAND.name.split("");
 
 /**
- * Full-screen brand splash on a cold start: mark and name settle in over the
- * brand red, the tagline follows, then it fades away. Calls onDone after.
+ * Opening screen on a cold start. The mark starts where the system splash
+ * left it, lifts, and the name writes itself in letter by letter under it;
+ * the tagline follows, then it all fades to reveal the app. Calls onDone
+ * when it has gone.
  */
 export function BrandSplash({ onDone }: { onDone: () => void }) {
-  const logo = useRef(new Animated.Value(0)).current;
+  const lift = useRef(new Animated.Value(0)).current; // 0 → 1: mark rises to its place
+  const letters = useRef(LETTERS.map(() => new Animated.Value(0))).current; // each letter: fade + rise
   const tag = useRef(new Animated.Value(0)).current;
-  const out = useRef(new Animated.Value(1)).current;
+  const out = useRef(new Animated.Value(1)).current; // whole overlay opacity
 
   useEffect(() => {
     Animated.sequence([
+      Animated.delay(140),
       Animated.parallel([
-        Animated.timing(logo, { toValue: 1, duration: IN_MS, easing: Easing.out(Easing.back(1.4)), useNativeDriver: true }),
-        Animated.timing(tag, { toValue: 1, duration: IN_MS + 200, delay: 180, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+        Animated.timing(lift, { toValue: 1, duration: LIFT_MS, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+        Animated.sequence([
+          Animated.delay(160),
+          Animated.stagger(STAGGER_MS, letters.map((v) => Animated.timing(v, { toValue: 1, duration: LETTER_MS, easing: Easing.out(Easing.back(1.6)), useNativeDriver: true }))),
+        ]),
       ]),
+      Animated.timing(tag, { toValue: 1, duration: 360, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
       Animated.delay(HOLD_MS),
       Animated.timing(out, { toValue: 0, duration: OUT_MS, easing: Easing.in(Easing.quad), useNativeDriver: true }),
     ]).start(({ finished }) => finished && onDone());
@@ -32,18 +46,37 @@ export function BrandSplash({ onDone }: { onDone: () => void }) {
   return (
     <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { opacity: out, zIndex: 1000, elevation: 1000 }]}>
       <StatusBar style="light" />
-      <LinearGradient colors={[BRAND.red, BRAND.redDeep]} start={{ x: 0.2, y: 0 }} end={{ x: 0.8, y: 1 }} style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-        <View pointerEvents="none" style={{ position: "absolute", width: 420, height: 420, borderRadius: 210, backgroundColor: "rgba(255,255,255,0.06)" }} />
-        <View pointerEvents="none" style={{ position: "absolute", width: 280, height: 280, borderRadius: 140, backgroundColor: "rgba(255,255,255,0.07)" }} />
-        <Animated.View style={{ alignItems: "center", gap: 18, opacity: logo, transform: [{ scale: logo.interpolate({ inputRange: [0, 1], outputRange: [0.82, 1] }) }] }}>
-          <View style={{ width: 96, height: 96, borderRadius: 30, backgroundColor: "#FFFFFF", alignItems: "center", justifyContent: "center", shadowColor: "#000", shadowOpacity: 0.25, shadowRadius: 18, shadowOffset: { width: 0, height: 10 }, elevation: 12 }}>
-            <Text style={{ fontFamily: fonts.bodyBold, fontSize: 52, lineHeight: 60, color: BRAND.red }}>T</Text>
-          </View>
-          <Text style={{ fontFamily: fonts.bodyBold, fontSize: 36, lineHeight: 42, color: "#FFFFFF", letterSpacing: -0.5 }}>{BRAND.name}</Text>
+      <LinearGradient colors={[BRAND.red, BRAND.red, BRAND.redDeep]} locations={[0, 0.5, 1]} style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+        <Animated.View style={{ transform: [{ translateY: lift.interpolate({ inputRange: [0, 1], outputRange: [LIFT, 0] }) }] }}>
+          <Logo bag="#FFFFFF" mark={BRAND.red} size={112} />
         </Animated.View>
-        <Animated.View style={{ marginTop: 10, alignItems: "center", opacity: tag, transform: [{ translateY: tag.interpolate({ inputRange: [0, 1], outputRange: [14, 0] }) }] }}>
-          <Text style={{ fontFamily: fonts.bodyBold, fontSize: 13, letterSpacing: 1.2, textTransform: "uppercase", color: "rgba(255,255,255,0.9)" }}>Partner · {BRAND.tagline}</Text>
-        </Animated.View>
+
+        <View accessible accessibilityLabel={BRAND.name} style={{ flexDirection: "row", marginTop: 6 }}>
+          {LETTERS.map((ch, i) => (
+            <Animated.Text
+              key={i}
+              allowFontScaling={false}
+              style={{
+                fontFamily: fonts.bodyBold, fontSize: 44, lineHeight: 54, letterSpacing: -0.6, color: "#FFFFFF",
+                opacity: letters[i],
+                transform: [{ translateY: letters[i].interpolate({ inputRange: [0, 1], outputRange: [18, 0] }) }],
+              }}
+            >
+              {ch === " " ? "\u00A0" : ch}
+            </Animated.Text>
+          ))}
+        </View>
+
+        <Animated.Text
+          allowFontScaling={false}
+          style={{
+            marginTop: 2, fontFamily: fonts.bodyBold, fontSize: 14, letterSpacing: 0.4, color: "rgba(255,255,255,0.92)",
+            opacity: tag,
+            transform: [{ translateY: tag.interpolate({ inputRange: [0, 1], outputRange: [8, 0] }) }],
+          }}
+        >
+          Partner · {BRAND.tagline}
+        </Animated.Text>
       </LinearGradient>
     </Animated.View>
   );

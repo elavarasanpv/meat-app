@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Platform, Pressable, View } from "react-native";
 import MapView, { AnimatedRegion, Marker, MarkerAnimated, Polyline, PROVIDER_GOOGLE } from "react-native-maps";
-import { haversineKm } from "@freshcut/shared";
+import { haversineKm } from "@thanjozmart/shared";
 import { Icon } from "./Icon";
 import { MapTypeToggle } from "./MapTypeToggle";
 import { RURAL_MAP_STYLE, type MapKind } from "@/lib/mapStyle";
@@ -21,6 +21,8 @@ type Props = {
   rider: RiderLocation | null | undefined;
   pickup: Point | null;
   home: Point | null;
+  /** The road from the shop to the house, when the server has one; otherwise a straight dashed line is drawn. */
+  route?: Point[] | null;
   height: number;
   /** Space the floating header covers at the top of the map. */
   topInset?: number;
@@ -33,12 +35,12 @@ type Props = {
 const DEFAULT = { lat: 8.2426, lng: 77.6759 }; // Chettikulam
 
 /**
- * Zepto-style live map: shop and home pins joined by a dashed straight line
- * (road-snapped routes come later), with the rider gliding between updates.
+ * Zepto-style live map: shop and home pins joined by the road between them
+ * (a dashed straight line until the route loads), with the rider gliding between updates.
  * It zooms to fit the shop, the house and the rider in the visible part of
  * the map, clear of the header above and the card overlapping it below.
  */
-export function TrackingMap({ rider, pickup, home, height, topInset = 0, overlap = 0 }: Props) {
+export function TrackingMap({ rider, pickup, home, route, height, topInset = 0, overlap = 0 }: Props) {
   const { c } = useTheme();
   const mapRef = useRef<MapView>(null);
   const [kind, setKind] = useState<MapKind>("standard");
@@ -65,7 +67,7 @@ export function TrackingMap({ rider, pickup, home, height, topInset = 0, overlap
   const lineFrom = pickup ?? (riderNear ? rider : null);
 
   const fit = (animated = true) => {
-    const pts = [pickup, home, riderNear ? rider : null].filter(Boolean).map((p) => ({ latitude: p!.lat, longitude: p!.lng }));
+    const pts = [pickup, home, riderNear ? rider : null, ...(route ?? [])].filter(Boolean).map((p) => ({ latitude: p!.lat, longitude: p!.lng }));
     if (pts.length === 0) return;
     const lats = pts.map((p) => p.latitude);
     const lngs = pts.map((p) => p.longitude);
@@ -92,7 +94,7 @@ export function TrackingMap({ rider, pickup, home, height, topInset = 0, overlap
   useEffect(() => {
     const id = setTimeout(() => fit(true), 400);
     return () => clearTimeout(id);
-  }, [riderNear, home?.lat, home?.lng, pickup?.lat, pickup?.lng, height]);
+  }, [riderNear, home?.lat, home?.lng, pickup?.lat, pickup?.lng, height, route?.length]);
 
   const center = home ?? pickup ?? rider ?? DEFAULT;
 
@@ -112,7 +114,9 @@ export function TrackingMap({ rider, pickup, home, height, topInset = 0, overlap
         onMapReady={() => fit(false)}
       >
         {/* The way from the shop to the house; from the rider when the shop has no pin */}
-        {home && lineFrom ? (
+        {route && route.length > 1 ? (
+          <Polyline coordinates={route.map((p) => ({ latitude: p.lat, longitude: p.lng }))} strokeColor={c.primary} strokeWidth={4} lineCap="round" lineJoin="round" />
+        ) : home && lineFrom ? (
           <Polyline
             coordinates={[
               { latitude: lineFrom.lat, longitude: lineFrom.lng },

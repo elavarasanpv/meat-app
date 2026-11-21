@@ -1,5 +1,5 @@
 import { BadRequestException, Body, Controller, Get, Headers, Post, Query } from "@nestjs/common";
-import { offerQuoteSchema } from "@freshcut/shared";
+import { offerQuoteSchema } from "@thanjozmart/shared";
 import { SupabaseService } from "../supabase.service";
 import { requireUser } from "../auth";
 import { OffersService } from "./offers.service";

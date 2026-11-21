@@ -2,9 +2,9 @@ import { Image } from "react-native";
 import Svg, { Circle, Path, Rect } from "react-native-svg";
 
 /** Line-art cleaver on a board (supplied artwork); black on transparent so it tints to any colour. */
-const CUTTING = require("@freshcut/assets/images/icon-cutting.png");
+const CUTTING = require("@thanjozmart/assets/images/icon-cutting.png");
 /** Delivery rider on a scooter (supplied artwork), tinted the same way. */
-const RIDER = require("@freshcut/assets/images/icon-rider.png");
+const RIDER = require("@thanjozmart/assets/images/icon-rider.png");
 
 export type IconName =
   | "home" | "inbox" | "clock" | "history" | "stock" | "shop" | "check" | "logout" | "scooter" | "phone" | "chevronRight" | "bell" | "cut" | "x" | "camera" | "wallet" | "navigate" | "user" | "box" | "rider";

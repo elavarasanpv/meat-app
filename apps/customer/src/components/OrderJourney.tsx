@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Animated, Easing, Image, View } from "react-native";
 import * as Haptics from "expo-haptics";
-import type { OrderStatus } from "@freshcut/shared";
+import type { OrderStatus } from "@thanjozmart/shared";
 import { AppText } from "./AppText";
 import { Icon } from "./Icon";
 import { JOURNEY_ART, JOURNEY_MARKER, type JourneyStop } from "@/lib/journeyArt";

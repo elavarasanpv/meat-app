@@ -3,7 +3,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Animated, Easing, Image, Modal, Pressable, ScrollView, View, useWindowDimensions } from "react-native";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
-import { CUSTOMER_CANCELLABLE, type OrderStatus } from "@freshcut/shared";
+import { CUSTOMER_CANCELLABLE, type OrderStatus } from "@thanjozmart/shared";
 import { AppText } from "./AppText";
 import { Button } from "./Button";
 import { Icon } from "./Icon";

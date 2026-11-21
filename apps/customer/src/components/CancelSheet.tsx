@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Animated, Easing, Modal, Pressable, View } from "react-native";
-import { CANCEL_REASONS, type CancelReason } from "@freshcut/shared";
+import { CANCEL_REASONS, type CancelReason } from "@thanjozmart/shared";
 import { AppText } from "./AppText";
 import { Button } from "./Button";
 import { useT, type TKey } from "@/i18n";

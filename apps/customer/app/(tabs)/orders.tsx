@@ -17,7 +17,7 @@ import { useT } from "@/i18n";
 import { useTheme } from "@/theme";
 import { queryState } from "@/lib/network";
 
-const HANDOFF = require("@freshcut/assets/images/doodle-handoff.png");
+const HANDOFF = require("@thanjozmart/assets/images/doodle-handoff.png");
 const CLOSED = ["DELIVERED", "CANCELLED", "DELIVERY_FAILED", "RETURNED", "REFUNDED"];
 const THUMBS = 4;
 

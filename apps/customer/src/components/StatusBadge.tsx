@@ -1,5 +1,5 @@
 import { View } from "react-native";
-import type { OrderStatus } from "@freshcut/shared";
+import type { OrderStatus } from "@thanjozmart/shared";
 import { AppText } from "./AppText";
 import { useT, type TKey } from "@/i18n";
 import { palette, useTheme } from "@/theme";

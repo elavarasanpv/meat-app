@@ -5,7 +5,7 @@ import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from "expo-aud
  * new order (shop) or a new delivery offer (rider) arrives while the app is
  * open. With the app closed, the same sound comes from the push channel.
  */
-const ORDER_SOUND = require("../../assets/sounds/freshcut_order.wav");
+const ORDER_SOUND = require("../../assets/sounds/thanjozmart_order.wav");
 
 let player: AudioPlayer | null = null;
 let ready = false;

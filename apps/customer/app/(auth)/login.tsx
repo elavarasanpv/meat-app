@@ -6,6 +6,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { AppText } from "@/components/AppText";
 import { Button } from "@/components/Button";
 import { Icon } from "@/components/Icon";
+import { Logo } from "@/components/Logo";
 import { LangToggle } from "@/components/LangToggle";
 import { openLegal } from "@/lib/legal";
 import { supabase } from "@/lib/supabase";
@@ -13,8 +14,8 @@ import { toE164India } from "@/store/auth";
 import { useT } from "@/i18n";
 import { fonts, radius, useTheme } from "@/theme";
 
-const HERO = require("@freshcut/assets/images/doodle-handoff.png");
-const PATTERN = require("@freshcut/assets/images/pattern-doodles.png");
+const HERO = require("@thanjozmart/assets/images/doodle-handoff.png");
+const PATTERN = require("@thanjozmart/assets/images/pattern-doodles.png");
 const HEADER = ["#FFF1E8", "#FFE0CC", "#FBC9A6"] as const;
 
 /** Step 1 of login: enter mobile number → Supabase sends SMS OTP. */
@@ -68,7 +69,7 @@ export default function LoginScreen() {
         <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
             <View style={{ width: 40, height: 40, borderRadius: 14, backgroundColor: c.primary, alignItems: "center", justifyContent: "center" }}>
-              <Icon name="logo" color="#FFFFFF" size={22} />
+              <Logo bag="#FFFFFF" mark={c.primary} size={27} />
             </View>
             <AppText variant="title" style={{ fontSize: 22 }}>Thanjoz Mart</AppText>
           </View>

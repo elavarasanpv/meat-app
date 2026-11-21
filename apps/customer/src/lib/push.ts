@@ -33,7 +33,7 @@ export async function registerForPush(channelName: string): Promise<{ token: str
       await Notifications.setNotificationChannelAsync(DELIVERY_CHANNEL, {
         name: channelName,
         importance: Notifications.AndroidImportance.HIGH,
-        sound: "freshcut_arrived.wav",
+        sound: "thanjozmart_arrived.wav",
         vibrationPattern: [0, 250, 150, 250],
         lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
       });

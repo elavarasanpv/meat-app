@@ -6,7 +6,7 @@ import { useServiceablePincodes } from "@/hooks/useOrders";
 import { useT } from "@/i18n";
 import { useTheme } from "@/theme";
 
-const RIDER = require("@freshcut/assets/images/icon-rider.png");
+const RIDER = require("@thanjozmart/assets/images/icon-rider.png");
 
 /**
  * Shown when the chosen spot is outside our delivery area: says so plainly,

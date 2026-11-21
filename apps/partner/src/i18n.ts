@@ -415,7 +415,7 @@ const STRINGS = {
 
 export type TKey = keyof (typeof STRINGS)["en"];
 export type Lang = "en" | "ta";
-const KEY = "freshcut.partner.lang";
+const KEY = "thanjozmart.partner.lang";
 
 type LangState = { lang: Lang; load: () => Promise<void>; toggle: () => void };
 export const useLang = create<LangState>((set, get) => ({

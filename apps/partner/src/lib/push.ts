@@ -37,7 +37,7 @@ async function ensureChannel(name: string) {
   await Notifications.setNotificationChannelAsync(ORDERS_CHANNEL, {
     name,
     importance: Notifications.AndroidImportance.MAX,
-    sound: "freshcut_order.wav", // bundled via the expo-notifications plugin
+    sound: "thanjozmart_order.wav", // bundled via the expo-notifications plugin
     vibrationPattern: [0, 600, 300, 600, 300, 600],
     lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
     enableVibrate: true,

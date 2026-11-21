@@ -1,30 +1,30 @@
 import type { ImageSourcePropType } from "react-native";
 import { supabase } from "./supabase";
 
-/** Shared cut-outs from @freshcut/assets, used until every product has an uploaded image. */
+/** Shared cut-outs from @thanjozmart/assets, used until every product has an uploaded image. */
 const bundled = {
-  countryChicken: require("@freshcut/assets/images/country-chicken.png") as ImageSourcePropType,
-  broilerChicken: require("@freshcut/assets/images/broiler-chicken.png") as ImageSourcePropType,
-  mutton: require("@freshcut/assets/images/mutton.png") as ImageSourcePropType,
-  muttonBoneless: require("@freshcut/assets/images/mutton-boneless.png") as ImageSourcePropType,
-  eggsTray: require("@freshcut/assets/images/eggs-tray.png") as ImageSourcePropType,
-  farmEggs: require("@freshcut/assets/images/farm-eggs.png") as ImageSourcePropType,
-  countryEggs: require("@freshcut/assets/images/country-eggs.png") as ImageSourcePropType,
-  wholeChicken: require("@freshcut/assets/images/whole-chicken.png") as ImageSourcePropType,
-  curryCut: require("@freshcut/assets/images/curry-cut.png") as ImageSourcePropType,
-  skinlessCurryCut: require("@freshcut/assets/images/skinless-curry-cut.png") as ImageSourcePropType,
-  breastPiece: require("@freshcut/assets/images/breast-piece.png") as ImageSourcePropType,
-  legPiece: require("@freshcut/assets/images/leg-piece.png") as ImageSourcePropType,
-  wings: require("@freshcut/assets/images/wings.png") as ImageSourcePropType,
-  chickenBoneless: require("@freshcut/assets/images/chicken-boneless.png") as ImageSourcePropType,
-  countryHenWhole: require("@freshcut/assets/images/country-hen-whole.png") as ImageSourcePropType,
-  countryCockWhole: require("@freshcut/assets/images/country-cock-whole.png") as ImageSourcePropType,
-  countryHenCut: require("@freshcut/assets/images/country-hen-cut.png") as ImageSourcePropType,
-  countryCockCut: require("@freshcut/assets/images/country-cock-cut.png") as ImageSourcePropType,
+  countryChicken: require("@thanjozmart/assets/images/country-chicken.png") as ImageSourcePropType,
+  broilerChicken: require("@thanjozmart/assets/images/broiler-chicken.png") as ImageSourcePropType,
+  mutton: require("@thanjozmart/assets/images/mutton.png") as ImageSourcePropType,
+  muttonBoneless: require("@thanjozmart/assets/images/mutton-boneless.png") as ImageSourcePropType,
+  eggsTray: require("@thanjozmart/assets/images/eggs-tray.png") as ImageSourcePropType,
+  farmEggs: require("@thanjozmart/assets/images/farm-eggs.png") as ImageSourcePropType,
+  countryEggs: require("@thanjozmart/assets/images/country-eggs.png") as ImageSourcePropType,
+  wholeChicken: require("@thanjozmart/assets/images/whole-chicken.png") as ImageSourcePropType,
+  curryCut: require("@thanjozmart/assets/images/curry-cut.png") as ImageSourcePropType,
+  skinlessCurryCut: require("@thanjozmart/assets/images/skinless-curry-cut.png") as ImageSourcePropType,
+  breastPiece: require("@thanjozmart/assets/images/breast-piece.png") as ImageSourcePropType,
+  legPiece: require("@thanjozmart/assets/images/leg-piece.png") as ImageSourcePropType,
+  wings: require("@thanjozmart/assets/images/wings.png") as ImageSourcePropType,
+  chickenBoneless: require("@thanjozmart/assets/images/chicken-boneless.png") as ImageSourcePropType,
+  countryHenWhole: require("@thanjozmart/assets/images/country-hen-whole.png") as ImageSourcePropType,
+  countryCockWhole: require("@thanjozmart/assets/images/country-cock-whole.png") as ImageSourcePropType,
+  countryHenCut: require("@thanjozmart/assets/images/country-hen-cut.png") as ImageSourcePropType,
+  countryCockCut: require("@thanjozmart/assets/images/country-cock-cut.png") as ImageSourcePropType,
   // live animals for group headers
-  animalCountryHen: require("@freshcut/assets/images/animal-country-hen.png") as ImageSourcePropType,
-  animalBroilerHen: require("@freshcut/assets/images/animal-broiler-hen.png") as ImageSourcePropType,
-  animalGoat: require("@freshcut/assets/images/animal-goat.png") as ImageSourcePropType,
+  animalCountryHen: require("@thanjozmart/assets/images/animal-country-hen.png") as ImageSourcePropType,
+  animalBroilerHen: require("@thanjozmart/assets/images/animal-broiler-hen.png") as ImageSourcePropType,
+  animalGoat: require("@thanjozmart/assets/images/animal-goat.png") as ImageSourcePropType,
 };
 
 /** Same name-matching as the customer app, so both apps show the same picture for a product. */

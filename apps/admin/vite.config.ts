@@ -8,7 +8,7 @@ export default defineConfig({
   resolve: {
     alias: {
       // Use the shared package's TypeScript source directly (no build step needed in dev).
-      "@freshcut/shared": fileURLToPath(new URL("../../packages/shared/src/index.ts", import.meta.url)),
+      "@thanjozmart/shared": fileURLToPath(new URL("../../packages/shared/src/index.ts", import.meta.url)),
     },
   },
 });

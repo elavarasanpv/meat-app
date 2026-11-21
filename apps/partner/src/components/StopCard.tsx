@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { TextInput, View } from "react-native";
 import * as Haptics from "expo-haptics";
-import { DELIVERY_FAIL_REASONS } from "@freshcut/shared";
+import { DELIVERY_FAIL_REASONS } from "@thanjozmart/shared";
 import { amountDue, useArrived, useContact, useDeliver, useFail, useReorder, useReturn, type RiderOrder, type TripStop } from "@/hooks/useRider";
 import { callNumber, navigateTo } from "@/lib/maps";
 import { useScaleCamera } from "@/store/camera";

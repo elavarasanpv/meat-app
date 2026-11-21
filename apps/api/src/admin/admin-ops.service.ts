@@ -1,5 +1,5 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from "@nestjs/common";
-import type { AdminBroadcastInput, AdminRiderInput, AdminSellPriceInput, AdminShopInput, AdminShopPriceInput } from "@freshcut/shared";
+import type { AdminBroadcastInput, AdminRiderInput, AdminSellPriceInput, AdminShopInput, AdminShopPriceInput } from "@thanjozmart/shared";
 import { SupabaseService } from "../supabase.service";
 import { withProductShapes } from "../orders/item-shape";
 import { OrdersService } from "../orders/orders.service";

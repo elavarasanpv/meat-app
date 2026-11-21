@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { View } from "react-native";
 import * as Haptics from "expo-haptics";
-import type { OrderStatus } from "@freshcut/shared";
+import type { OrderStatus } from "@thanjozmart/shared";
 import { AppText } from "./AppText";
 import { Icon, type IconName } from "./Icon";
 import { useT, type TKey } from "@/i18n";

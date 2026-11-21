@@ -1,6 +1,6 @@
 import { Image } from "react-native";
 
-const BASKET = require("@freshcut/assets/images/empty-basket.png");
+const BASKET = require("@thanjozmart/assets/images/empty-basket.png");
 
 /**
  * Empty-cart illustration: the Thanjoz Mart line-drawn basket with a "0" tag,

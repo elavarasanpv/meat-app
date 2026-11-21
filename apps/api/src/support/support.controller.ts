@@ -1,5 +1,5 @@
 import { BadRequestException, Body, Controller, Get, Headers, Param, Post } from "@nestjs/common";
-import { createTicketSchema, ticketReplySchema } from "@freshcut/shared";
+import { createTicketSchema, ticketReplySchema } from "@thanjozmart/shared";
 import type { ZodTypeAny, z } from "zod";
 import { SupabaseService } from "../supabase.service";
 import { requireUser } from "../auth";

@@ -7,7 +7,7 @@ import { Icon } from "./Icon";
 import { useT } from "@/i18n";
 import { fonts, useTheme } from "@/theme";
 
-const RIDER = require("@freshcut/assets/images/delivered-rider-3d.png");
+const RIDER = require("@thanjozmart/assets/images/delivered-rider-3d.png");
 
 type History = { to_status: string; created_at: string }[];
 

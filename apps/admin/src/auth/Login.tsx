@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
-import shop from "@freshcut/assets/images/slide-shop.png";
-import rider from "@freshcut/assets/images/slide-rider.png";
-import tracking from "@freshcut/assets/images/slide-tracking.png";
+import shop from "@thanjozmart/assets/images/slide-shop.png";
+import rider from "@thanjozmart/assets/images/slide-rider.png";
+import { BrandMark } from "../ui/BrandMark";
+import tracking from "@thanjozmart/assets/images/slide-tracking.png";
 
 const SLIDES = [
   { text: "Shops, sales and margins at a glance, updated live.", img: shop, alt: "Butcher shop with a sales card" },
@@ -65,7 +66,7 @@ export function Login() {
           <form onSubmit={submit} className="w-full max-w-sm">
             <h1 className="text-center text-4xl font-extrabold tracking-tight">Welcome!</h1>
             <div className="mt-4 flex items-center justify-center gap-2">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-base font-extrabold text-white">F</div>
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary"><BrandMark size={25} /></div>
               <span className="text-xl font-bold">Thanjoz Mart</span>
               <span className="rounded-full bg-tint px-2 py-0.5 text-xs font-bold text-primary">Admin</span>
             </div>

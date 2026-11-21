@@ -5,6 +5,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppText } from "@/components/AppText";
 import { Icon } from "@/components/Icon";
+import { Logo } from "@/components/Logo";
 import { LangToggle } from "@/components/LangToggle";
 import { ProductCard } from "@/components/ProductCard";
 import { ProductSheet } from "@/components/ProductSheet";
@@ -12,8 +13,8 @@ import { SearchHint } from "@/components/SearchHint";
 import { SubcategoryCard } from "@/components/SubcategoryCard";
 import { CartBar, CART_BAR_SPACE } from "@/components/CartBar";
 import { ForYou } from "@/components/ForYou";
-const INGREDIENTS = require("@freshcut/assets/images/doodle-ingredients.png");
-const GROCERY_DOODLE = require("@freshcut/assets/images/doodle-grocery.png");
+const INGREDIENTS = require("@thanjozmart/assets/images/doodle-ingredients.png");
+const GROCERY_DOODLE = require("@thanjozmart/assets/images/doodle-grocery.png");
 import { offerTag, useOfferForProduct } from "@/hooks/useOffers";
 import { ErrorState, ProductGridSkeleton, Skeleton } from "@/components/States";
 import { byPopularity, useCategories, useProductStats, useProducts, useSubcategories, type Subcategory } from "@/hooks/useCatalog";
@@ -126,7 +127,7 @@ export default function HomeScreen() {
           <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 10, flex: 1 }}>
               <View style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: accent, alignItems: "center", justifyContent: "center" }}>
-                <Icon name="logo" color="#FFFFFF" size={22} />
+                <Logo bag="#FFFFFF" mark={accent} size={28} />
               </View>
               <View style={{ flex: 1, height: 44, justifyContent: "center" }}>
                 <AppText variant="subtitle" numberOfLines={1}>{t(greetingKey())}</AppText>

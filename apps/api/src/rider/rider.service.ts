@@ -10,7 +10,7 @@ import {
   type RiderFailInput,
   type RiderLocationBatchInput,
   type RiderPickupInput,
-} from "@freshcut/shared";
+} from "@thanjozmart/shared";
 import { OrdersService } from "../orders/orders.service";
 import { SupabaseService } from "../supabase.service";
 import { SupportService } from "../support/support.service";

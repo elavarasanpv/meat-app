@@ -1,5 +1,5 @@
 import { BadRequestException, ConflictException, Injectable } from "@nestjs/common";
-import { DEALER_ACCEPT_TIMEOUT_MIN, DELIVERY_FEE, FREE_DELIVERY_ABOVE, ON_THE_WAY_DETOUR_KM, RIDER_MAX_ACTIVE_ORDERS, RIDER_OFFER_RADIUS_KM, WEIGHT_TOLERANCE } from "@freshcut/shared";
+import { DEALER_ACCEPT_TIMEOUT_MIN, DELIVERY_FEE, FREE_DELIVERY_ABOVE, ON_THE_WAY_DETOUR_KM, RIDER_MAX_ACTIVE_ORDERS, RIDER_OFFER_RADIUS_KM, WEIGHT_TOLERANCE } from "@thanjozmart/shared";
 import { SupabaseService } from "../supabase.service";
 import { AdminService } from "./admin.service";
 import type { AdminUser } from "./admin.guard";

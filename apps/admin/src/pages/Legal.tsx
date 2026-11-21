@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { BrandMark } from "../ui/BrandMark";
 
 /**
  * Public Terms & Privacy pages (no login). Linked from the customer and
@@ -21,7 +22,7 @@ function Page({ title, intro, children }: { title: string; intro: string; childr
       <header className="border-b border-line bg-surface">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-5 py-4">
           <Link to="/" className="flex items-center gap-2 font-extrabold text-ink">
-            <span className="grid h-8 w-8 place-items-center rounded-xl bg-primary text-white">F</span>
+            <span className="grid h-8 w-8 place-items-center rounded-xl bg-primary"><BrandMark size={22} /></span>
             {BUSINESS.brand}
           </Link>
           <nav className="flex gap-4 text-[13px] font-bold text-muted">

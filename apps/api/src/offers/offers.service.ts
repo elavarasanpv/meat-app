@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
-import type { AdminHeadlineInput, AdminOfferInput } from "@freshcut/shared";
+import type { AdminHeadlineInput, AdminOfferInput } from "@thanjozmart/shared";
 import { SupabaseService } from "../supabase.service";
 
 export type OfferRow = {

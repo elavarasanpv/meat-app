@@ -245,7 +245,7 @@ function TicketDrawer({ id, onClose }: { id: string; onClose: () => void }) {
 function ResolveBox({ id, suggested, onDone }: { id: string; suggested: number | null; onDone: () => void }) {
   const qc = useQueryClient();
   const [resolution, setResolution] = useState<"credit" | "refund_upi" | "apology" | "none">("credit");
-  const [fault, setFault] = useState<"shop" | "rider" | "freshcut" | "customer" | "none">("shop");
+  const [fault, setFault] = useState<"shop" | "rider" | "thanjozmart" | "customer" | "none">("shop");
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");
   const resolve = useMutation({
@@ -271,7 +271,7 @@ function ResolveBox({ id, suggested, onDone }: { id: string; suggested: number |
           <select className={inputCls} value={fault} onChange={(e) => setFault(e.target.value as typeof fault)}>
             <option value="shop">Shop</option>
             <option value="rider">Rider</option>
-            <option value="freshcut">Thanjoz Mart</option>
+            <option value="thanjozmart">Thanjoz Mart</option>
             <option value="customer">Customer</option>
             <option value="none">Nobody</option>
           </select>

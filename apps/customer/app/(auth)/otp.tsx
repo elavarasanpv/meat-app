@@ -12,9 +12,9 @@ import { supabase } from "@/lib/supabase";
 import { useT } from "@/i18n";
 import { fonts, useTheme } from "@/theme";
 
-const PATTERN = require("@freshcut/assets/images/pattern-doodles.png");
+const PATTERN = require("@thanjozmart/assets/images/pattern-doodles.png");
 /** Shop → rider → your door, in the same line style as the login drawing. */
-const JOURNEY = require("@freshcut/assets/images/otp-journey.png");
+const JOURNEY = require("@thanjozmart/assets/images/otp-journey.png");
 const HEADER = ["#FFF1E8", "#FFE0CC", "#FBC9A6"] as const;
 const OTP_LENGTH = 6;
 const RESEND_SECONDS = 30;

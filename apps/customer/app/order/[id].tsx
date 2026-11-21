@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { Linking, Pressable, ScrollView, View, useWindowDimensions } from "react-native";
+import { Pressable, ScrollView, View, useWindowDimensions } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
-import { ARRIVING_KM, CUSTOMER_CANCELLABLE, ORDER_STATUSES, etaMinutesRange, haversineKm, supportClosesAt, type OrderStatus } from "@freshcut/shared";
+import { ARRIVING_KM, CUSTOMER_CANCELLABLE, ORDER_STATUSES, etaMinutesRange, haversineKm, supportClosesAt, type OrderStatus } from "@thanjozmart/shared";
 import { AppText } from "@/components/AppText";
 import { Button } from "@/components/Button";
 import { Icon } from "@/components/Icon";
@@ -14,12 +14,13 @@ import { DeliveryInfoCard } from "@/components/DeliveryInfoCard";
 import { OrderJourney } from "@/components/OrderJourney";
 import { GroceryTracker } from "@/components/GroceryTracker";
 import { PlacedFlash } from "@/components/PlacedFlash";
+import { RiderStrip } from "@/components/RiderStrip";
 import { AddMoreSheet } from "@/components/AddMoreSheet";
 import { DeliveredCard } from "@/components/DeliveredCard";
 import { DeliveredHero } from "@/components/DeliveredHero";
 import { TrackingMap } from "@/components/TrackingMap";
 import { useRiderLocation } from "@/hooks/useTracking";
-import { useCancelOrder, useOrder, useOrderOtp, useRiderContact, useRiderQueue } from "@/hooks/useOrders";
+import { useCancelOrder, useOrder, useOrderOtp, useOrderRoute, useRiderContact, useRiderQueue } from "@/hooks/useOrders";
 import { usePullRefresh } from "@/hooks/usePullRefresh";
 import { dateTime, dayLabel, slotWindow } from "@/lib/format";
 import { useLocalName, useT, type TKey } from "@/i18n";
@@ -63,6 +64,7 @@ export default function OrderDetailScreen() {
   const tracking = useRiderLocation(id, o?.rider_id);
   const rider = tracking.data;
   const showTracking = !!o?.rider_id && TRACKABLE.includes(o.status);
+  const route = useOrderRoute(id, showTracking);
   const arrived = showTracking && !!o?.arrived_at && o.status === "OUT_FOR_DELIVERY";
 
   const cancel = useCancelOrder();
@@ -122,7 +124,7 @@ export default function OrderDetailScreen() {
           <>
             {/* Map hero with floating controls */}
             <View>
-              <TrackingMap rider={rider} pickup={pickup} home={home} height={mapH} topInset={insets.top + 52} overlap={arrived ? ARRIVED_OVERLAP : 36} />
+              <TrackingMap rider={rider} pickup={pickup} home={home} route={route.data?.points} height={mapH} topInset={insets.top + 52} overlap={arrived ? ARRIVED_OVERLAP : 36} />
               <View style={{ position: "absolute", top: insets.top + 8, left: 16, right: 16, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
                 <Pressable
                   onPress={back}
@@ -176,29 +178,30 @@ export default function OrderDetailScreen() {
                 ) : null}
               </View>
 
+              {/* What to keep ready at the door */}
+              {o.payment_mode !== "prepaid_upi" ? (
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 12, paddingVertical: 10, borderRadius: 16, backgroundColor: accentTint }}>
+                  <Icon name="receipt" color={accent} size={20} />
+                  <View style={{ flex: 1 }}>
+                    <AppText variant="bodyBold" numberOfLines={1} style={{ fontSize: 14 }}>
+                      {t(o.payment_mode === "cod" ? "keepCashReady" : "payUpiAtDoor", { amount: Math.round(Number(o.final_amount ?? o.est_amount)) })}
+                    </AppText>
+                    <AppText variant="caption" muted numberOfLines={1}>{t(o.payment_mode === "cod" ? "payCod" : "payUpi")}</AppText>
+                  </View>
+                </View>
+              ) : null}
+
               {/* Rider strip */}
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: c.border }}>
-                <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: c.tint, alignItems: "center", justifyContent: "center" }}>
-                  <Icon name="scooter" color={c.primary} size={30} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <AppText variant="bodyBold" numberOfLines={1}>{t("yourRider")}</AppText>
-                  <AppText variant="caption" muted numberOfLines={1}>
-                    {queue.data && queue.data.position > 1
+              <View style={{ paddingTop: 12, borderTopWidth: 1, borderTopColor: c.border }}>
+                <RiderStrip
+                  name={riderContact.data?.name}
+                  phone={riderContact.data?.phone}
+                  sub={
+                    queue.data && queue.data.position > 1
                       ? t("stopOf").replace("{n}", String(queue.data.position)).replace("{total}", String(queue.data.total)).replace("{before}", String(queue.data.position - 1))
-                      : t(`st_${o.status}` as TKey)}
-                  </AppText>
-                </View>
-                <Pressable
-                  onPress={() => riderContact.data?.phone && Linking.openURL(`tel:${riderContact.data.phone}`)}
-                  disabled={!riderContact.data?.phone}
-                  accessibilityRole="button"
-                  accessibilityLabel={t("callRider")}
-                  style={({ pressed }) => ({ height: 44, paddingHorizontal: 16, borderRadius: 22, backgroundColor: pressed ? c.primaryPressed : c.success, flexDirection: "row", alignItems: "center", gap: 8 })}
-                >
-                  <Icon name="phone" color="#FFFFFF" size={18} />
-                  <AppText variant="bodyBold" color="#FFFFFF" numberOfLines={1} style={{ fontSize: 13 }}>{t("call")}</AppText>
-                </Pressable>
+                      : t(`st_${o.status}` as TKey)
+                  }
+                />
               </View>
             </View>
             )}
@@ -241,6 +244,13 @@ export default function OrderDetailScreen() {
             ) : (
               <OrderJourney status={o.status} />
             )
+          ) : null}
+
+          {/* A rider has taken the order and is on the way to collect it */}
+          {o && o.status === "RIDER_ASSIGNED" && o.rider_id ? (
+            <View style={card}>
+              <RiderStrip name={riderContact.data?.name} phone={riderContact.data?.phone} sub={t("riderCollecting")} />
+            </View>
           ) : null}
 
           {showOtp ? (

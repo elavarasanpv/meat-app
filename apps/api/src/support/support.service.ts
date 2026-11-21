@@ -1,6 +1,6 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
-import { SUPPORT_WINDOW_HOURS, supportClosesAt } from "@freshcut/shared";
-import { AUTO_CREDIT_COOLDOWN_DAYS, AUTO_CREDIT_MAX, type CreateTicketInput, type TicketResolveInput } from "@freshcut/shared";
+import { SUPPORT_WINDOW_HOURS, supportClosesAt } from "@thanjozmart/shared";
+import { AUTO_CREDIT_COOLDOWN_DAYS, AUTO_CREDIT_MAX, type CreateTicketInput, type TicketResolveInput } from "@thanjozmart/shared";
 import { SupabaseService } from "../supabase.service";
 import { PushService } from "../push/push.service";
 import type { AdminUser } from "../admin/admin.guard";

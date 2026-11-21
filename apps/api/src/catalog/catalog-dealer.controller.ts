@@ -1,7 +1,7 @@
 import { BadRequestException, Body, Controller, ForbiddenException, Get, Headers, Param, Patch, Post, Query, UploadedFile, UseInterceptors } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
 import type { ZodTypeAny, z } from "zod";
-import { customProductSchema, importRowDecisionSchema, storeListingPatchSchema, storeListingSchema } from "@freshcut/shared";
+import { customProductSchema, importRowDecisionSchema, storeListingPatchSchema, storeListingSchema } from "@thanjozmart/shared";
 import { SupabaseService } from "../supabase.service";
 import { requireUser } from "../auth";
 import { CatalogService } from "./catalog.service";

@@ -4,6 +4,7 @@ import { supabase } from "../lib/supabase";
 import type { AdminMe } from "../auth/Gate";
 import { useAlerts, type Alert } from "../lib/alerts";
 import { Avatar, ago, useDismiss } from "../ui/kit";
+import { BrandMark } from "../ui/BrandMark";
 import {
   IconBan,
   IconBell,
@@ -67,7 +68,7 @@ export function Shell() {
     <div className="min-h-screen md:flex">
       <aside className="sticky top-0 hidden h-screen w-56 shrink-0 flex-col bg-ink text-white md:flex">
         <div className="flex items-center gap-2 px-5 py-5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-sm font-extrabold">F</div>
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary"><BrandMark size={22} /></div>
           <span className="text-[17px] font-extrabold tracking-tight">Thanjoz Mart</span>
         </div>
         <nav className="flex-1 overflow-y-auto px-3">
@@ -133,7 +134,7 @@ function TopBar({ me }: { me: AdminMe }) {
   return (
     <header className="sticky top-0 z-30 flex h-[60px] items-center gap-4 border-b border-line bg-ground/90 px-4 backdrop-blur md:px-6">
       <Link to="/" className="flex items-center gap-2 md:hidden">
-        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary text-[13px] font-extrabold text-white">F</div>
+        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary"><BrandMark size={19} /></div>
         <span className="text-[15px] font-extrabold">Thanjoz Mart</span>
       </Link>
       <form

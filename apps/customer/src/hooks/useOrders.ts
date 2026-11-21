@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { OrderStatus } from "@freshcut/shared";
+import type { OrderStatus } from "@thanjozmart/shared";
 import { api } from "@/lib/api";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/store/auth";
@@ -255,6 +255,17 @@ export function useRiderContact(id: string | undefined, hasRider: boolean) {
     enabled: !!id && hasRider,
     staleTime: 5 * 60_000,
     queryFn: () => api(`/orders/${id}/rider-contact`),
+  });
+}
+
+/** The road from the shop to the house for the tracking map; null when the server has no route. */
+export function useOrderRoute(id: string | undefined, enabled: boolean) {
+  return useQuery<{ points: { lat: number; lng: number }[] } | null>({
+    queryKey: ["orders", "route", id],
+    enabled: !!id && enabled,
+    staleTime: Infinity,
+    retry: false,
+    queryFn: () => api(`/orders/${id}/route`),
   });
 }
 

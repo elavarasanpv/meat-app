@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Linking, View } from "react-native";
 import * as Haptics from "expo-haptics";
-import { DEALER_REJECT_REASONS } from "@freshcut/shared";
+import { DEALER_REJECT_REASONS } from "@thanjozmart/shared";
 import { useAccept, usePacked, useReject, useStartCutting, type DealerOrder, type DealerOrderItem } from "@/hooks/useDealer";
 import { useLang, useT, type TKey } from "@/i18n";
 import { Btn, Chip, Txt, useC } from "@/ui";

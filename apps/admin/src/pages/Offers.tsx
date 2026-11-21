@@ -6,6 +6,7 @@ import { IconCheck, IconEdit, IconPlus } from "../ui/icons";
 import { TimePicker } from "../ui/TimePicker";
 import { Check, DatePicker, PhotoPicker, Select } from "../ui/pickers";
 import { Btn, Chip, Drawer, Empty, ErrorBox, Field, Section, Segments, type Tone, inputCls, inr, when } from "../ui/kit";
+import { BrandMark } from "../ui/BrandMark";
 
 type Offer = {
   id: string;
@@ -627,7 +628,7 @@ function AnnounceCard({ offers }: { offers: Offer[] }) {
       </div>
       {/* phone-style preview */}
       <div className="mt-3 flex items-start gap-3 rounded-xl border border-line bg-surface-2/60 px-3 py-2.5">
-        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-primary text-[13px] font-extrabold text-white">F</span>
+        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-primary"><BrandMark size={22} /></span>
         <div className="min-w-0 flex-1">
           <div className="text-[11px] text-muted">Thanjoz Mart · now</div>
           <div className="truncate text-[13px] font-extrabold">{title || "Title"}</div>

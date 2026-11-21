@@ -2,8 +2,9 @@
   "expo": {
     "name": "Thanjoz Mart Partner",
     "slug": "freshcut-partner",
-    "scheme": "freshcut-partner",
+    "scheme": "thanjozmart-partner",
     "version": "0.1.0",
+    "icon": "./assets/brand/icon.png",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "platforms": [
@@ -11,8 +12,10 @@
       "web"
     ],
     "android": {
-      "package": "com.freshcut.partner",
+      "package": "com.thanjozmart.partner",
       "adaptiveIcon": {
+        "foregroundImage": "./assets/brand/adaptive-foreground.png",
+        "monochromeImage": "./assets/brand/monochrome.png",
         "backgroundColor": "#1C1715"
       },
       "permissions": [
@@ -47,10 +50,11 @@
       [
         "expo-notifications",
         {
+          "icon": "./assets/brand/notification-icon.png",
           "color": "#E4461F",
           "defaultChannel": "orders",
           "sounds": [
-            "./assets/sounds/freshcut_order.wav"
+            "./assets/sounds/thanjozmart_order.wav"
           ]
         }
       ],
@@ -67,8 +71,12 @@
       [
         "expo-splash-screen",
         {
+          "image": "./assets/brand/splash-icon.png",
+          "imageWidth": 200,
           "backgroundColor": "#E4461F",
           "android": {
+            "image": "./assets/brand/splash-icon.png",
+            "imageWidth": 200,
             "backgroundColor": "#E4461F"
           }
         }
@@ -85,8 +93,12 @@
     },
     "owner": "elavarasanp",
     "splash": {
+      "image": "./assets/brand/splash-icon.png",
       "backgroundColor": "#E4461F",
       "resizeMode": "contain"
+    },
+    "web": {
+      "favicon": "./assets/brand/favicon.png"
     }
   }
 }

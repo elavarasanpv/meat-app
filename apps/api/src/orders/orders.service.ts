@@ -1,7 +1,7 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from "@nestjs/common";
 import { randomInt } from "node:crypto";
 import * as bcrypt from "bcryptjs";
-import { CUSTOMER_CANCELLABLE, canTransition, type AddOrderItemsInput, type CancelOrderInput, type OrderStatus, type PlaceGroceryOrderInput, type PlaceOrderInput, type RateOrderInput } from "@freshcut/shared";
+import { CUSTOMER_CANCELLABLE, canTransition, type AddOrderItemsInput, type CancelOrderInput, type OrderStatus, type PlaceGroceryOrderInput, type PlaceOrderInput, type RateOrderInput } from "@thanjozmart/shared";
 import { PushService } from "../push/push.service";
 import { SupabaseService } from "../supabase.service";
 
@@ -198,10 +198,16 @@ export class OrdersService {
    */
   private async notifyCustomer(orderId: string, to: OrderStatus) {
     try {
-      const { data: o } = await this.supabase.admin.from("orders").select("customer_id, display_id, vertical_type").eq("id", orderId).single();
+      const { data: o } = await this.supabase.admin
+        .from("orders")
+        .select("customer_id, display_id, vertical_type, payment_mode, est_amount, final_amount, delivery_partners:rider_id(profiles(full_name))")
+        .eq("id", orderId)
+        .single();
       if (!o) return;
-      const text = o.vertical_type === "grocery" && to in GROCERY_STATUS_PUSH ? GROCERY_STATUS_PUSH[to] : CUSTOMER_STATUS_PUSH[to];
-      if (!text) return;
+      const make = o.vertical_type === "grocery" && to in GROCERY_STATUS_PUSH ? GROCERY_STATUS_PUSH[to] : CUSTOMER_STATUS_PUSH[to];
+      if (!make) return;
+      const rider = o.delivery_partners as unknown as { profiles: { full_name: string | null } | null } | null;
+      const text = make(riderFirstName(rider?.profiles?.full_name), cashLine(o.payment_mode, Number(o.final_amount ?? o.est_amount)));
       await this.push.toProfiles([o.customer_id], {
         title: text.title,
         body: `${o.display_id} · ${text.body}`,
@@ -217,16 +223,35 @@ export class OrdersService {
 
 /** Customer-facing status pushes in English and Tamil; statuses missing here send nothing. */
 type PushText = { title: string; body: string; ta: { title: string; body: string } };
+/** What the rider is called in a push: their first name, or "Your rider" when we have none. */
+export type RiderName = { en: string; ta: string };
+export type CashLine = { en: string; ta: string };
+type PushMaker = (rider: RiderName, cash: CashLine) => PushText;
+
+export function riderFirstName(full: string | null | undefined): RiderName {
+  const first = (full ?? "").trim().split(/\s+/)[0];
+  return first ? { en: first, ta: first } : { en: "Your rider", ta: "உங்கள் ரைடர்" };
+}
+
+/** " Keep ₹161 ready." for cash orders, " Pay ₹161 by UPI at the door." for UPI on delivery, nothing when prepaid. */
+export function cashLine(paymentMode: string | null | undefined, amount: number): CashLine {
+  const rs = `₹${Math.round(amount)}`;
+  if (paymentMode === "cod") return { en: ` Keep ${rs} ready.`, ta: ` ${rs} தயாராக வைத்திருங்கள்.` };
+  if (paymentMode === "upi_on_delivery") return { en: ` Pay ${rs} by UPI at the door.`, ta: ` வாசலில் ${rs} UPI மூலம் செலுத்துங்கள்.` };
+  return { en: "", ta: "" };
+}
+
 /** Grocery overrides: the shop accepts and packs in one go, so PACKED (automatic) stays silent. */
-const GROCERY_STATUS_PUSH: Partial<Record<OrderStatus, PushText | undefined>> = {
-  ACCEPTED: { title: "Shop accepted your order", body: "They're packing it now; a rider will be assigned soon.", ta: { title: "கடை உங்கள் ஆர்டரை ஏற்றது", body: "இப்போது பேக் செய்கிறார்கள்; விரைவில் ரைடர் ஒதுக்கப்படுவார்." } },
+const GROCERY_STATUS_PUSH: Partial<Record<OrderStatus, PushMaker | undefined>> = {
+  ACCEPTED: () => ({ title: "Shop accepted your order", body: "They're packing it now; a rider will be assigned soon.", ta: { title: "கடை உங்கள் ஆர்டரை ஏற்றது", body: "இப்போது பேக் செய்கிறார்கள்; விரைவில் ரைடர் ஒதுக்கப்படுவார்." } }),
   PACKED: undefined,
 };
-const CUSTOMER_STATUS_PUSH: Partial<Record<OrderStatus, PushText>> = {
-  ACCEPTED: { title: "Shop accepted your order", body: "They're cutting it fresh for you now.", ta: { title: "கடை உங்கள் ஆர்டரை ஏற்றது", body: "உங்களுக்காக இப்போது புதிதாக வெட்டுகிறார்கள்." } },
-  PACKED: { title: "Your order is packed", body: "Weighed, photographed and waiting for a rider.", ta: { title: "உங்கள் ஆர்டர் பேக் ஆகிவிட்டது", body: "எடை போட்டு, புகைப்படம் எடுத்து, ரைடருக்காகக் காத்திருக்கிறது." } },
-  PICKED_UP: { title: "Your order is on the way", body: "The rider has picked it up. Keep your delivery code ready.", ta: { title: "உங்கள் ஆர்டர் வந்துகொண்டிருக்கிறது", body: "ரைடர் எடுத்துக்கொண்டார். டெலிவரி குறியீட்டைத் தயாராக வைத்திருங்கள்." } },
-  OUT_FOR_DELIVERY: { title: "Your order is on the way", body: "The rider is heading to you. Keep your delivery code ready.", ta: { title: "உங்கள் ஆர்டர் வந்துகொண்டிருக்கிறது", body: "ரைடர் உங்களை நோக்கி வருகிறார். டெலிவரி குறியீட்டைத் தயாராக வைத்திருங்கள்." } },
-  DELIVERED: { title: "Delivered — enjoy!", body: "Tap to rate your order and the delivery.", ta: { title: "டெலிவரி ஆகிவிட்டது — ருசித்து மகிழுங்கள்!", body: "ஆர்டரையும் டெலிவரியையும் மதிப்பிட தட்டவும்." } },
-  DELIVERY_FAILED: { title: "We couldn't deliver your order", body: "Tap to see what happened and get help.", ta: { title: "உங்கள் ஆர்டரை டெலிவரி செய்ய முடியவில்லை", body: "என்ன நடந்தது என்று பார்க்கவும் உதவி பெறவும் தட்டவும்." } },
+/** PICKED_UP is silent: pickup moves the order straight on to OUT_FOR_DELIVERY, which carries the "on the way" push. */
+const CUSTOMER_STATUS_PUSH: Partial<Record<OrderStatus, PushMaker>> = {
+  ACCEPTED: () => ({ title: "Shop accepted your order", body: "They're cutting it fresh for you now.", ta: { title: "கடை உங்கள் ஆர்டரை ஏற்றது", body: "உங்களுக்காக இப்போது புதிதாக வெட்டுகிறார்கள்." } }),
+  PACKED: () => ({ title: "Your order is packed", body: "Weighed, photographed and waiting for a rider.", ta: { title: "உங்கள் ஆர்டர் பேக் ஆகிவிட்டது", body: "எடை போட்டு, புகைப்படம் எடுத்து, ரைடருக்காகக் காத்திருக்கிறது." } }),
+  RIDER_ASSIGNED: (r) => ({ title: "Your rider is assigned", body: `${r.en} will collect your order and bring it to you.`, ta: { title: "உங்கள் ரைடர் ஒதுக்கப்பட்டார்", body: `${r.ta} உங்கள் ஆர்டரை எடுத்து வருவார்.` } }),
+  OUT_FOR_DELIVERY: (r) => ({ title: "Your order is on the way!", body: `${r.en} has picked it up and is riding to you. Keep your delivery code ready.`, ta: { title: "உங்கள் ஆர்டர் வந்துகொண்டிருக்கிறது!", body: `${r.ta} ஆர்டரை எடுத்துக்கொண்டு உங்களை நோக்கி வருகிறார். டெலிவரி குறியீட்டைத் தயாராக வைத்திருங்கள்.` } }),
+  DELIVERED: () => ({ title: "Delivered — enjoy!", body: "Tap to rate your order and the delivery.", ta: { title: "டெலிவரி ஆகிவிட்டது — ருசித்து மகிழுங்கள்!", body: "ஆர்டரையும் டெலிவரியையும் மதிப்பிட தட்டவும்." } }),
+  DELIVERY_FAILED: () => ({ title: "We couldn't deliver your order", body: "Tap to see what happened and get help.", ta: { title: "உங்கள் ஆர்டரை டெலிவரி செய்ய முடியவில்லை", body: "என்ன நடந்தது என்று பார்க்கவும் உதவி பெறவும் தட்டவும்." } }),
 };

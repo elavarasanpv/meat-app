@@ -7,7 +7,7 @@ export type Lang = "en" | "ta";
 export type TKey = keyof typeof en;
 
 const dictionaries: Record<Lang, Record<TKey, string>> = { en, ta };
-const STORAGE_KEY = "freshcut.lang";
+const STORAGE_KEY = "thanjozmart.lang";
 
 type LangState = {
   lang: Lang;

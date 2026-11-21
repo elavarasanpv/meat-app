@@ -14,7 +14,7 @@ import { api } from "./api";
  * trip's km log stays complete on 2G.
  */
 
-export const GPS_TASK = "freshcut-rider-gps";
+export const GPS_TASK = "thanjozmart-rider-gps";
 const QUEUE_KEY = "rider-gps-queue";
 const MAX_QUEUE = 600; // ~3 h of fixes at 20 s
 const ON_TRIP_MS = 20_000;

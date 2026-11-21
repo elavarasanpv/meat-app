@@ -267,7 +267,7 @@ export const ticketReplySchema = z.object({
 
 export const ticketResolveSchema = z.object({
   resolution: z.enum(["credit", "refund_upi", "apology", "none"]),
-  fault: z.enum(["shop", "rider", "freshcut", "customer", "none"]),
+  fault: z.enum(["shop", "rider", "thanjozmart", "customer", "none"]),
   amount: z.number().positive().max(100_000).optional(),
   note: z.string().trim().max(500).optional(),
 });

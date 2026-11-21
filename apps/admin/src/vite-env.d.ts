@@ -1,6 +1,6 @@
 /// <reference types="vite/client" />
 
-declare module "@freshcut/assets/images/*.png" {
+declare module "@thanjozmart/assets/images/*.png" {
   const src: string;
   export default src;
 }

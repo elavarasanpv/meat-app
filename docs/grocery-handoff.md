@@ -51,7 +51,7 @@ FreshCut (rural meat delivery) gets a **grocery vertical**, shipped dormant and 
 ## Gotchas
 - **Customers can't see `dealers` rows.** RLS on `dealers` only shows each user their own row, so customers see none. An inline `exists(select … from dealers)` inside another policy is therefore always false for them. Use `security definer` helpers instead: `my_dealer_id`, `my_store_type`, `dealer_sells_live_vertical`, `grocery_stores`, `master_listed_live`.
 - **Grocery lines have no `product_id`.** Every order read embeds `products(...)`, so also select `master_products(...)` and normalise: `withProductShapes()` in the API, `normaliseItems` in the customer `useOrders`.
-- **`@freshcut/shared` resolves to `./dist`.** Run `pnpm --filter @freshcut/shared build` after editing schemas, or the typecheck checks against stale types.
+- **`@thanjozmart/shared` resolves to `./dist`.** Run `pnpm --filter @thanjozmart/shared build` after editing schemas, or the typecheck checks against stale types.
 - **The local API isn't in watch mode.** It runs `node --env-file=.env dist/main.js` from `apps/api`. After changes, run `pnpm --filter api build` and restart it.
 - **Use Node 24** (`nvm use 24`). Admin dev runs on port 5177, because 5173 is taken by PaperHint web.
 - **Route clash risk:** `@Controller("admin/catalog")` sits next to the meat `GET /admin/catalog`. Never add a bare `@Get()` to the catalog controller.

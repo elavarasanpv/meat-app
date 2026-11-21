@@ -18,7 +18,7 @@ services:
     # Install just the API and what it depends on, build shared (CJS) then the API.
     buildCommand: >-
       npx --yes pnpm@9.15.0 install --frozen-lockfile --filter api...
-      && npx --yes pnpm@9.15.0 --filter @freshcut/shared build
+      && npx --yes pnpm@9.15.0 --filter @thanjozmart/shared build
       && npx --yes pnpm@9.15.0 --filter api build
     startCommand: node apps/api/dist/main.js
     healthCheckPath: /health

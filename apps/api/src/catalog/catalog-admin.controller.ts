@@ -13,7 +13,7 @@ import {
   masterReviewSchema,
   storeListingPatchSchema,
   verticalToggleSchema,
-} from "@freshcut/shared";
+} from "@thanjozmart/shared";
 import { SupabaseService } from "../supabase.service";
 import { requireAdmin } from "../admin/admin.guard";
 import { ImagesService } from "../images/images.service";

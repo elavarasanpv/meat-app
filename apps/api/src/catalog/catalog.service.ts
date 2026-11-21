@@ -3,7 +3,7 @@ import type {
   CatalogCategoryInput,
   CustomProductInput,
   MasterProductInput,
-} from "@freshcut/shared";
+} from "@thanjozmart/shared";
 import { SupabaseService } from "../supabase.service";
 import { mapRows, normaliseUnit, parseCsv } from "./csv";
 
