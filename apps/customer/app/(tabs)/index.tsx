@@ -140,11 +140,13 @@ export default function HomeScreen() {
             <View style={{ flexDirection: "row", gap: 8 }}>
               <LangToggle />
               <Pressable
+                onPress={() => router.push("/profile")}
+                hitSlop={6}
                 accessibilityRole="button"
-                accessibilityLabel="Notifications"
+                accessibilityLabel={t("profileOpen")}
                 style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: tone.raised, alignItems: "center", justifyContent: "center" }}
               >
-                <Icon name="bell" color={c.ink} size={18} />
+                <Icon name="user" color={c.ink} size={19} />
               </Pressable>
             </View>
           </View>

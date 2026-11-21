@@ -7,7 +7,6 @@ import { AppText } from "@/components/AppText";
 import { Button } from "@/components/Button";
 import { Icon } from "@/components/Icon";
 import { useMyTickets, useWallet, type Ticket } from "@/hooks/useSupport";
-import { useAuth } from "@/store/auth";
 import { useT, type TKey } from "@/i18n";
 import { radius, useTheme } from "@/theme";
 
@@ -19,7 +18,6 @@ export default function HelpScreen() {
   const { c } = useTheme();
   const STATUS_COLOR: Record<Ticket["status"], string> = { open: c.warning, waiting_customer: c.info, resolved: c.success, closed: c.muted };
   const router = useRouter();
-  const signOut = useAuth((s) => s.signOut);
   const tickets = useMyTickets();
   const wallet = useWallet();
   const [openFaq, setOpenFaq] = useState<number | null>(null);
@@ -91,9 +89,6 @@ export default function HelpScreen() {
           ))}
         </View>
 
-        <View style={{ alignItems: "center", marginTop: 8 }}>
-          <Button label={t("signOut")} variant="outline" size="sm" onPress={signOut} style={{ width: 200 }} />
-        </View>
       </ScrollView>
     </SafeAreaView>
   );

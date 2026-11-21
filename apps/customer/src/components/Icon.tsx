@@ -6,7 +6,7 @@ const RIDER = require("@thanjozmart/assets/images/icon-rider.png");
 
 export type IconName =
   | "search" | "mic" | "bell" | "pin" | "chevronDown" | "back" | "sparkle"
-  | "home" | "orders" | "cart" | "phone" | "truck" | "logout" | "clock" | "receipt" | "chevronUp" | "edit" | "trash" | "check" | "cut" | "scooter" | "shop" | "camera" | "chat" | "tag" | "close";
+  | "home" | "orders" | "cart" | "phone" | "truck" | "logout" | "clock" | "receipt" | "chevronUp" | "edit" | "trash" | "check" | "cut" | "scooter" | "shop" | "camera" | "chat" | "tag" | "close" | "user";
 
 type Props = { name: IconName; size?: number; color: string; strokeWidth?: number };
 
@@ -18,6 +18,7 @@ export function Icon({ name, size = 22, color, strokeWidth = 2.2 }: Props) {
     <Svg width={size} height={size} viewBox="0 0 24 24">
       {name === "search" && (<><Circle cx={11} cy={11} r={7} {...p} /><Path d="M20 20l-3.5-3.5" {...p} /></>)}
       {name === "mic" && (<><Rect x={9} y={3} width={6} height={11} rx={3} {...p} /><Path d="M5 11a7 7 0 0 0 14 0" {...p} /><Path d="M12 18v3" {...p} /></>)}
+      {name === "user" && (<><Circle cx={12} cy={8} r={4} {...p} /><Path d="M4 21a8 8 0 0 1 16 0" {...p} /></>)}
       {name === "bell" && (<><Path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z" {...p} /><Path d="M10 21h4" {...p} /></>)}
       {name === "pin" && (<><Path d="M12 21s-7-6-7-11a7 7 0 0 1 14 0c0 5-7 11-7 11z" {...p} /><Circle cx={12} cy={10} r={2.5} {...p} /></>)}
       {name === "chevronDown" && <Path d="M6 9l6 6 6-6" {...p} />}
