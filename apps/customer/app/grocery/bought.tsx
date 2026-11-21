@@ -17,7 +17,7 @@ import { Accent, radius, useTheme, withAccent } from "@/theme";
 /** Everything this customer has bought before, as a searchable list with + / stepper per row. */
 export default function BoughtBeforeScreen() {
   const theme = useTheme();
-  const c = withAccent(theme.c, "grocery");
+  const c = withAccent(theme.c, "grocery", theme.dark);
   const t = useT();
   const localName = useLocalName();
   const router = useRouter();

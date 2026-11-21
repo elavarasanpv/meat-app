@@ -9,10 +9,9 @@ import { Icon } from "./Icon";
 import { useLang, useT } from "@/i18n";
 import { cartImage } from "@/lib/images";
 import { cartTotals, cartVertical, useCart } from "@/store/cart";
-import { GROCERY } from "@/components/GroceryHome";
 import { useExpand } from "@/store/expand";
 import { EXPAND_MS } from "./ExpandSheet";
-import { radius, useTheme } from "@/theme";
+import { radius, useTheme, withAccent } from "@/theme";
 
 /** How long the bar says "X added" after a change before going back to the item count. */
 const ADDED_FLASH_MS = 2500;
@@ -32,7 +31,7 @@ type Props = {
  * from the catalog; one tap opens the cart.
  */
 export function CartBar({ aboveTabBar = false }: Props) {
-  const { c } = useTheme();
+  const { c, dark, tone, glow } = useTheme();
   const t = useT();
   const lang = useLang((s) => s.lang);
   const router = useRouter();
@@ -42,8 +41,9 @@ export function CartBar({ aboveTabBar = false }: Props) {
   const feeRule = useCart((s) => s.feeRule);
   const grocery = cartVertical(items) === "grocery";
   const { itemTotal, freeAbove, delivery } = cartTotals(items, feeRule);
-  const primary = grocery ? GROCERY.primary : c.primary;
-  const price = grocery ? GROCERY.primary : c.price;
+  const g = withAccent(c, grocery ? "grocery" : "meat", dark);
+  const primary = g.primary;
+  const price = g.price;
   const visible = items.length > 0;
 
   const slide = useRef(new Animated.Value(visible ? 0 : 1)).current;
@@ -96,15 +96,15 @@ export function CartBar({ aboveTabBar = false }: Props) {
             expo-blur's blur is experimental and blanked screens pushed on top, so it's a translucent film),
             a bright rim that fades around the edge, a watery sheen across the top and a soft inner shadow. */}
         <LinearGradient
-          colors={["rgba(255,255,255,0.95)", "rgba(255,255,255,0.35)", "rgba(255,255,255,0.75)"]}
+          colors={[...tone.glassRim]}
           locations={[0, 0.55, 1]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={{ padding: 1.5, borderRadius: 36 }}
         >
-          <BlurView intensity={50} tint="light" style={{ borderRadius: 34.5, overflow: "hidden" }}>
+          <BlurView intensity={50} tint={dark ? "dark" : "light"} style={{ borderRadius: 34.5, overflow: "hidden" }}>
             <LinearGradient
-              colors={Platform.OS === "android" ? ["rgba(255,255,255,0.9)", "rgba(255,255,255,0.74)", "rgba(255,255,255,0.84)"] : ["rgba(255,255,255,0.55)", "rgba(255,255,255,0.3)", "rgba(255,255,255,0.45)"]}
+              colors={[...(Platform.OS === "android" ? tone.glassAndroid : tone.glassIos)]}
               locations={[0, 0.6, 1]}
               start={{ x: 0, y: 0 }}
               end={{ x: 0, y: 1 }}
@@ -113,7 +113,7 @@ export function CartBar({ aboveTabBar = false }: Props) {
               {/* sheen: a bright, soft highlight across the top like light on a water drop */}
               <LinearGradient
                 pointerEvents="none"
-                colors={["rgba(255,255,255,0.95)", "rgba(255,255,255,0)"]}
+                colors={[glow(0.95), "rgba(255,255,255,0)"]}
                 start={{ x: 0.1, y: 0 }}
                 end={{ x: 0.5, y: 1 }}
                 style={{ position: "absolute", left: 0, right: 0, top: 0, height: 34, borderTopLeftRadius: 34, borderTopRightRadius: 34 }}
@@ -132,7 +132,7 @@ export function CartBar({ aboveTabBar = false }: Props) {
                   return (
                     <View
                       key={it.productId}
-                      style={{ position: "absolute", left: i * AVATAR_STEP, zIndex: i + 1, width: 48, height: 48, borderRadius: 24, backgroundColor: "#FFFFFF", borderWidth: 2, borderColor: "#FFFFFF", alignItems: "center", justifyContent: "center", overflow: "hidden", elevation: 2, shadowColor: "#000", shadowOpacity: 0.12, shadowRadius: 4, shadowOffset: { width: 0, height: 2 } }}
+                      style={{ position: "absolute", left: i * AVATAR_STEP, zIndex: i + 1, width: 48, height: 48, borderRadius: 24, backgroundColor: tone.raised, borderWidth: 2, borderColor: tone.raised, alignItems: "center", justifyContent: "center", overflow: "hidden", elevation: 2, shadowColor: "#000", shadowOpacity: 0.12, shadowRadius: 4, shadowOffset: { width: 0, height: 2 } }}
                     >
                       {img ? <Image source={img} resizeMode="contain" style={{ width: 38, height: 38 }} /> : <Icon name="cart" color={primary} size={20} />}
                     </View>
@@ -150,7 +150,7 @@ export function CartBar({ aboveTabBar = false }: Props) {
 
               {/* primary glass drop: solid primary with its own rim + sheen */}
               <LinearGradient
-                colors={["rgba(255,255,255,0.85)", "rgba(255,255,255,0.2)"]}
+                colors={dark ? ["rgba(255,255,255,0.35)", "rgba(255,255,255,0.08)"] : ["rgba(255,255,255,0.85)", "rgba(255,255,255,0.2)"]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 0.3, y: 1 }}
                 style={{ padding: 1.5, borderRadius: 24 }}

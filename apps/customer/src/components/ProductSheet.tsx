@@ -25,7 +25,7 @@ const CLOSE_MS = 220;
  * Slides up with a fading backdrop, and slides back down before it unmounts.
  */
 export function ProductSheet({ title, products, onClose, onAdd }: Props) {
-  const { c } = useTheme();
+  const { c, tone } = useTheme();
   const insets = useSafeAreaInsets();
   const t = useT();
   const localName = useLocalName();
@@ -55,7 +55,7 @@ export function ProductSheet({ title, products, onClose, onAdd }: Props) {
   return (
     <Modal visible={mounted} transparent animationType="none" onRequestClose={onClose} statusBarTranslucent>
       {/* Backdrop fades in/out */}
-      <Animated.View style={{ flex: 1, backgroundColor: "rgba(20,8,4,0.45)", opacity: progress }}>
+      <Animated.View style={{ flex: 1, backgroundColor: tone.scrim, opacity: progress }}>
         <Pressable onPress={onClose} accessibilityLabel={t("close")} style={{ flex: 1 }} />
       </Animated.View>
 

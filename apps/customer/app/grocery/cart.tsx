@@ -21,7 +21,7 @@ import { Accent, useTheme, withAccent } from "@/theme";
  */
 export default function GroceryCartScreen() {
   const theme = useTheme();
-  const c = withAccent(theme.c, "grocery");
+  const c = withAccent(theme.c, "grocery", theme.dark);
   const t = useT();
   const router = useRouter();
   const pincode = useHomePincode();

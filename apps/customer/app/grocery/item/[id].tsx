@@ -26,7 +26,7 @@ import { Accent, radius, useTheme, withAccent } from "@/theme";
  */
 export default function GroceryItemScreen() {
   const theme = useTheme();
-  const c = withAccent(theme.c, "grocery");
+  const c = withAccent(theme.c, "grocery", theme.dark);
   const t = useT();
   const lang = useLang((s) => s.lang);
   const localName = useLocalName();
@@ -91,8 +91,8 @@ export default function GroceryItemScreen() {
       <View style={{ flex: 1, backgroundColor: c.ground }}>
         <ScrollView contentContainerStyle={{ paddingBottom: 24 }} showsVerticalScrollIndicator={false}>
           {/* Hero */}
-          <LinearGradient colors={[...GROCERY.header]} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={{ paddingTop: insets.top + 8, paddingHorizontal: 16, paddingBottom: 18, borderBottomLeftRadius: 30, borderBottomRightRadius: 30, overflow: "hidden" }}>
-            <View pointerEvents="none" style={{ position: "absolute", right: -50, top: -40, width: 200, height: 200, borderRadius: 100, backgroundColor: "rgba(255,255,255,0.45)" }} />
+          <LinearGradient colors={[...theme.tone.groceryHeader]} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={{ paddingTop: insets.top + 8, paddingHorizontal: 16, paddingBottom: 18, borderBottomLeftRadius: 30, borderBottomRightRadius: 30, overflow: "hidden" }}>
+            <View pointerEvents="none" style={{ position: "absolute", right: -50, top: -40, width: 200, height: 200, borderRadius: 100, backgroundColor: theme.glow(0.45) }} />
             <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
               <Pressable onPress={() => router.back()} hitSlop={10} accessibilityRole="button" accessibilityLabel="Back" style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, alignItems: "center", justifyContent: "center" }}>
                 <Icon name="back" color={c.ink} />
@@ -131,11 +131,11 @@ export default function GroceryItemScreen() {
             </View>
 
             {/* Trust strip: the delivery rule for this pincode */}
-            <View style={{ flexDirection: "row", padding: 12, borderRadius: 18, backgroundColor: c.tint, borderWidth: 1, borderColor: "#BFE4CB" }}>
+            <View style={{ flexDirection: "row", padding: 12, borderRadius: 18, backgroundColor: c.tint, borderWidth: 1, borderColor: theme.tone.groceryLine }}>
               <Trust icon="cart" top={t("minOrderShort")} sub={fee.data ? `₹${fee.data.minOrder}` : "—"} c={c} />
-              <View style={{ width: 1, backgroundColor: "#BFE4CB" }} />
+              <View style={{ width: 1, backgroundColor: theme.tone.groceryLine }} />
               <Trust icon="scooter" top={t("deliveryFee")} sub={fee.data?.freeAbove != null ? t("freeAbove", { n: fee.data.freeAbove }) : fee.data ? `₹${fee.data.fee}` : "—"} c={c} />
-              <View style={{ width: 1, backgroundColor: "#BFE4CB" }} />
+              <View style={{ width: 1, backgroundColor: theme.tone.groceryLine }} />
               <Trust icon="clock" top={t("gt_arrives")} sub={nextSlot ? `${dayLabel(nextSlot.startsAt, { today: t("today"), tomorrow: t("tomorrow") })} · ${slotWindow(nextSlot.startsAt, nextSlot.endsAt)}` : "—"} c={c} />
             </View>
 
@@ -156,7 +156,7 @@ export default function GroceryItemScreen() {
                     const ri = groceryImage(r.image_path);
                     const has = items.find((i) => i.productId === r.master_product_id);
                     return (
-                      <Pressable key={r.master_product_id} onPress={() => router.push(`/grocery/item/${r.master_product_id}`)} accessibilityRole="button" style={{ width: 124, borderRadius: 16, backgroundColor: c.surface, borderWidth: 1, borderColor: "#DCEBDD", padding: 8, gap: 6 }}>
+                      <Pressable key={r.master_product_id} onPress={() => router.push(`/grocery/item/${r.master_product_id}`)} accessibilityRole="button" style={{ width: 124, borderRadius: 16, backgroundColor: c.surface, borderWidth: 1, borderColor: theme.tone.groceryBorder, padding: 8, gap: 6 }}>
                         <View style={{ height: 64, borderRadius: 10, backgroundColor: c.tintSoft, alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
                           {ri ? <Image source={ri} resizeMode="contain" style={{ width: 56, height: 56 }} /> : <AppText variant="title" color={c.primary}>{r.name.charAt(0)}</AppText>}
                         </View>

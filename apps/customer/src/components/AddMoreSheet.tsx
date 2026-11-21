@@ -30,7 +30,7 @@ type Props = {
  * the meantime the server refuses (409) and the picks go to the cart instead.
  */
 export function AddMoreSheet({ orderId, status, visible, onClose }: Props) {
-  const { c } = useTheme();
+  const { c, tone } = useTheme();
   const insets = useSafeAreaInsets();
   const t = useT();
   const router = useRouter();
@@ -93,7 +93,7 @@ export function AddMoreSheet({ orderId, status, visible, onClose }: Props) {
 
   return (
     <Modal visible={mounted} transparent animationType="none" onRequestClose={onClose} statusBarTranslucent>
-      <Animated.View style={{ flex: 1, backgroundColor: "rgba(20,8,4,0.45)", opacity: progress }}>
+      <Animated.View style={{ flex: 1, backgroundColor: tone.scrim, opacity: progress }}>
         <Pressable onPress={onClose} accessibilityLabel={t("close")} style={{ flex: 1 }} />
       </Animated.View>
 

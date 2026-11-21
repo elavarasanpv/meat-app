@@ -20,12 +20,12 @@ import { ErrorState, ProductGridSkeleton, Skeleton } from "@/components/States";
 import { byPopularity, useCategories, useProductStats, useProducts, useSubcategories, type Subcategory } from "@/hooks/useCatalog";
 import { useAddresses } from "@/hooks/useOrders";
 import { useGroceryLive } from "@/hooks/useGrocery";
-import { GROCERY, GroceryHome } from "@/components/GroceryHome";
+import { GroceryHome } from "@/components/GroceryHome";
 import { useVertical } from "@/store/vertical";
 import { useCart } from "@/store/cart";
 import { categoryImage, productImage, subcategoryImage } from "@/lib/images";
 import { useLocalName, useT, type TKey } from "@/i18n";
-import { Accent, radius, useTheme } from "@/theme";
+import { Accent, radius, useTheme, withAccent } from "@/theme";
 import { queryState } from "@/lib/network";
 
 function greetingKey(): TKey {
@@ -34,15 +34,13 @@ function greetingKey(): TKey {
 }
 
 const GAP = 12;
-/** Home header: warm peach → apricot, light enough for dark text. */
-const HEADER = ["#FFF1E8", "#FFE0CC", "#FBC9A6"] as const;
-
 /** Soft white bubbles and the faint ingredient line drawing behind the header content (a grocery basket for grocery). */
 function HeaderDecor({ grocery = false }: { grocery?: boolean }) {
+  const { glow } = useTheme();
   return (
     <>
-      <View pointerEvents="none" style={{ position: "absolute", right: -70, top: -40, width: 230, height: 230, borderRadius: 115, backgroundColor: "rgba(255,255,255,0.45)" }} />
-      <View pointerEvents="none" style={{ position: "absolute", left: -50, bottom: -90, width: 170, height: 170, borderRadius: 85, backgroundColor: "rgba(255,255,255,0.35)" }} />
+      <View pointerEvents="none" style={{ position: "absolute", right: -70, top: -40, width: 230, height: 230, borderRadius: 115, backgroundColor: glow(0.45) }} />
+      <View pointerEvents="none" style={{ position: "absolute", left: -50, bottom: -90, width: 170, height: 170, borderRadius: 85, backgroundColor: glow(0.35) }} />
       <View pointerEvents="none" style={{ position: "absolute", right: -24, top: 6 }}>
         <Image source={grocery ? GROCERY_DOODLE : INGREDIENTS} resizeMode="contain" style={{ width: 250, height: 160, opacity: grocery ? 0.22 : 0.16, transform: [{ rotate: "-6deg" }] }} />
       </View>
@@ -64,7 +62,7 @@ function headlinePrice(items: { name: string; base_price_per_kg: number }[]): nu
 export default function HomeScreen() {
   const offerFor = useOfferForProduct();
   const router = useRouter();
-  const { c } = useTheme();
+  const { c, tone, glow, dark } = useTheme();
   const { width: screenWidth } = useWindowDimensions();
   const cardWidth = Math.floor((screenWidth - 40 - GAP) / 2);
   const t = useT();
@@ -84,8 +82,9 @@ export default function HomeScreen() {
   const setVertical = useVertical((s) => s.set);
   const grocery = groceryLive && vertical === "grocery";
   // The header turns green for grocery; everything else keeps the brand orange.
-  const header = grocery ? GROCERY.header : HEADER;
-  const accent = grocery ? GROCERY.primary : c.primary;
+  const header = grocery ? tone.groceryHeader : tone.header;
+  const green = withAccent(c, "grocery", dark);
+  const accent = grocery ? green.primary : c.primary;
   const pst = queryState(products);
   const cst = queryState(categories);
   const [openSub, setOpenSub] = useState<Subcategory | null>(null);
@@ -143,7 +142,7 @@ export default function HomeScreen() {
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="Notifications"
-                style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: "#FFFFFF", alignItems: "center", justifyContent: "center" }}
+                style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: tone.raised, alignItems: "center", justifyContent: "center" }}
               >
                 <Icon name="bell" color={c.ink} size={18} />
               </Pressable>
@@ -155,7 +154,7 @@ export default function HomeScreen() {
             reads as part of it at rest, and as a compact header once pinned. */}
         <View style={[{ backgroundColor: header[0], borderBottomLeftRadius: 26, borderBottomRightRadius: 26 }, scrolled && { shadowColor: "#000", shadowOpacity: 0.14, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 8 }]}>
           <LinearGradient colors={[...header]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ paddingHorizontal: 20, paddingTop: scrolled ? insets.top + 8 : 10, paddingBottom: groceryLive ? 12 : 16, gap: 10, borderBottomLeftRadius: 26, borderBottomRightRadius: 26, overflow: "hidden" }}>
-            <View pointerEvents="none" style={{ position: "absolute", right: -40, top: -120, width: 220, height: 220, borderRadius: 110, backgroundColor: "rgba(255,255,255,0.35)" }} />
+            <View pointerEvents="none" style={{ position: "absolute", right: -40, top: -120, width: 220, height: 220, borderRadius: 110, backgroundColor: glow(0.35) }} />
             <Pressable
               onPress={() => router.push("/search")}
               accessibilityRole="search"
@@ -169,24 +168,24 @@ export default function HomeScreen() {
                 hitSlop={6}
                 accessibilityRole="button"
                 accessibilityLabel={t("voiceSearch")}
-                style={({ pressed }) => ({ width: 40, height: 40, borderRadius: 20, backgroundColor: pressed ? (grocery ? GROCERY.primaryPressed : c.primaryPressed) : accent, alignItems: "center", justifyContent: "center" })}
+                style={({ pressed }) => ({ width: 40, height: 40, borderRadius: 20, backgroundColor: pressed ? (grocery ? green.primaryPressed : c.primaryPressed) : accent, alignItems: "center", justifyContent: "center" })}
               >
                 <Icon name="mic" color="#FFFFFF" size={18} />
               </Pressable>
             </Pressable>
             {/* Meat & fish / Grocery — part of the pinned header, as in the design */}
             {groceryLive && (
-              <View style={{ flexDirection: "row", gap: 6, padding: 4, borderRadius: radius.pill, backgroundColor: "rgba(255,255,255,0.7)" }}>
+              <View style={{ flexDirection: "row", gap: 6, padding: 4, borderRadius: radius.pill, backgroundColor: glow(0.7) }}>
                 {(["meat", "grocery"] as const).map((v) => {
                   const on = v === vertical;
-                  const tone = v === "grocery" ? GROCERY.primary : c.primary;
+                  const on_ = v === "grocery" ? green.primary : c.primary;
                   return (
                     <Pressable
                       key={v}
                       onPress={() => setVertical(v)}
                       accessibilityRole="button"
                       accessibilityState={{ selected: on }}
-                      style={{ flex: 1, height: 38, borderRadius: radius.pill, backgroundColor: on ? tone : "transparent", flexDirection: "row", gap: 6, alignItems: "center", justifyContent: "center" }}
+                      style={{ flex: 1, height: 38, borderRadius: radius.pill, backgroundColor: on ? on_ : "transparent", flexDirection: "row", gap: 6, alignItems: "center", justifyContent: "center" }}
                     >
                       <Icon name={v === "meat" ? "cut" : "cart"} color={on ? "#FFFFFF" : c.ink} size={15} />
                       <AppText variant="label" color={on ? "#FFFFFF" : c.ink} numberOfLines={1}>{t(v === "meat" ? "meatTab" : "groceryTab")}</AppText>

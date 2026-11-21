@@ -13,16 +13,11 @@ import { radius, useTheme } from "@/theme";
 
 const SUPPORT_PHONE = "+919999999999";
 
-const STATUS_COLOR: Record<Ticket["status"], string> = {
-  open: "#B4620A",
-  waiting_customer: "#2F6FD1",
-  resolved: "#1E8A4F",
-  closed: "#6E625B",
-};
 
 export default function HelpScreen() {
   const t = useT();
   const { c } = useTheme();
+  const STATUS_COLOR: Record<Ticket["status"], string> = { open: c.warning, waiting_customer: c.info, resolved: c.success, closed: c.muted };
   const router = useRouter();
   const signOut = useAuth((s) => s.signOut);
   const tickets = useMyTickets();
@@ -73,7 +68,7 @@ export default function HelpScreen() {
                 <AppText variant="caption" style={{ color: STATUS_COLOR[tk.status], fontWeight: "700" }}>{t(`ts_${tk.status}` as TKey)}</AppText>
               </View>
               {tk.body ? <AppText variant="caption" muted numberOfLines={1}>{tk.order ? `${tk.order} · ` : ""}{tk.body}</AppText> : null}
-              {tk.creditAmount != null && <AppText variant="caption" color="#1E8A4F">{t("creditedLine", { amt: tk.creditAmount })}</AppText>}
+              {tk.creditAmount != null && <AppText variant="caption" color={c.success}>{t("creditedLine", { amt: tk.creditAmount })}</AppText>}
             </Pressable>
           ))}
           {tickets.data && !tickets.data.length && (

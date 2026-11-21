@@ -8,11 +8,6 @@ import { useCart } from "@/store/cart";
 import { useLang, useT, type TKey } from "@/i18n";
 import { fonts, radius, useTheme } from "@/theme";
 
-const GREEN = "#1E8A4F";
-const GREEN_BG = "#DDF3E6";
-const AMBER = "#B4620A";
-const AMBER_BG = "#FBEBD6";
-
 const REJECT: Record<NonNullable<Quote["couponRejected"]>["reason"], TKey> = {
   not_found: "cpNotFound",
   not_live: "cpNotLive",
@@ -31,7 +26,7 @@ const REJECT: Record<NonNullable<Quote["couponRejected"]>["reason"], TKey> = {
  * reflects its quote.
  */
 export function CouponCard({ quote, quoting }: { quote: Quote | undefined; quoting: boolean }) {
-  const { c } = useTheme();
+  const { c, tone } = useTheme();
   const t = useT();
   const lang = useLang((x) => x.lang);
   const coupon = useCart((s) => s.coupon);
@@ -66,22 +61,22 @@ export function CouponCard({ quote, quoting }: { quote: Quote | undefined; quoti
 
       {coupon ? (
         /* applied / beaten / rejected ticket */
-        <View style={{ marginHorizontal: 16, marginBottom: 14, flexDirection: "row", borderRadius: radius.input, overflow: "hidden", backgroundColor: rejected ? AMBER_BG : won ? GREEN_BG : c.surface2 }}>
-          <View style={{ width: 44, alignItems: "center", justifyContent: "center", backgroundColor: rejected ? AMBER : won ? GREEN : c.muted }}>
+        <View style={{ marginHorizontal: 16, marginBottom: 14, flexDirection: "row", borderRadius: radius.input, overflow: "hidden", backgroundColor: rejected ? c.warningBg : won ? c.successBg : c.surface2 }}>
+          <View style={{ width: 44, alignItems: "center", justifyContent: "center", backgroundColor: rejected ? tone.warningFill : won ? tone.successFill : c.muted }}>
             <Icon name={rejected ? "close" : "check"} color="#FFFFFF" size={18} />
           </View>
           {/* ticket notch */}
-          <View style={{ width: 0, borderLeftWidth: 2, borderStyle: "dashed", borderColor: "rgba(255,255,255,0.9)" }} />
+          <View style={{ width: 0, borderLeftWidth: 2, borderStyle: "dashed", borderColor: c.surface }} />
           <View style={{ flex: 1, paddingHorizontal: 12, paddingVertical: 10, gap: 2 }}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-              <AppText style={{ fontFamily: fonts.display, fontSize: 16, letterSpacing: 1.2, color: rejected ? AMBER : won ? GREEN : c.ink }}>{coupon}</AppText>
+              <AppText style={{ fontFamily: fonts.display, fontSize: 16, letterSpacing: 1.2, color: rejected ? c.warningText : won ? c.successText : c.ink }}>{coupon}</AppText>
               {won && (
-                <View style={{ backgroundColor: GREEN, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2 }}>
+                <View style={{ backgroundColor: tone.successFill, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2 }}>
                   <AppText variant="label" color="#FFFFFF" style={{ fontSize: 11 }}>− ₹{quote!.discount}</AppText>
                 </View>
               )}
             </View>
-            <AppText variant="caption" numberOfLines={2} style={{ color: rejected ? AMBER : won ? GREEN : c.muted }}>
+            <AppText variant="caption" numberOfLines={2} style={{ color: rejected ? c.warningText : won ? c.successText : c.muted }}>
               {rejected ? t(REJECT[rejected.reason], { n: rejected.minOrder ?? 0 }) : won ? t("cpWonLine") : beaten ? t("cpBeaten") : "…"}
             </AppText>
           </View>

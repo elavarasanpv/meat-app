@@ -27,7 +27,7 @@ type Props = {
  * left in the soft style; the action is on the right, red when destructive.
  */
 export function ConfirmSheet({ visible, title, message, confirmLabel, cancelLabel, icon = "trash", destructive = true, busy, onConfirm, onClose }: Props) {
-  const { c } = useTheme();
+  const { c, tone: tn } = useTheme();
   const insets = useSafeAreaInsets();
   const t = useT();
   const [mounted, setMounted] = useState(visible);
@@ -48,7 +48,7 @@ export function ConfirmSheet({ visible, title, message, confirmLabel, cancelLabe
 
   return (
     <Modal visible={mounted} transparent animationType="none" onRequestClose={onClose} statusBarTranslucent>
-      <Animated.View style={{ flex: 1, backgroundColor: "rgba(20,8,4,0.45)", opacity: progress }}>
+      <Animated.View style={{ flex: 1, backgroundColor: tn.scrim, opacity: progress }}>
         <Pressable onPress={busy ? undefined : onClose} style={{ flex: 1 }} accessibilityLabel={t("close")} />
       </Animated.View>
       <Animated.View style={{ position: "absolute", left: 0, right: 0, bottom: 0, backgroundColor: c.ground, borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 20, paddingBottom: 20 + insets.bottom, gap: 14, transform: [{ translateY }] }}>

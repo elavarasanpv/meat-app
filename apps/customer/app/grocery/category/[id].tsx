@@ -23,7 +23,7 @@ const GAP = 12;
  */
 export default function GroceryCategoryScreen() {
   const theme = useTheme();
-  const c = withAccent(theme.c, "grocery");
+  const c = withAccent(theme.c, "grocery", theme.dark);
   const t = useT();
   const localName = useLocalName();
   const router = useRouter();

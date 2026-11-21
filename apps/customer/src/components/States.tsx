@@ -10,7 +10,7 @@ import { radius, useTheme } from "@/theme";
 
 /** Placeholder block with a soft light sweep. Compose several to sketch a screen while it loads. */
 export function Skeleton({ style }: { style?: ViewStyle }) {
-  const { c } = useTheme();
+  const { c, glow } = useTheme();
   const [width, setWidth] = useState(0);
   const sweep = useRef(new Animated.Value(0)).current;
   useEffect(() => {
@@ -23,7 +23,7 @@ export function Skeleton({ style }: { style?: ViewStyle }) {
     <View onLayout={(e) => setWidth(e.nativeEvent.layout.width)} style={[{ backgroundColor: c.surface2, borderRadius: 12, overflow: "hidden" }, style]}>
       {width > 0 && (
         <Animated.View pointerEvents="none" style={{ position: "absolute", top: 0, bottom: 0, width: band, transform: [{ translateX: sweep.interpolate({ inputRange: [0, 1], outputRange: [-band, width] }) }] }}>
-          <LinearGradient colors={["rgba(255,255,255,0)", "rgba(255,255,255,0.55)", "rgba(255,255,255,0)"]} start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }} style={{ flex: 1 }} />
+          <LinearGradient colors={["rgba(255,255,255,0)", glow(0.55), "rgba(255,255,255,0)"]} start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }} style={{ flex: 1 }} />
         </Animated.View>
       )}
     </View>

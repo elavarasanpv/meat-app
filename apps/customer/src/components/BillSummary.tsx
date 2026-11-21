@@ -45,12 +45,12 @@ export function BillSummary({ bill }: { bill: ReturnType<typeof useBill> }) {
         {bill.discount > 0 && (
           <View style={row}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 6, flex: 1 }}>
-              <Icon name="tag" color="#1E8A4F" size={13} />
-              <AppText variant="caption" color="#1E8A4F" numberOfLines={1} style={{ flexShrink: 1 }}>
+              <Icon name="tag" color={c.success} size={13} />
+              <AppText variant="caption" color={c.success} numberOfLines={1} style={{ flexShrink: 1 }}>
                 {q?.code ? t("cpLine", { code: q.code }) : q?.title}
               </AppText>
             </View>
-            <AppText variant="bodyBold" color="#1E8A4F" style={{ fontSize: 13 }}>− ₹ {bill.discount}</AppText>
+            <AppText variant="bodyBold" color={c.success} style={{ fontSize: 13 }}>− ₹ {bill.discount}</AppText>
           </View>
         )}
         <View style={row}>
@@ -69,8 +69,8 @@ export function BillSummary({ bill }: { bill: ReturnType<typeof useBill> }) {
           <AppText variant="price" color={c.price} style={{ fontSize: 20, lineHeight: 25 }}>₹ {bill.toPay}</AppText>
         </View>
         {bill.discount > 0 && (
-          <View style={{ alignSelf: "flex-start", backgroundColor: "#DDF3E6", borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3 }}>
-            <AppText variant="label" color="#1E8A4F" style={{ fontSize: 11.5 }}>{t("youSave", { amt: bill.discount })}</AppText>
+          <View style={{ alignSelf: "flex-start", backgroundColor: c.successBg, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3 }}>
+            <AppText variant="label" color={c.successText} style={{ fontSize: 11.5 }}>{t("youSave", { amt: bill.discount })}</AppText>
           </View>
         )}
         {bill.belowMin && (

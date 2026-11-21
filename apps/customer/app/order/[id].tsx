@@ -60,7 +60,7 @@ export default function OrderDetailScreen() {
   }, [order.data?.arrived_at, order.data?.status]);
   const o = order.data;
   // Grocery orders use the green/yellow accent on every control of this screen.
-  const c = withAccent(theme.c, o?.vertical_type);
+  const c = withAccent(theme.c, o?.vertical_type, theme.dark);
   const tracking = useRiderLocation(id, o?.rider_id);
   const rider = tracking.data;
   const showTracking = !!o?.rider_id && TRACKABLE.includes(o.status);
@@ -74,9 +74,9 @@ export default function OrderDetailScreen() {
   // Adding to a placed order (add_order_items) is meat-only; a grocery basket is one shop's listing.
   const canAddMore = canCancel && o?.vertical_type !== "grocery";
   const groceryOrder = o?.vertical_type === "grocery";
-  const accent = groceryOrder ? "#1E8A4F" : c.primary;
-  const accentText = groceryOrder ? "#1E8A4F" : c.price;
-  const accentTint = groceryOrder ? "#E3F3E9" : c.tint;
+  const accent = c.primary;
+  const accentText = c.price;
+  const accentTint = c.tint;
   // "Forgot something?": offered right after checkout, and from a card while the shop hasn't accepted.
   const [addOpen, setAddOpen] = useState(false);
   const isCancelled = o?.status === "CANCELLED";

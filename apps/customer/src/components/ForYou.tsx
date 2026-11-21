@@ -85,9 +85,15 @@ const TINT: Record<Suggestion["kind"], [string, string]> = {
   last: ["#FDE6DF", "#FFF6EE"],
   popular: ["#E6F2E7", "#F3FAF3"],
 };
+const TINT_DARK: Record<Suggestion["kind"], [string, string]> = {
+  habit: ["#3A1D13", "#261A16"],
+  favourite: ["#35280F", "#251E15"],
+  last: ["#3A1D15", "#261B17"],
+  popular: ["#17301F", "#1A221B"],
+};
 
 function Banner({ s, width }: { s: Suggestion; width: number }) {
-  const { c } = useTheme();
+  const { c, dark, glow } = useTheme();
   const t = useT();
   const lang = useLang((x) => x.lang);
   const upsert = useCart((x) => x.upsert);
@@ -115,9 +121,9 @@ function Banner({ s, width }: { s: Suggestion; width: number }) {
 
   return (
     <Animated.View style={{ width, height: H, borderRadius: radius.card, overflow: "hidden", transform: [{ scale: pop }] }}>
-      <LinearGradient colors={TINT[s.kind]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0 }} />
+      <LinearGradient colors={(dark ? TINT_DARK : TINT)[s.kind]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0 }} />
       {/* soft spotlight behind the photo */}
-      <View style={{ position: "absolute", right: -40, top: -30, width: imgW + 70, height: imgW + 70, borderRadius: 999, backgroundColor: "rgba(255,255,255,0.5)" }} />
+      <View style={{ position: "absolute", right: -40, top: -30, width: imgW + 70, height: imgW + 70, borderRadius: 999, backgroundColor: glow(0.5) }} />
       <Image
         source={suggestionImage(s.kind, s.items)}
         resizeMode="contain"
@@ -148,7 +154,7 @@ function Banner({ s, width }: { s: Suggestion; width: number }) {
             height: 38,
             paddingHorizontal: 16,
             borderRadius: 19,
-            backgroundColor: inCart ? "#FFFFFF" : pressed ? c.primaryPressed : c.ink,
+            backgroundColor: inCart ? c.surface : pressed ? c.primaryPressed : c.ink,
             flexDirection: "row",
             alignItems: "center",
             gap: 6,
@@ -156,8 +162,8 @@ function Banner({ s, width }: { s: Suggestion; width: number }) {
             borderColor: c.primary,
           })}
         >
-          <Icon name={inCart ? "check" : "cart"} color={inCart ? c.primary : "#FFFFFF"} size={15} />
-          <AppText variant="label" color={inCart ? c.primary : "#FFFFFF"} style={{ fontSize: 13 }}>
+          <Icon name={inCart ? "check" : "cart"} color={inCart ? c.primary : c.ground} size={15} />
+          <AppText variant="label" color={inCart ? c.primary : c.ground} style={{ fontSize: 13 }}>
             {inCart ? t("inCart") : t("shopNow")}
           </AppText>
         </Pressable>
@@ -244,8 +250,8 @@ function OfferBanner({ o, width }: { o: LiveOffer; width: number }) {
             gap: 6,
           })}
         >
-          <Icon name={applied ? "check" : o.kind === "coupon" ? "receipt" : "cart"} color={applied ? "#FFFFFF" : c.ink} size={15} />
-          <AppText variant="label" color={applied ? "#FFFFFF" : c.ink} style={{ fontSize: 13 }}>
+          <Icon name={applied ? "check" : o.kind === "coupon" ? "receipt" : "cart"} color={applied ? "#FFFFFF" : "#1C1715"} size={15} />
+          <AppText variant="label" color={applied ? "#FFFFFF" : "#1C1715"} style={{ fontSize: 13 }}>
             {o.kind === "coupon" ? (applied ? t("cpAppliedShort") : t("cpApplyCode")) : t("shopNow")}
           </AppText>
         </Pressable>

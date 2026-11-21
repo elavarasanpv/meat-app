@@ -21,10 +21,6 @@ export const GROCERY = {
   tintSoft: "#F1F8F3",
   accent: "#F2B705",
   accentSoft: "#FFF4CC",
-  /** Header gradient, the green twin of the meat header. */
-  header: ["#EEF7F0", "#D9EFDF", "#BFE4CB"] as const,
-  /** Product card wash. */
-  card: ["#FFFFFF", "#F6FBF7", "#E9F5EC", "#DDF0E2"] as const,
 } as const;
 
 const GAP = 12;
@@ -146,7 +142,7 @@ function Tile({ cat, width, label, onPress, c }: { cat: GroceryCategory; width: 
 
 /** Small product card (bought-before grid, deals row, cart suggestions): white, soft green shadow, photo, name, price, + in the corner. */
 export function MiniCard({ item: r, width, qty, onAdd, onStep, onOpen }: { item: GroceryItem; width: number; qty: number; onAdd: () => void; onStep: (d: 1 | -1) => void; onOpen: () => void }) {
-  const { c } = useTheme();
+  const { c, tone } = useTheme();
   const t = useT();
   const localName = useLocalName();
   const img = groceryThumb(r.image_path);
@@ -159,7 +155,7 @@ export function MiniCard({ item: r, width, qty, onAdd, onStep, onOpen }: { item:
       onPress={onOpen}
       accessibilityRole="button"
       accessibilityLabel={r.name}
-      style={{ width, borderRadius: 18, backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#E2F0E6", padding: 10, gap: 8, opacity: r.in_stock ? 1 : 0.55, shadowColor: GROCERY.primary, shadowOpacity: 0.1, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 2 }}
+      style={{ width, borderRadius: 18, backgroundColor: c.surface, borderWidth: 1, borderColor: tone.groceryBorder, padding: 10, gap: 8, opacity: r.in_stock ? 1 : 0.55, shadowColor: c.primary, shadowOpacity: 0.1, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 2 }}
     >
       <View style={{ height: Math.round(width * 0.66), alignItems: "center", justifyContent: "center" }}>
         {img ? <Image source={img} resizeMode="contain" style={{ width: "86%", height: "92%" }} /> : <AppText variant="title" color={c.primary} style={{ fontSize: 30 }}>{r.name.charAt(0)}</AppText>}
@@ -182,7 +178,7 @@ export function MiniCard({ item: r, width, qty, onAdd, onStep, onOpen }: { item:
             <Pressable onPress={() => onStep(1)} hitSlop={8} accessibilityRole="button" accessibilityLabel="More" style={{ width: 22, height: 34, alignItems: "center", justifyContent: "center" }}><AppText variant="bodyBold" color="#FFFFFF" style={{ fontSize: 15, lineHeight: 17 }}>+</AppText></Pressable>
           </View>
         ) : (
-          <Pressable onPress={onAdd} hitSlop={6} accessibilityRole="button" accessibilityLabel={`${t("add")} ${r.name}`} style={({ pressed }) => ({ width: 36, height: 34, borderRadius: 10, backgroundColor: pressed ? GROCERY.primaryPressed : c.primary, alignItems: "center", justifyContent: "center" })}>
+          <Pressable onPress={onAdd} hitSlop={6} accessibilityRole="button" accessibilityLabel={`${t("add")} ${r.name}`} style={({ pressed }) => ({ width: 36, height: 34, borderRadius: 10, backgroundColor: pressed ? c.primaryPressed : c.primary, alignItems: "center", justifyContent: "center" })}>
             <AppText variant="bodyBold" color="#FFFFFF" style={{ fontSize: 20, lineHeight: 22 }}>+</AppText>
           </Pressable>
         )}
@@ -193,7 +189,7 @@ export function MiniCard({ item: r, width, qty, onAdd, onStep, onOpen }: { item:
 
 /** 2-up product card for sub-category pages: name, photo, "₹310 /5 kg · MRP", Add → stepper. */
 export function GroceryCard({ item: r, width, qty, onAdd, onStep, onOpen }: { item: GroceryItem; width: number; qty: number; onAdd: () => void; onStep: (d: 1 | -1) => void; onOpen: () => void }) {
-  const { c } = useTheme();
+  const { c, tone } = useTheme();
   const t = useT();
   const localName = useLocalName();
   const img = groceryThumb(r.image_path);
@@ -202,8 +198,8 @@ export function GroceryCard({ item: r, width, qty, onAdd, onStep, onOpen }: { it
   const qtyLabel = r.unit === "kg" ? `${qty} ${t("unitKg")}` : `${qty}`;
   const height = Math.round(width * 1.22);
   return (
-    <Pressable onPress={onOpen} accessibilityRole="button" accessibilityLabel={r.name} style={{ width, height, borderRadius: radius.card, overflow: "hidden", borderWidth: 1, borderColor: "#D8EBDD", opacity: r.in_stock ? 1 : 0.55 }}>
-      <LinearGradient colors={[...GROCERY.card]} locations={[0, 0.4, 0.78, 1]} start={{ x: 0.2, y: 0 }} end={{ x: 0.8, y: 1 }} style={{ flex: 1, padding: 12 }}>
+    <Pressable onPress={onOpen} accessibilityRole="button" accessibilityLabel={r.name} style={{ width, height, borderRadius: radius.card, overflow: "hidden", borderWidth: 1, borderColor: tone.groceryBorder, opacity: r.in_stock ? 1 : 0.55 }}>
+      <LinearGradient colors={[...tone.groceryCard]} locations={[0, 0.4, 0.78, 1]} start={{ x: 0.2, y: 0 }} end={{ x: 0.8, y: 1 }} style={{ flex: 1, padding: 12 }}>
         <AppText variant="title" style={{ fontSize: 14, lineHeight: 18, height: 36, paddingRight: off ? 54 : 0 }} numberOfLines={2}>{localName(r)}</AppText>
         {off > 0 ? (
           <View style={{ position: "absolute", top: 10, right: 10, paddingHorizontal: 8, height: 20, borderRadius: 10, backgroundColor: GROCERY.accent, justifyContent: "center" }}>

@@ -29,7 +29,7 @@ import { radius, useTheme } from "@/theme";
 type Cta = { label: string; onPress: () => void; busy?: boolean; disabled?: boolean };
 
 export function GroceryCart({ bill, onBack, cta, address }: { bill: ReturnType<typeof useBill>; onBack?: () => void; cta?: Cta; address?: Address | null }) {
-  const { c } = useTheme();
+  const { c, tone } = useTheme();
   const t = useT();
   const localName = useLocalName();
   const router = useRouter();
@@ -98,7 +98,7 @@ export function GroceryCart({ bill, onBack, cta, address }: { bill: ReturnType<t
               <AppText variant="caption" muted numberOfLines={1}>{items.length === 1 ? t("oneItem") : t("itemsCount", { n: items.length })}</AppText>
             </View>
             <Pressable onPress={() => router.push("/checkout")} accessibilityRole="button" style={{ height: 34, paddingHorizontal: 12, borderRadius: 10, backgroundColor: GROCERY.accentSoft, borderWidth: 1, borderColor: GROCERY.accent, flexDirection: "row", alignItems: "center", gap: 6 }}>
-              <AppText variant="label" numberOfLines={1} style={{ fontSize: 12 }}>{t("changeSlot")}</AppText>
+              <AppText variant="label" color="#3D2E00" numberOfLines={1} style={{ fontSize: 12 }}>{t("changeSlot")}</AppText>
             </Pressable>
           </View>
 
@@ -113,7 +113,7 @@ export function GroceryCart({ bill, onBack, cta, address }: { bill: ReturnType<t
             };
             return (
               <View key={item.productId} style={{ flexDirection: "row", alignItems: "center", gap: 12, padding: 12, paddingTop: i === 0 ? 12 : 0 }}>
-                <View style={{ width: 64, height: 64, borderRadius: 14, backgroundColor: c.tintSoft, borderWidth: 1, borderColor: "#DCEBDD", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+                <View style={{ width: 64, height: 64, borderRadius: 14, backgroundColor: c.tintSoft, borderWidth: 1, borderColor: tone.groceryBorder, alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
                   {img ? <Image source={img} resizeMode="contain" style={{ width: 56, height: 56 }} /> : <AppText variant="title" color={c.primary}>{item.name.charAt(0)}</AppText>}
                 </View>
                 <View style={{ flex: 1, minWidth: 0 }}>

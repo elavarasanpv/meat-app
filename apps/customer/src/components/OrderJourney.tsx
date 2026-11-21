@@ -6,7 +6,7 @@ import { AppText } from "./AppText";
 import { Icon } from "./Icon";
 import { JOURNEY_ART, JOURNEY_MARKER, type JourneyStop } from "@/lib/journeyArt";
 import { useT, type TKey } from "@/i18n";
-import { useTheme } from "@/theme";
+import { useTheme, withAccent } from "@/theme";
 
 const MEAT_STOPS: JourneyStop[] = ["placed", "shop", "cutting", "packed", "rider"];
 /** Grocery has no cutting or weighing: the shop accepts and packs, then a rider collects. */
@@ -31,7 +31,6 @@ const GROCERY_STOP_OF: Partial<Record<OrderStatus, number>> = {
   RIDER_ASSIGNED: 2,
   PICKED_UP: 2,
 };
-const GREEN = { primary: "#1E8A4F", tint: "#E3F3E9" };
 
 const PAD = 28; // road inset from the card edge
 const STOP = 52; // stop artwork size
@@ -47,16 +46,17 @@ type Props = { status: OrderStatus; vertical?: "meat" | "grocery" };
  * nothing fetched — works the same on 2G.
  */
 export function OrderJourney({ status, vertical = "meat" }: Props) {
-  const { c } = useTheme();
+  const { c, dark } = useTheme();
   const t = useT();
   const grocery = vertical === "grocery";
+  const g = withAccent(c, vertical, dark);
   const STOPS = grocery ? GROCERY_STOPS : MEAT_STOPS;
   const idx = (grocery ? GROCERY_STOP_OF : STOP_OF)[status] ?? 0;
   // Grocery copy differs at the shop stop (packing, not cutting) and uses the green accent.
   const key = (s: string) => (grocery && s === "shop" ? "jrg_shop" : `jr_${s}`);
-  const primary = grocery ? GREEN.primary : c.primary;
-  const price = grocery ? GREEN.primary : c.price;
-  const tint = grocery ? GREEN.tint : c.tint;
+  const primary = g.primary;
+  const price = g.price;
+  const tint = g.tint;
   const [width, setWidth] = useState(0);
   const span = Math.max(0, width - PAD * 2);
   const xOf = (i: number) => PAD + (span * i) / (STOPS.length - 1);

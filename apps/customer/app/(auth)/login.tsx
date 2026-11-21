@@ -16,11 +16,10 @@ import { fonts, radius, useTheme } from "@/theme";
 
 const HERO = require("@thanjozmart/assets/images/doodle-handoff.png");
 const PATTERN = require("@thanjozmart/assets/images/pattern-doodles.png");
-const HEADER = ["#FFF1E8", "#FFE0CC", "#FBC9A6"] as const;
 
 /** Step 1 of login: enter mobile number → Supabase sends SMS OTP. */
 export default function LoginScreen() {
-  const { c } = useTheme();
+  const { c, tone, glow } = useTheme();
   const t = useT();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -61,11 +60,11 @@ export default function LoginScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: c.ground }}>
       {/* hero: peach gradient, faint doodles, the goat hand-off */}
-      <LinearGradient colors={[...HEADER]} start={{ x: 0, y: 0 }} end={{ x: 0.8, y: 1 }} style={{ paddingTop: insets.top + 8, paddingHorizontal: 20, paddingBottom: 28, borderBottomLeftRadius: 34, borderBottomRightRadius: 34, overflow: "hidden" }}>
+      <LinearGradient colors={[...tone.header]} start={{ x: 0, y: 0 }} end={{ x: 0.8, y: 1 }} style={{ paddingTop: insets.top + 8, paddingHorizontal: 20, paddingBottom: 28, borderBottomLeftRadius: 34, borderBottomRightRadius: 34, overflow: "hidden" }}>
         <View pointerEvents="none" style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0 }}>
           <Image source={PATTERN} resizeMode="cover" style={{ width: "100%", height: "100%", opacity: 0.18 }} />
         </View>
-        <View pointerEvents="none" style={{ position: "absolute", right: -60, top: -80, width: 220, height: 220, borderRadius: 110, backgroundColor: "rgba(255,255,255,0.35)" }} />
+        <View pointerEvents="none" style={{ position: "absolute", right: -60, top: -80, width: 220, height: 220, borderRadius: 110, backgroundColor: glow(0.35) }} />
         <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
             <View style={{ width: 40, height: 40, borderRadius: 14, backgroundColor: c.primary, alignItems: "center", justifyContent: "center" }}>

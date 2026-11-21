@@ -40,13 +40,13 @@ export default function TicketScreen() {
           <AppText variant="title" numberOfLines={1}>{tk ? t(`tk_${tk.type}` as TKey) : "…"}</AppText>
           {tk?.order && <AppText variant="caption" muted>{tk.order.displayId}</AppText>}
         </View>
-        {tk && <AppText variant="caption" style={{ fontWeight: "700", color: tk.status === "resolved" ? "#1E8A4F" : c.muted }}>{t(`ts_${tk.status}` as TKey)}</AppText>}
+        {tk && <AppText variant="caption" style={{ fontWeight: "700", color: tk.status === "resolved" ? c.success : c.muted }}>{t(`ts_${tk.status}` as TKey)}</AppText>}
       </View>
 
       <ScrollView contentContainerStyle={{ padding: 16, paddingTop: 4, gap: 10, paddingBottom: 16 + insets.bottom }}>
         {tk?.creditAmount != null && (
-          <View style={{ backgroundColor: "#DDF3E6", borderRadius: radius.input, padding: 12 }}>
-            <AppText variant="subtitle" color="#1E8A4F">{t("creditedLine", { amt: tk.creditAmount })}</AppText>
+          <View style={{ backgroundColor: c.successBg, borderRadius: radius.input, padding: 12 }}>
+            <AppText variant="subtitle" color={c.successText}>{t("creditedLine", { amt: tk.creditAmount })}</AppText>
             <AppText variant="caption" muted>{t("walletNote")}</AppText>
           </View>
         )}

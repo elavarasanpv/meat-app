@@ -15,13 +15,12 @@ import { fonts, useTheme } from "@/theme";
 const PATTERN = require("@thanjozmart/assets/images/pattern-doodles.png");
 /** Shop → rider → your door, in the same line style as the login drawing. */
 const JOURNEY = require("@thanjozmart/assets/images/otp-journey.png");
-const HEADER = ["#FFF1E8", "#FFE0CC", "#FBC9A6"] as const;
 const OTP_LENGTH = 6;
 const RESEND_SECONDS = 30;
 
 /** Step 2 of login: verify the 6-digit SMS code. On success the root layout switches to the app. */
 export default function OtpScreen() {
-  const { c } = useTheme();
+  const { c, tone, glow } = useTheme();
   const t = useT();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -91,11 +90,11 @@ export default function OtpScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: c.ground }}>
       {/* hero: same peach gradient and doodles as login, with the shop-to-door drawing */}
-      <LinearGradient colors={[...HEADER]} start={{ x: 0, y: 0 }} end={{ x: 0.8, y: 1 }} style={{ paddingTop: insets.top + 8, paddingHorizontal: 20, paddingBottom: 22, borderBottomLeftRadius: 34, borderBottomRightRadius: 34, overflow: "hidden" }}>
+      <LinearGradient colors={[...tone.header]} start={{ x: 0, y: 0 }} end={{ x: 0.8, y: 1 }} style={{ paddingTop: insets.top + 8, paddingHorizontal: 20, paddingBottom: 22, borderBottomLeftRadius: 34, borderBottomRightRadius: 34, overflow: "hidden" }}>
         <View pointerEvents="none" style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0 }}>
           <Image source={PATTERN} resizeMode="cover" style={{ width: "100%", height: "100%", opacity: 0.18 }} />
         </View>
-        <View pointerEvents="none" style={{ position: "absolute", right: -60, top: -80, width: 220, height: 220, borderRadius: 110, backgroundColor: "rgba(255,255,255,0.35)" }} />
+        <View pointerEvents="none" style={{ position: "absolute", right: -60, top: -80, width: 220, height: 220, borderRadius: 110, backgroundColor: glow(0.35) }} />
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
           <Pressable
             onPress={() => router.back()}

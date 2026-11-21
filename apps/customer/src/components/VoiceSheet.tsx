@@ -32,7 +32,7 @@ type Phase = "starting" | "listening" | "thinking" | "heard" | "retry" | "nomic"
  * recorded is always sent, so a quiet mic never blocks a search.
  */
 export function VoiceSheet({ visible, onClose, onResult }: { visible: boolean; onClose: () => void; onResult: (text: string) => void }) {
-  const { c } = useTheme();
+  const { c, tone } = useTheme();
   const insets = useSafeAreaInsets();
   const t = useT();
   const recorder = useAudioRecorder(OPTIONS);
@@ -178,17 +178,17 @@ export function VoiceSheet({ visible, onClose, onResult }: { visible: boolean; o
 
   return (
     <Modal visible={visible && shown} transparent animationType="fade" onRequestClose={close} statusBarTranslucent>
-      <Pressable onPress={close} style={{ flex: 1, backgroundColor: "rgba(28,23,21,0.5)", justifyContent: "flex-end" }}>
+      <Pressable onPress={close} style={{ flex: 1, backgroundColor: tone.scrim, justifyContent: "flex-end" }}>
         <Pressable onPress={() => {}} style={{ borderTopLeftRadius: 34, borderTopRightRadius: 34, overflow: "hidden" }}>
-          <LinearGradient colors={["#FFE6D8", "#FFF6EF", "#FFFFFF"]} start={{ x: 0, y: 0 }} end={{ x: 0.4, y: 1 }} style={{ paddingTop: 12, paddingBottom: 24 + insets.bottom, paddingHorizontal: 24, alignItems: "center" }}>
-            <View style={{ width: 40, height: 5, borderRadius: 3, backgroundColor: "rgba(28,23,21,0.14)" }} />
+          <LinearGradient colors={[...tone.sheet]} start={{ x: 0, y: 0 }} end={{ x: 0.4, y: 1 }} style={{ paddingTop: 12, paddingBottom: 24 + insets.bottom, paddingHorizontal: 24, alignItems: "center" }}>
+            <View style={{ width: 40, height: 5, borderRadius: 3, backgroundColor: c.border }} />
 
             <View style={{ alignSelf: "stretch", flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 14 }}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
                 <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: listening ? "#E11D48" : c.muted, opacity: listening ? 1 : 0.5 }} />
                 <AppText variant="label" muted>{listening ? t("voiceRec") : t("voiceSearch")}</AppText>
               </View>
-              <Pressable onPress={close} hitSlop={10} accessibilityRole="button" accessibilityLabel={t("close")} style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: "rgba(28,23,21,0.08)", alignItems: "center", justifyContent: "center" }}>
+              <Pressable onPress={close} hitSlop={10} accessibilityRole="button" accessibilityLabel={t("close")} style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: tone.faint, alignItems: "center", justifyContent: "center" }}>
                 <Icon name="close" color={c.ink} size={16} />
               </Pressable>
             </View>
@@ -209,7 +209,7 @@ export function VoiceSheet({ visible, onClose, onResult }: { visible: boolean; o
             </View>
 
             {phase === "heard" ? (
-              <View style={{ marginTop: 22, flexDirection: "row", alignItems: "center", gap: 8, maxWidth: "100%", paddingHorizontal: 16, paddingVertical: 10, borderRadius: 999, backgroundColor: "#DDF3E6" }}>
+              <View style={{ marginTop: 22, flexDirection: "row", alignItems: "center", gap: 8, maxWidth: "100%", paddingHorizontal: 16, paddingVertical: 10, borderRadius: 999, backgroundColor: c.successBg }}>
                 <Icon name="check" color={c.successText} size={16} />
                 <AppText variant="bodyBold" color={c.successText} numberOfLines={2} style={{ flexShrink: 1, fontSize: 15 }}>{heardText}</AppText>
               </View>

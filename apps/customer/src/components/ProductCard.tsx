@@ -28,7 +28,7 @@ const PAD = 12;
  * The cut-out is the hero and bleeds to the card edges.
  */
 export function ProductCard({ name, pricePerKg, unit = "kg", image, onAdd, onPress, width, offerTag }: Props) {
-  const { c, productGradient, productBorder } = useTheme();
+  const { c, tone, productGradient, productBorder } = useTheme();
   const t = useT();
   const height = Math.round(width * 1.3);
 
@@ -52,9 +52,9 @@ export function ProductCard({ name, pricePerKg, unit = "kg", image, onAdd, onPre
           <Svg width={width} height={26} style={{ position: "absolute", bottom: 0 }} pointerEvents="none">
             <Defs>
               <RadialGradient id="shadow" cx="50%" cy="50%" rx="50%" ry="50%">
-                <Stop offset="0" stopColor="#7A2A10" stopOpacity={0.28} />
-                <Stop offset="0.6" stopColor="#7A2A10" stopOpacity={0.1} />
-                <Stop offset="1" stopColor="#7A2A10" stopOpacity={0} />
+                <Stop offset="0" stopColor={tone.contact} stopOpacity={0.28} />
+                <Stop offset="0.6" stopColor={tone.contact} stopOpacity={0.1} />
+                <Stop offset="1" stopColor={tone.contact} stopOpacity={0} />
               </RadialGradient>
             </Defs>
             <Ellipse cx={width / 2} cy={14} rx={width * 0.36} ry={11} fill="url(#shadow)" />
