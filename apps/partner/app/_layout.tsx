@@ -47,7 +47,7 @@ export default function RootLayout() {
   if (!fontsLoaded) return null;
   return (
     <QueryClientProvider client={queryClient}>
-      <StatusBar style="auto" />
+      <StatusBar style="dark" />
       <Gate />
       {splash ? <BrandSplash onDone={() => setSplash(false)} /> : null}
     </QueryClientProvider>

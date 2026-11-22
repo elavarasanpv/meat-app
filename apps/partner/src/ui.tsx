@@ -1,10 +1,10 @@
-import { ActivityIndicator, Pressable, Text, useColorScheme, type TextProps, type ViewStyle } from "react-native";
+import { ActivityIndicator, Pressable, Text, type TextProps, type ViewStyle } from "react-native";
 import { palette } from "@/theme";
 import { Icon, type IconName } from "@/components/Icon";
 
+/** Light-only, like the customer app: one look on every rider's phone. */
 export function useC() {
-  const scheme = useColorScheme() ?? "light";
-  return palette[scheme];
+  return palette.light;
 }
 
 type TxtProps = TextProps & { size?: number; bold?: boolean; color?: string; muted?: boolean };
