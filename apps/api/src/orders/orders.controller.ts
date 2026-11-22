@@ -150,13 +150,17 @@ export class OrdersController {
   @Get(":id/route")
   async route(@Headers("authorization") auth: string | undefined, @Param("id") id: string) {
     const user = await requireUser(this.supabase, auth);
-    const { data: order } = await this.supabase.admin.from("orders").select("id, customer_id, pickup_lat, pickup_lng, addresses(lat, lng)").eq("id", id).maybeSingle();
+    const { data: order } = await this.supabase.admin.from("orders").select("id, customer_id, pickup_lat, pickup_lng, dealers(lat, lng), addresses(lat, lng)").eq("id", id).maybeSingle();
     if (!order || order.customer_id !== user.id) throw new ForbiddenException("Not your order");
     const cached = this.routes.get(id);
     if (cached) return { points: cached };
     const key = process.env.GOOGLE_MAPS_SERVER_KEY;
     const home = order.addresses as unknown as { lat: number | null; lng: number | null } | null;
-    if (!key || order.pickup_lat == null || order.pickup_lng == null || home?.lat == null || home?.lng == null) return null;
+    // Orders picked up before the pickup point was saved fall back to the shop's own pin.
+    const shop = order.dealers as unknown as { lat: number | null; lng: number | null } | null;
+    const fromLat = order.pickup_lat ?? shop?.lat;
+    const fromLng = order.pickup_lng ?? shop?.lng;
+    if (!key || fromLat == null || fromLng == null || home?.lat == null || home?.lng == null) return null;
     try {
       // Routes API (the legacy Directions API is closed to new Google Cloud projects).
       const res = (await (
@@ -164,7 +168,7 @@ export class OrdersController {
           method: "POST",
           headers: { "Content-Type": "application/json", "X-Goog-Api-Key": key, "X-Goog-FieldMask": "routes.polyline.encodedPolyline" },
           body: JSON.stringify({
-            origin: { location: { latLng: { latitude: order.pickup_lat, longitude: order.pickup_lng } } },
+            origin: { location: { latLng: { latitude: fromLat, longitude: fromLng } } },
             destination: { location: { latLng: { latitude: home.lat, longitude: home.lng } } },
             travelMode: "TWO_WHEELER",
           }),

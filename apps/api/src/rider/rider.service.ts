@@ -274,6 +274,10 @@ export class RiderService {
       await this.orders.transition({ orderId: o.id, to: "PICKED_UP", actorId: rider.profile_id, note: "Picked up at shop" });
       await this.orders.transition({ orderId: o.id, to: "OUT_FOR_DELIVERY", actorId: rider.profile_id });
     }
+    // The shop is where the trip starts: the customer's map draws its line and road from here.
+    if (shop?.lat != null && shop?.lng != null) {
+      await db.from("orders").update({ pickup_lat: shop.lat, pickup_lng: shop.lng }).in("id", sorted.map((o) => o.id));
+    }
     return { tripId: trip.id, stops: sorted.length };
   }
 
