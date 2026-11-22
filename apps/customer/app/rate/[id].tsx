@@ -108,7 +108,7 @@ export default function RateOrderScreen() {
           </Pressable>
           <View style={{ flex: 1 }}>
             <AppText variant="title" numberOfLines={1} style={{ fontSize: 18 }}>{t("rateOrderTitle")}</AppText>
-            {o ? <AppText variant="caption" muted numberOfLines={1}>{t("rateOrderSub", { n: items.length, amt: amount })}</AppText> : null}
+            {o ? <AppText variant="caption" muted numberOfLines={1}>{t(items.length === 1 ? "rateOrderSubOne" : "rateOrderSub", { n: items.length, amt: amount })}</AppText> : null}
           </View>
         </View>
 

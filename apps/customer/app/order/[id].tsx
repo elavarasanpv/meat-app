@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Pressable, ScrollView, View, useWindowDimensions } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
-import { ARRIVING_KM, CUSTOMER_CANCELLABLE, ORDER_STATUSES, etaMinutesRange, haversineKm, supportClosesAt, type OrderStatus } from "@thanjozmart/shared";
+import { ARRIVING_KM, CUSTOMER_CANCELLABLE, ORDER_STATUSES, etaMinutesRange, haversineKm, roadKmLeft, supportClosesAt, type OrderStatus } from "@thanjozmart/shared";
 import { AppText } from "@/components/AppText";
 import { Button } from "@/components/Button";
 import { Icon } from "@/components/Icon";
@@ -88,9 +88,12 @@ export default function OrderDetailScreen() {
 
   const pickup = o && o.pickup_lat != null && o.pickup_lng != null ? { lat: o.pickup_lat, lng: o.pickup_lng } : null;
   const home = o?.addresses?.lat != null && o?.addresses?.lng != null ? { lat: o.addresses.lat, lng: o.addresses.lng } : null;
-  const remainingKm = rider && home ? haversineKm(rider, home) : null;
-  const eta = remainingKm !== null ? etaMinutesRange(remainingKm) : null;
-  const arriving = remainingKm !== null && remainingKm <= ARRIVING_KM;
+  const straightKm = rider && home ? haversineKm(rider, home) : null;
+  // The road still ahead when the route is known; the straight line otherwise.
+  const roadKm = rider && route.data?.points ? roadKmLeft(rider, route.data.points) : null;
+  const remainingKm = straightKm !== null ? roadKm ?? straightKm : null;
+  const eta = straightKm !== null ? etaMinutesRange(straightKm, roadKm) : null;
+  const arriving = straightKm !== null && straightKm <= ARRIVING_KM;
   const stale = rider ? now - new Date(rider.updated_at).getTime() > STALE_MS : false;
   const agoSec = rider ? Math.max(0, Math.round((now - new Date(rider.updated_at).getTime()) / 1000)) : 0;
 
@@ -207,7 +210,7 @@ export default function OrderDetailScreen() {
             )}
           </>
         ) : delivered && o ? (
-          <DeliveredHero displayId={o.display_id} placedAt={o.created_at} history={o.order_status_history} slotEnd={o.delivery_slots?.ends_at ?? null} onBack={back} />
+          <DeliveredHero displayId={o.display_id} placedAt={o.created_at} history={o.order_status_history} slotStart={o.delivery_slots?.starts_at ?? null} slotEnd={o.delivery_slots?.ends_at ?? null} onBack={back} />
         ) : (
           /* Plain header when there is nothing to track yet */
           <SafeAreaView edges={["top"]} style={{ backgroundColor: c.ground }}>

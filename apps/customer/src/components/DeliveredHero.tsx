@@ -29,7 +29,7 @@ function span(ms: number, t: ReturnType<typeof useT>) {
  * behind the 3D rider, how long the ride took, and a white card of two small
  * facts (packed in, on time) that sits half over the bottom edge.
  */
-export function DeliveredHero({ displayId, placedAt, history, slotEnd, onBack }: { displayId: string; placedAt: string; history: History; slotEnd: string | null; onBack: () => void }) {
+export function DeliveredHero({ displayId, placedAt, history, slotStart, slotEnd, onBack }: { displayId: string; placedAt: string; history: History; slotStart: string | null; slotEnd: string | null; onBack: () => void }) {
   const t = useT();
   const { c } = useTheme();
   const insets = useSafeAreaInsets();
@@ -41,6 +41,8 @@ export function DeliveredHero({ displayId, placedAt, history, slotEnd, onBack }:
   // scheduled orders are often accepted hours early and packed near the slot; only show a real packing time
   const packing = accepted && packed && packed > accepted && packed - accepted < 2 * 3_600_000 ? packed - accepted : null;
   const onTime = delivered && slotEnd ? delivered <= Date.parse(slotEnd) : null;
+  // Delivered before the slot even opened (the shop and rider were free early).
+  const early = !!delivered && !!slotStart && delivered < Date.parse(slotStart);
   const placed = new Date(placedAt).toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" }).toLowerCase();
 
   const facts = packing != null || onTime != null;
@@ -117,7 +119,7 @@ export function DeliveredHero({ displayId, placedAt, history, slotEnd, onBack }:
       {facts ? (
         <View style={{ flexDirection: "row", gap: 8, paddingHorizontal: 16, marginTop: 12 }}>
           {packing != null ? chip("clock", "#FFFFFF", t("packedIn"), span(packing, t)) : null}
-          {onTime != null ? chip(onTime ? "check" : "clock", onTime ? "#8FF0B8" : "#FFD08A", t("yourSlot"), onTime ? t("onTime") : t("aBitLate")) : null}
+          {onTime != null ? chip(onTime ? "check" : "clock", onTime ? "#8FF0B8" : "#FFD08A", t("yourSlot"), early ? t("early") : onTime ? t("onTime") : t("aBitLate")) : null}
         </View>
       ) : null}
       </LinearGradient>

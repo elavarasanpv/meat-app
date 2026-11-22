@@ -60,7 +60,7 @@ export function DeliveryInfoCard({ order: o, pickedUpAt }: Props) {
       <Pressable onPress={toggle} accessibilityRole="button" accessibilityState={{ expanded: open }}>
         <Row
           icon="receipt"
-          title={t("itemsTotal", { n: o.order_items.length, total })}
+          title={o.order_items.length === 1 ? t("itemTotalOne", { total }) : t("itemsTotal", { n: o.order_items.length, total })}
           sub={t(o.payment_mode === "cod" ? "payCod" : o.payment_mode === "upi_on_delivery" ? "payUpi" : "paidOnline")}
           last
           right={

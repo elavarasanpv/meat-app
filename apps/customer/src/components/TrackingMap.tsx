@@ -8,7 +8,9 @@ import { RURAL_MAP_STYLE, type MapKind } from "@/lib/mapStyle";
 
 // Pre-rendered marker bitmaps: custom marker views get clipped on Android's new architecture.
 const MARKERS = {
-  rider: require("../../assets/markers/rider.png"),
+  // Scooter rider, drawn facing right; the left one is its mirror image.
+  riderRight: require("../../assets/markers/rider-right.png"),
+  riderLeft: require("../../assets/markers/rider-left.png"),
   home: require("../../assets/markers/home.png"),
   shop: require("../../assets/markers/shop.png"),
 };
@@ -37,8 +39,9 @@ const DEFAULT = { lat: 8.2426, lng: 77.6759 }; // Chettikulam
 /**
  * Zepto-style live map: shop and home pins joined by the road between them
  * (a dashed straight line until the route loads), with the rider gliding between updates.
- * It zooms to fit the shop, the house and the rider in the visible part of
- * the map, clear of the header above and the card overlapping it below.
+ * It zooms to fit the shop and the house, then just the rider and the house
+ * once the rider is on the way, in the visible part of the map, clear of the
+ * header above and the card overlapping it below.
  */
 export function TrackingMap({ rider, pickup, home, route, height, topInset = 0, overlap = 0 }: Props) {
   const { c } = useTheme();
@@ -59,6 +62,19 @@ export function TrackingMap({ rider, pickup, home, route, height, topInset = 0, 
     coord.timing({ latitude: rider.lat, longitude: rider.lng, duration: 1200, useNativeDriver: false } as any).start();
   }, [rider?.lat, rider?.lng]);
 
+  // Face the scooter the way the rider is going: the GPS heading when the phone
+  // sends one, else the last move, else towards the house.
+  const last = useRef<{ lat: number; lng: number } | null>(null);
+  const [facingLeft, setFacingLeft] = useState(false);
+  useEffect(() => {
+    if (!rider) return;
+    const prev = last.current;
+    last.current = { lat: rider.lat, lng: rider.lng };
+    if (rider.heading != null) setFacingLeft(rider.heading > 180 && rider.heading < 360);
+    else if (prev && Math.abs(rider.lng - prev.lng) > 1e-5) setFacingLeft(rider.lng < prev.lng);
+    else if (!prev && home) setFacingLeft(home.lng < rider.lng);
+  }, [rider?.lat, rider?.lng, rider?.heading]);
+
   // The view is the shop-to-house trip. The rider joins it only while near
   // that trip: a stray GPS fix far away must not zoom the map out to the country.
   const anchor = home ?? pickup;
@@ -66,8 +82,31 @@ export function TrackingMap({ rider, pickup, home, route, height, topInset = 0, 
   const riderNear = !!rider && (!anchor || haversineKm(rider, anchor) <= reach);
   const lineFrom = pickup ?? (riderNear ? rider : null);
 
+  // The road is split at the point nearest the rider: what is behind them is
+  // drawn faint, what is ahead starts at the rider and ends on the house pin,
+  // so the line always meets both markers even when GPS sits off the road.
+  const road = route && route.length > 1 ? route : [];
+  let passed = 0;
+  if (riderNear && rider && road.length > 0) {
+    let best = Infinity;
+    road.forEach((p, i) => {
+      const d = haversineKm(rider, p);
+      if (d < best) {
+        best = d;
+        passed = i;
+      }
+    });
+  }
+  const toLatLng = (p: Point) => ({ latitude: p.lat, longitude: p.lng });
+  const onTrip = riderNear && !!rider;
+  const behind = onTrip ? [...(pickup ? [pickup] : []), ...road.slice(0, passed + 1)] : [];
+  const left = [...(onTrip ? [rider!] : pickup ? [pickup] : []), ...(onTrip ? road.slice(passed) : road), ...(home ? [home] : [])];
+
   const fit = (animated = true) => {
-    const pts = [pickup, home, riderNear ? rider : null, ...(route ?? [])].filter(Boolean).map((p) => ({ latitude: p!.lat, longitude: p!.lng }));
+    // Once the rider is on the trip, show only what is left of it: the rider,
+    // the house and the road between them, so a nearby rider fills the map.
+    const ahead = riderNear ? road.slice(passed) : road;
+    const pts = [riderNear && home ? null : pickup, home, riderNear ? rider : null, ...ahead].filter(Boolean).map((p) => ({ latitude: p!.lat, longitude: p!.lng }));
     if (pts.length === 0) return;
     const lats = pts.map((p) => p.latitude);
     const lngs = pts.map((p) => p.longitude);
@@ -90,11 +129,15 @@ export function TrackingMap({ rider, pickup, home, route, height, topInset = 0, 
     mapRef.current?.fitToCoordinates(pts, { edgePadding: { top, bottom, left: 56, right: 56 }, animated });
   };
 
-  // Re-fit when the rider first appears or home changes; afterwards the user may pan freely.
+  // Re-fit when the rider first appears, home changes, or the rider has covered
+  // about half of what was left (the map zooms in a few times over a trip);
+  // in between the user may pan freely.
+  const leftKm = riderNear && rider && home ? haversineKm(rider, home) : null;
+  const zoomStep = leftKm === null ? null : Math.round(Math.log2(Math.max(leftKm, 0.05)));
   useEffect(() => {
     const id = setTimeout(() => fit(true), 400);
     return () => clearTimeout(id);
-  }, [riderNear, home?.lat, home?.lng, pickup?.lat, pickup?.lng, height, route?.length]);
+  }, [riderNear, zoomStep, home?.lat, home?.lng, pickup?.lat, pickup?.lng, height, route?.length]);
 
   const center = home ?? pickup ?? rider ?? DEFAULT;
 
@@ -114,8 +157,11 @@ export function TrackingMap({ rider, pickup, home, route, height, topInset = 0, 
         onMapReady={() => fit(false)}
       >
         {/* The way from the shop to the house; from the rider when the shop has no pin */}
-        {route && route.length > 1 ? (
-          <Polyline coordinates={route.map((p) => ({ latitude: p.lat, longitude: p.lng }))} strokeColor={c.primary} strokeWidth={4} lineCap="round" lineJoin="round" />
+        {road.length > 0 ? (
+          <>
+            {behind.length > 1 ? <Polyline coordinates={behind.map(toLatLng)} strokeColor={c.primary + "40"} strokeWidth={4} lineCap="round" lineJoin="round" /> : null}
+            <Polyline coordinates={left.map(toLatLng)} strokeColor={c.primary} strokeWidth={4} lineCap="round" lineJoin="round" zIndex={2} />
+          </>
         ) : home && lineFrom ? (
           <Polyline
             coordinates={[
@@ -137,7 +183,7 @@ export function TrackingMap({ rider, pickup, home, route, height, topInset = 0, 
         ) : null}
 
         {rider ? (
-          <MarkerAnimated coordinate={coord as any} anchor={{ x: 0.5, y: 0.5 }} image={MARKERS.rider} zIndex={10} />
+          <MarkerAnimated coordinate={coord as any} anchor={{ x: 0.5, y: 0.88 }} image={facingLeft ? MARKERS.riderLeft : MARKERS.riderRight} zIndex={10} />
         ) : null}
       </MapView>
 
