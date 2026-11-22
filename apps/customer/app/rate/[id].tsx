@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, TextInput, View } from "react-native";
+import { BackHandler, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, TextInput, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
@@ -44,6 +44,21 @@ export default function RateOrderScreen() {
   const [appStars, setAppStars] = useState(5);
   const [note, setNote] = useState("");
   const [done, setDone] = useState(false);
+
+  // After the thank-you, the order is finished with: close everything and land on Home,
+  // not back on the delivered order. Android's back button does the same.
+  const goHome = () => {
+    if (router.canDismiss()) router.dismissAll();
+    router.replace("/(tabs)");
+  };
+  useEffect(() => {
+    if (!done) return;
+    const sub = BackHandler.addEventListener("hardwareBackPress", () => {
+      goHome();
+      return true;
+    });
+    return () => sub.remove();
+  }, [done]);
 
   // editing an earlier rating: start from what they said last time
   useEffect(() => {
@@ -92,7 +107,7 @@ export default function RateOrderScreen() {
           <AppText muted style={{ textAlign: "center", maxWidth: 300 }}>{t("ratedThanksSub")}</AppText>
         </View>
         <View style={{ padding: 20 }}>
-          <Button label={t("done")} onPress={() => router.back()} />
+          <Button label={t("done")} onPress={goHome} />
         </View>
       </SafeAreaView>
     );
