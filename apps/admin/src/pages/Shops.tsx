@@ -7,6 +7,7 @@ import { MapPin, parseLatLng } from "../ui/MapPin";
 import { ShopDetail } from "./ShopDetail";
 import { TimePicker, formatTime } from "../ui/TimePicker";
 import { Btn, Chip, Drawer, Empty, ErrorBox, Field, Section, inputCls, inr, phone10 } from "../ui/kit";
+import { Select } from "../ui/pickers";
 
 type Shop = {
   id: string;
@@ -267,10 +268,15 @@ function ShopForm({ id, onClose }: { id: string | null; onClose: () => void }) {
             <input className={inputCls} value={form.fssaiNo} onChange={(e) => set({ fssaiNo: e.target.value })} placeholder="12345678901234" />
           </Field>
           <Field label="What the shop sells" hint={form.storeType === "grocery" ? "Products come from the Catalog page (grocery master + imports)." : "Meat & fish, priced per kg below."}>
-            <select className={inputCls} value={form.storeType} onChange={(e) => set({ storeType: e.target.value as Form["storeType"] })}>
-              <option value="meat">Meat & fish</option>
-              <option value="grocery">Grocery</option>
-            </select>
+            <Select
+              label="What the shop sells"
+              value={form.storeType}
+              onChange={(v) => set({ storeType: v })}
+              options={[
+                { value: "meat", label: "Meat & fish", note: "Priced per kg below" },
+                { value: "grocery", label: "Grocery", note: "Products from the Catalog page" },
+              ]}
+            />
           </Field>
         </div>
         {id && (

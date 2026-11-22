@@ -7,6 +7,7 @@ import { supabase } from "../lib/supabase";
 import { PageHeader } from "../shell/Shell";
 import { IconAlert, IconCheck, IconPlus, IconX } from "../ui/icons";
 import { Btn, Chip, Empty, ErrorBox, Field, Modal, Segments, ago, inputCls, inr } from "../ui/kit";
+import { Select } from "../ui/pickers";
 
 /**
  * Catalog (grocery vertical, G1). Five tabs:
@@ -20,6 +21,17 @@ const BASE = (import.meta.env.VITE_API_URL ?? "http://localhost:3001").replace(/
 
 type Vertical = { type: string; label: string; label_ta: string | null; sort: number; is_active: boolean };
 type Category = { id: string; vertical_type: string; parent_id: string | null; name: string; name_ta: string | null; image_path: string | null; sort: number; is_active: boolean };
+
+/** Groups in sort order, each followed by its sub-categories, for a category dropdown. */
+function categoryOptions(cats: Category[]) {
+  const bySort = (a: Category, b: Category) => a.sort - b.sort || a.name.localeCompare(b.name);
+  const out: { value: string; label: string; child?: boolean; group?: boolean }[] = [];
+  for (const g of cats.filter((c) => !c.parent_id).sort(bySort)) {
+    out.push({ value: g.id, label: g.name, group: true });
+    for (const k of cats.filter((c) => c.parent_id === g.id).sort(bySort)) out.push({ value: k.id, label: k.name, child: true });
+  }
+  return out;
+}
 type Master = {
   id: string;
   category_id: string | null;
@@ -208,13 +220,7 @@ function CategoriesTab() {
             </Field>
             {editing.parent_id && (
               <Field label="Group" hint="The heading this tile sits under on the customer's home.">
-                <select className={inputCls} value={editing.parent_id} onChange={(e) => setEditing({ ...editing, parent_id: e.target.value })}>
-                  {tops.map((g) => (
-                    <option key={g.id} value={g.id}>
-                      {g.name}
-                    </option>
-                  ))}
-                </select>
+                <Select label="Group" value={editing.parent_id} onChange={(v) => setEditing({ ...editing, parent_id: v })} options={tops.map((g) => ({ value: g.id, label: g.name }))} />
               </Field>
             )}
             <div className="grid grid-cols-2 gap-3">
@@ -223,10 +229,15 @@ function CategoriesTab() {
               </Field>
               {editing.id && (
                 <Field label="Active">
-                  <select className={inputCls} value={editing.is_active ? "1" : "0"} onChange={(e) => setEditing({ ...editing, is_active: e.target.value === "1" })}>
-                    <option value="1">Active</option>
-                    <option value="0">Hidden</option>
-                  </select>
+                  <Select
+                    label="Active"
+                    value={editing.is_active ? "1" : "0"}
+                    onChange={(v) => setEditing({ ...editing, is_active: v === "1" })}
+                    options={[
+                      { value: "1", label: "Active" },
+                      { value: "0", label: "Hidden", note: "Not shown to customers" },
+                    ]}
+                  />
                 </Field>
               )}
             </div>
@@ -433,11 +444,16 @@ function MasterTab({ status }: { status: "approved" | "pending" }) {
                 <input className={inputCls} value={editing.pack_size ?? ""} onChange={(e) => setEditing({ ...editing, pack_size: e.target.value })} placeholder="100 g" />
               </Field>
               <Field label="Unit">
-                <select className={inputCls} value={editing.unit ?? "pack"} onChange={(e) => setEditing({ ...editing, unit: e.target.value as Master["unit"] })}>
-                  <option value="pack">Pack</option>
-                  <option value="piece">Piece</option>
-                  <option value="kg">Per kg (loose)</option>
-                </select>
+                <Select
+                  label="Unit"
+                  value={editing.unit ?? "pack"}
+                  onChange={(v) => setEditing({ ...editing, unit: v })}
+                  options={[
+                    { value: "pack", label: "Pack" },
+                    { value: "piece", label: "Piece" },
+                    { value: "kg", label: "Per kg", note: "Loose" },
+                  ]}
+                />
               </Field>
               <Field label="MRP" hint="Leave blank for loose items.">
                 <input className={inputCls} type="number" value={editing.mrp ?? ""} onChange={(e) => setEditing({ ...editing, mrp: e.target.value === "" ? null : Number(e.target.value) })} />
@@ -446,14 +462,12 @@ function MasterTab({ status }: { status: "approved" | "pending" }) {
                 <input className={inputCls} value={editing.barcode ?? ""} onChange={(e) => setEditing({ ...editing, barcode: e.target.value.replace(/\D/g, "") })} placeholder="8901234567890" />
               </Field>
               <Field label="Category">
-                <select className={inputCls} value={editing.category_id ?? ""} onChange={(e) => setEditing({ ...editing, category_id: e.target.value || null })}>
-                  <option value="">—</option>
-                  {(cats.data ?? []).map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.parent_id ? `  ↳ ${c.name}` : c.name}
-                    </option>
-                  ))}
-                </select>
+                <Select
+                  label="Category"
+                  value={editing.category_id ?? "none"}
+                  onChange={(v) => setEditing({ ...editing, category_id: v === "none" ? null : v })}
+                  options={[{ value: "none", label: "No category" }, ...categoryOptions(cats.data ?? [])]}
+                />
               </Field>
             </div>
             <Field label="Description" hint="Shown on the product page. Keep it to two or three lines.">
@@ -534,14 +548,13 @@ function ImportsTab() {
         <div className="flex flex-wrap items-end gap-3">
         <div className="w-64">
         <Field label="Shop">
-          <select className={inputCls} value={dealerId} onChange={(e) => setDealerId(e.target.value)}>
-            <option value="">{shops.data && shops.data.length === 0 ? "No grocery shops yet — set a shop's type on the Shops page" : "Pick a shop…"}</option>
-            {(shops.data ?? []).map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name}
-              </option>
-            ))}
-          </select>
+          <Select
+            label="Shop"
+            value={dealerId}
+            onChange={setDealerId}
+            placeholder={shops.data && shops.data.length === 0 ? "No grocery shops yet" : "Pick a shop…"}
+            options={(shops.data ?? []).map((s) => ({ value: s.id, label: s.name }))}
+          />
         </Field>
         </div>
         <div className="min-w-0 flex-1 basis-64">
@@ -752,10 +765,15 @@ function FeesTab() {
               <input className={inputCls} type="number" value={editing.free_above ?? ""} onChange={(e) => setEditing({ ...editing, free_above: e.target.value === "" ? null : Number(e.target.value) })} />
             </Field>
             <Field label="Active">
-              <select className={inputCls} value={editing.is_active === false ? "0" : "1"} onChange={(e) => setEditing({ ...editing, is_active: e.target.value === "1" })}>
-                <option value="1">On</option>
-                <option value="0">Off</option>
-              </select>
+              <Select
+                label="Active"
+                value={editing.is_active === false ? "0" : "1"}
+                onChange={(v) => setEditing({ ...editing, is_active: v === "1" })}
+                options={[
+                  { value: "1", label: "On" },
+                  { value: "0", label: "Off" },
+                ]}
+              />
             </Field>
           </div>
           <ErrorBox error={save.error} />

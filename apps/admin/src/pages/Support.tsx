@@ -5,6 +5,7 @@ import { api } from "../lib/api";
 import { PageHeader } from "../shell/Shell";
 import { IconPhone } from "../ui/icons";
 import { Btn, Chip, Drawer, Empty, ErrorBox, Field, Section, Segments, StatusChip, type Tone, ago, inputCls, inr, phone10, when } from "../ui/kit";
+import { Select } from "../ui/pickers";
 
 type Row = {
   id: string;
@@ -260,21 +261,31 @@ function ResolveBox({ id, suggested, onDone }: { id: string; suggested: number |
     <div className="rounded-xl border border-primary/30 bg-tint/40 p-3">
       <div className="grid gap-3 sm:grid-cols-2">
         <Field label="How do we make it right?">
-          <select className={inputCls} value={resolution} onChange={(e) => setResolution(e.target.value as typeof resolution)}>
-            <option value="credit">Wallet credit</option>
-            <option value="refund_upi">Refund by UPI (you send it)</option>
-            <option value="apology">Apology only</option>
-            <option value="none">No action</option>
-          </select>
+          <Select
+            label="Resolution"
+            value={resolution}
+            onChange={setResolution}
+            options={[
+              { value: "credit", label: "Wallet credit" },
+              { value: "refund_upi", label: "Refund by UPI", note: "You send it" },
+              { value: "apology", label: "Apology only" },
+              { value: "none", label: "No action" },
+            ]}
+          />
         </Field>
         <Field label="Whose fault was it? Counts in their stats.">
-          <select className={inputCls} value={fault} onChange={(e) => setFault(e.target.value as typeof fault)}>
-            <option value="shop">Shop</option>
-            <option value="rider">Rider</option>
-            <option value="thanjozmart">Thanjoz Mart</option>
-            <option value="customer">Customer</option>
-            <option value="none">Nobody</option>
-          </select>
+          <Select
+            label="Fault"
+            value={fault}
+            onChange={setFault}
+            options={[
+              { value: "shop", label: "Shop" },
+              { value: "rider", label: "Rider" },
+              { value: "thanjozmart", label: "Thanjoz Mart" },
+              { value: "customer", label: "Customer" },
+              { value: "none", label: "Nobody" },
+            ]}
+          />
         </Field>
         {resolution === "credit" && (
           <Field label="Credit amount" hint={suggested ? `Order was ${inr(suggested)}` : undefined}>

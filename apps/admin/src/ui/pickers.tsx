@@ -91,13 +91,14 @@ export function DatePicker({ value, onChange, label, min }: { value: string; onC
 }
 
 /** Dropdown in Thanjoz Mart style, in place of the browser's <select>. */
-export function Select<T extends string>({ value, onChange, options, placeholder = "Choose…", label }: { value: T | ""; onChange: (v: T) => void; options: { value: T; label: string }[]; placeholder?: string; label?: string }) {
+export type SelectOption<T extends string> = { value: T; label: string; /** Grey second line. */ note?: string; /** Indented under the option above (a sub-category). */ child?: boolean ; /** A group name above its sub-categories: small grey capitals. */ group?: boolean };
+export function Select<T extends string>({ value, onChange, options, placeholder = "Choose…", label, className = "" }: { value: T | ""; onChange: (v: T) => void; options: SelectOption<T>[]; placeholder?: string; label?: string; className?: string }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLButtonElement>(null);
   const cur = options.find((o) => o.value === value);
   return (
     <>
-      <button ref={ref} type="button" aria-label={label} aria-haspopup="listbox" aria-expanded={open} onClick={() => setOpen((o) => !o)} className={`${fieldBtn(open)} w-full`}>
+      <button ref={ref} type="button" aria-label={label} aria-haspopup="listbox" aria-expanded={open} onClick={() => setOpen((o) => !o)} className={`${fieldBtn(open)} w-full ${className}`}>
         <span className={`truncate ${cur ? "" : "font-normal text-muted/70"}`}>{cur?.label ?? placeholder}</span>
         <IconChevronDown size={15} className={`shrink-0 transition ${open ? "rotate-180 text-primary" : "text-muted"}`} />
       </button>
@@ -115,10 +116,13 @@ export function Select<T extends string>({ value, onChange, options, placeholder
                   onChange(o.value);
                   setOpen(false);
                 }}
-                className={`flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-left text-[13px] transition ${on ? "bg-tint font-extrabold text-primary" : "font-bold text-ink hover:bg-surface-2"}`}
+                className={`flex w-full items-center justify-between gap-2 rounded-lg py-1.5 pr-2.5 text-left transition ${o.child ? "pl-6" : "pl-2.5"} ${o.group ? "mt-1 text-[11px] uppercase tracking-wider first:mt-0" : "text-[13px]"} ${on ? "bg-tint font-extrabold text-primary" : `hover:bg-surface-2 ${o.group ? "font-extrabold text-muted" : "font-bold text-ink"}`}`}
               >
-                <span className="truncate">{o.label}</span>
-                {on && <IconCheck size={14} />}
+                <span className="min-w-0">
+                  <span className="block truncate">{o.label}</span>
+                  {o.note && <span className={`block truncate text-[11px] font-bold ${on ? "text-primary/70" : "text-muted"}`}>{o.note}</span>}
+                </span>
+                {on && <IconCheck size={14} className="shrink-0" />}
               </button>
             );
           })}

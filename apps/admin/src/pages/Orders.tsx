@@ -5,6 +5,7 @@ import { api } from "../lib/api";
 import { PageHeader } from "../shell/Shell";
 import { IconPhone, IconSearch } from "../ui/icons";
 import { Btn, Chip, Drawer, Empty, ErrorBox, Field, Section, Segments, StatusChip, STATUS, inputCls, inr, when, clock, phone10 } from "../ui/kit";
+import { Select } from "../ui/pickers";
 
 type Row = {
   id: string;
@@ -215,16 +216,23 @@ function OrderDrawer({ id, onClose }: { id: string; onClose: () => void }) {
             <div className="mt-3 rounded-xl border border-line bg-surface p-3">
               <div className="text-[12px] font-bold">Move to another shop</div>
               <div className="mt-2 flex flex-wrap gap-2">
-                <select className={`${inputCls} flex-1`} value={pickShop} onChange={(e) => setPickShop(e.target.value)}>
-                  <option value="">Next best shop (automatic)</option>
-                  {shops.data
-                    ?.filter((s) => s.isActive && s.id !== o.shop?.id)
-                    .map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.name} {s.isOpen ? "· open" : "· closed"} {o.address && !s.pincodes.includes(o.address.pincode) ? "· outside area" : ""}
-                      </option>
-                    ))}
-                </select>
+                <div className="min-w-[220px] flex-1">
+                  <Select
+                    label="Shop to move the order to"
+                    value={pickShop || "auto"}
+                    onChange={(v) => setPickShop(v === "auto" ? "" : v)}
+                    options={[
+                      { value: "auto", label: "Next best shop", note: "Automatic" },
+                      ...(shops.data ?? [])
+                        .filter((s) => s.isActive && s.id !== o.shop?.id)
+                        .map((s) => ({
+                          value: s.id,
+                          label: s.name,
+                          note: [s.isOpen ? "Open" : "Closed", o.address && !s.pincodes.includes(o.address.pincode) ? "outside area" : ""].filter(Boolean).join(" · "),
+                        })),
+                    ]}
+                  />
+                </div>
                 <Btn kind="primary" busy={reassign.isPending} onClick={() => reassign.mutate(pickShop || undefined)}>
                   Offer
                 </Btn>
