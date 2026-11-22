@@ -356,8 +356,14 @@ export const adminShopPriceSchema = z.object({
   productId: z.string().uuid(),
   price: z.number().positive().max(100000),
 });
+/** Margin mode: the selling price follows the shop cost by this %; null goes back to a fixed price. */
+export const adminMarginSchema = z.object({
+  productId: z.string().uuid(),
+  marginPct: z.number().positive().max(500).nullable(),
+});
 export type AdminSellPriceInput = z.infer<typeof adminSellPriceSchema>;
 export type AdminShopPriceInput = z.infer<typeof adminShopPriceSchema>;
+export type AdminMarginInput = z.infer<typeof adminMarginSchema>;
 
 /** A promo push from the admin: "Sunday special", a new offer, a notice to shops or riders. */
 export const BROADCAST_AUDIENCES = ["customers", "shops", "riders", "all"] as const;

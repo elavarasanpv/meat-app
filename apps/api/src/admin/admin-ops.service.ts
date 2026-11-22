@@ -1,5 +1,5 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from "@nestjs/common";
-import type { AdminBroadcastInput, AdminRiderInput, AdminSellPriceInput, AdminShopInput, AdminShopPriceInput } from "@thanjozmart/shared";
+import type { AdminBroadcastInput, AdminRiderInput, AdminMarginInput, AdminSellPriceInput, AdminShopInput, AdminShopPriceInput } from "@thanjozmart/shared";
 import { SupabaseService } from "../supabase.service";
 import { withProductShapes } from "../orders/item-shape";
 import { OrdersService } from "../orders/orders.service";
@@ -44,10 +44,11 @@ export class AdminOpsService {
   async pricing() {
     const db = this.supabase.admin;
     const [{ data: products }, { data: overrides }, { data: costs }, { data: dealers }, { data: pins }] = await Promise.all([
-      db.from("products").select("id, name, name_ta, unit, base_price_per_kg, is_active, categories(name, sort)").eq("is_active", true),
+      db.from("products").select("id, name, name_ta, unit, base_price_per_kg, margin_pct, is_active, categories(name, sort)").eq("is_active", true),
       db.from("product_prices").select("product_id, pincode, price_per_kg"),
       db.from("dealer_products").select("dealer_id, product_id, price_per_kg"),
-      db.from("dealers").select("id, shop_name").eq("is_active", true).order("shop_name"),
+      // Only meat shops: grocery stores price their own catalogue (store_products).
+      db.from("dealers").select("id, shop_name").eq("is_active", true).eq("store_type", "meat").order("shop_name"),
       db.from("zone_pincodes").select("pincode, area").order("pincode"),
     ]);
     const over = new Map<string, Record<string, number>>();
@@ -77,6 +78,7 @@ export class AdminOpsService {
             category: c?.name ?? "Other",
             sort: c?.sort ?? 99,
             sellingPrice: Number(p.base_price_per_kg),
+            marginPct: p.margin_pct == null ? null : Number(p.margin_pct),
             overrides: over.get(p.id as string) ?? {},
             costs: cost.get(p.id as string) ?? {},
           };
@@ -94,7 +96,8 @@ export class AdminOpsService {
 
     if (!input.pincode) {
       if (input.price == null) throw new BadRequestException("The default price cannot be removed");
-      await db.from("products").update({ base_price_per_kg: input.price }).eq("id", input.productId);
+      // Typing a price by hand is a fixed price again: the margin no longer drives it.
+      await db.from("products").update({ base_price_per_kg: input.price, margin_pct: null }).eq("id", input.productId);
       await db.from("price_history").insert({ product_id: input.productId, kind: "sell", pincode: null, old_price: base, new_price: input.price, changed_by: adminId });
       await this.audit.log(adminId, "price.sell", input.productId, { from: base, to: input.price });
       return { ok: true };
@@ -123,7 +126,42 @@ export class AdminOpsService {
     await db.from("dealer_products").upsert({ dealer_id: input.dealerId, product_id: input.productId, price_per_kg: input.price }, { onConflict: "dealer_id,product_id" });
     await db.from("price_history").insert({ product_id: input.productId, kind: "shop", dealer_id: input.dealerId, old_price: old, new_price: input.price, changed_by: adminId });
     await this.audit.log(adminId, "price.shop", input.productId, { dealerId: input.dealerId, from: old, to: input.price });
+    await this.applyMargin(adminId, input.productId);
     return { ok: true };
+  }
+
+  /** Margin mode on or off for a product; on, the selling price is re-derived at once. */
+  async setMargin(adminId: string, input: AdminMarginInput) {
+    const db = this.supabase.admin;
+    const { data: product } = await db.from("products").select("id, margin_pct").eq("id", input.productId).single();
+    if (!product) throw new NotFoundException("Product not found");
+    const { error } = await db.from("products").update({ margin_pct: input.marginPct }).eq("id", input.productId);
+    if (error) throw new BadRequestException(error.message);
+    await this.audit.log(adminId, "price.margin", input.productId, { from: product.margin_pct == null ? null : Number(product.margin_pct), to: input.marginPct });
+    const sellingPrice = await this.applyMargin(adminId, input.productId);
+    return { ok: true, sellingPrice };
+  }
+
+  /**
+   * In margin mode the default selling price is the highest shop cost plus the
+   * margin, rounded up to the rupee, so the margin holds whichever shop packs
+   * the order. Returns the price now in force; nothing changes without a cost.
+   */
+  private async applyMargin(adminId: string, productId: string) {
+    const db = this.supabase.admin;
+    const { data: product } = await db.from("products").select("base_price_per_kg, margin_pct").eq("id", productId).single();
+    if (!product) return null;
+    const base = Number(product.base_price_per_kg);
+    if (product.margin_pct == null) return base;
+    const { data: costs } = await db.from("dealer_products").select("price_per_kg").eq("product_id", productId).not("price_per_kg", "is", null);
+    const top = Math.max(0, ...(costs ?? []).map((c) => Number(c.price_per_kg)));
+    if (!top) return base;
+    const target = Math.ceil(top * (1 + Number(product.margin_pct) / 100));
+    if (target === base) return base;
+    await db.from("products").update({ base_price_per_kg: target }).eq("id", productId);
+    await db.from("price_history").insert({ product_id: productId, kind: "sell", pincode: null, old_price: base, new_price: target, changed_by: adminId });
+    await this.audit.log(adminId, "price.sell.margin", productId, { from: base, to: target, marginPct: Number(product.margin_pct), cost: top });
+    return target;
   }
 
   /** Latest price changes, newest first, with the profit each product makes now. */
@@ -538,6 +576,7 @@ export class AdminOpsService {
         .from("dealer_products")
         .upsert(input.products.map((p) => ({ dealer_id: dealerId, product_id: p.productId, price_per_kg: p.pricePerKg })), { onConflict: "dealer_id,product_id" });
       if (up.error) throw new BadRequestException(up.error.message);
+      for (const p of input.products) await this.applyMargin(admin.id, p.productId);
     }
 
     await this.audit.log(admin.id, id ? "shop.update" : "shop.enrol", dealerId, {

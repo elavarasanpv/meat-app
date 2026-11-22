@@ -1,6 +1,6 @@
 import { BadRequestException, Body, Controller, Delete, Get, Headers, Param, Patch, Post, Query, UploadedFile, UseInterceptors } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
-import { adminHeadlineSchema, adminOfferSchema, ticketResolveSchema, ticketReplySchema, adminInviteSchema, adminProfileSchema, adminCancelSchema, adminCashVerifySchema, adminReassignShopSchema, adminRiderSchema, adminShopSchema, adminBroadcastSchema, adminSellPriceSchema, adminShopPriceSchema } from "@thanjozmart/shared";
+import { adminHeadlineSchema, adminOfferSchema, ticketResolveSchema, ticketReplySchema, adminInviteSchema, adminProfileSchema, adminCancelSchema, adminCashVerifySchema, adminReassignShopSchema, adminRiderSchema, adminShopSchema, adminBroadcastSchema, adminSellPriceSchema, adminShopPriceSchema, adminMarginSchema } from "@thanjozmart/shared";
 import type { ZodTypeAny, z } from "zod";
 import { AdminOpsService } from "./admin-ops.service";
 import { AdminAccountService } from "./admin-account.service";
@@ -237,6 +237,12 @@ export class AdminController {
   async shopPrice(@Headers("authorization") auth: string | undefined, @Body() body: unknown) {
     const a = await this.guard(auth);
     return this.ops.setShopPrice(a.id, parse(adminShopPriceSchema, body));
+  }
+
+  @Post("pricing/margin")
+  async margin(@Headers("authorization") auth: string | undefined, @Body() body: unknown) {
+    const a = await this.guard(auth);
+    return this.ops.setMargin(a.id, parse(adminMarginSchema, body));
   }
 
   @Get("pricing/history")

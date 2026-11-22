@@ -8,7 +8,7 @@ import { IconCheck, IconX } from "../ui/icons";
 type Pricing = {
   dealers: { id: string; shop_name: string }[];
   pincodes: { pincode: string; area: string | null }[];
-  products: { id: string; name: string; nameTa: string | null; unit: "kg" | "piece"; category: string; sellingPrice: number; overrides: Record<string, number>; costs: Record<string, number> }[];
+  products: { id: string; name: string; nameTa: string | null; unit: "kg" | "piece"; category: string; sellingPrice: number; marginPct: number | null; overrides: Record<string, number>; costs: Record<string, number> }[];
 };
 
 /**
@@ -17,13 +17,15 @@ type Pricing = {
  * is saved until the tick (or Enter). Escape discards. Prices go live in the
  * customer app, so no silent saves.
  */
-function PriceCell({ value, placeholder, onSave, saving, label }: { value: number | null; placeholder?: string; onSave: (v: number) => void; saving: boolean; label: string }) {
+function PriceCell({ value, placeholder, onSave, saving, label, suffix, narrow, onDraft }: { value: number | null; placeholder?: string; onSave: (v: number) => void; saving: boolean; label: string; suffix?: string; narrow?: boolean; /** The unsaved number while typing, null once saved or discarded. */ onDraft?: (v: number | null) => void }) {
   const [text, setText] = useState(value == null ? "" : String(value));
   useEffect(() => setText(value == null ? "" : String(value)), [value]);
   const orig = value == null ? "" : String(value);
   const num = Number(text);
   const valid = !!text.trim() && Number.isFinite(num) && num > 0;
   const dirty = text.trim() !== orig;
+  const draft = dirty && valid ? num : null;
+  useEffect(() => onDraft?.(draft), [draft]); // eslint-disable-line react-hooks/exhaustive-deps
   const save = () => {
     if (dirty && valid && !saving) onSave(Math.round(num * 100) / 100);
   };
@@ -56,7 +58,8 @@ function PriceCell({ value, placeholder, onSave, saving, label }: { value: numbe
       <input
         aria-label={label}
         inputMode="decimal"
-        className={`${inputCls} h-8 w-[84px] px-2 text-right font-bold tabular-nums ${saving ? "opacity-50" : ""} ${dirty ? "border-primary ring-1 ring-primary/40" : ""}`}
+        className={`${inputCls} h-8 px-2 text-right font-bold tabular-nums ${saving ? "opacity-50" : ""} ${dirty ? "border-primary ring-1 ring-primary/40" : ""}`}
+        style={{ width: narrow ? 56 : 84 }}
         value={text}
         placeholder={placeholder}
         onChange={(e) => setText(e.target.value)}
@@ -66,6 +69,27 @@ function PriceCell({ value, placeholder, onSave, saving, label }: { value: numbe
         }}
         disabled={saving}
       />
+      {suffix && <span className="text-[11px] font-bold text-muted">{suffix}</span>}
+    </span>
+  );
+}
+
+/** Fixed ₹ price, or a margin % the price follows. */
+function ModeToggle({ mode, onChange, label }: { mode: "fixed" | "margin"; onChange: (m: "fixed" | "margin") => void; label: string }) {
+  return (
+    <span className="inline-flex rounded-md border border-line bg-surface p-px" role="group" aria-label={`Price mode for ${label}`}>
+      {(["fixed", "margin"] as const).map((m) => (
+        <button
+          key={m}
+          type="button"
+          title={m === "fixed" ? "Type the selling price" : "Set a margin %: the price follows the shop cost"}
+          aria-pressed={mode === m}
+          onClick={() => onChange(m)}
+          className={`h-6 w-6 rounded text-[11px] font-extrabold transition ${mode === m ? "bg-ink text-white" : "text-muted hover:text-ink"}`}
+        >
+          {m === "fixed" ? "₹" : "%"}
+        </button>
+      ))}
     </span>
   );
 }
@@ -110,6 +134,18 @@ export function PricingPage() {
     },
   });
 
+  const margin = useMutation({
+    mutationFn: (body: { productId: string; marginPct: number | null }) => api("/admin/pricing/margin", { method: "POST", body }),
+    onSettled: () => {
+      setSavingKey(null);
+      refresh();
+    },
+  });
+  /** Products switched to % but with no margin saved yet. */
+  const [pendingMargin, setPendingMargin] = useState<Record<string, true>>({});
+  /** Margin % being typed, by product: the price beside it previews the result before saving. */
+  const [draftMargin, setDraftMargin] = useState<Record<string, number>>({});
+
   const pincode = scope === "default" ? null : scope;
   const scopeItems = [{ id: "default", label: "Default · all pincodes" }, ...(d?.pincodes ?? []).map((p) => ({ id: p.pincode, label: p.area ? `${p.pincode} · ${p.area}` : p.pincode }))];
   let lastCategory = "";
@@ -121,7 +157,7 @@ export function PricingPage() {
         sub="Selling price is what customers pay; shop price is what you owe the shop. Profit is the difference, before delivery costs."
       />
       <div className="px-4 pt-3 md:px-6">
-        <ErrorBox error={q.error ?? sell.error ?? shop.error} />
+        <ErrorBox error={q.error ?? sell.error ?? shop.error ?? margin.error} />
         <Segments value={scope} onChange={setScope} items={scopeItems} />
         {pincode && (
           <div className="mt-2 text-[12px] font-bold text-muted">
@@ -135,11 +171,11 @@ export function PricingPage() {
             <thead>
               <tr className="bg-surface-2/60 text-left text-[10.5px] font-extrabold uppercase tracking-wide text-muted">
                 <th className="px-4 py-2">Product</th>
-                <th className="px-3 py-2 text-right">Selling price {pincode ? `· ${pincode}` : "· default"}</th>
+                <th className="w-[340px] min-w-[340px] px-3 py-2 text-right">Selling price {pincode ? `· ${pincode}` : "· default"}</th>
                 {(d?.dealers ?? []).map((s) => (
-                  <th key={s.id} className="px-3 py-2 text-right">{s.shop_name} (cost)</th>
+                  <th key={s.id} className="w-[200px] min-w-[200px] px-3 py-2 text-right">{s.shop_name} (cost)</th>
                 ))}
-                <th className="px-3 py-2">Profit</th>
+                <th className="w-[160px] min-w-[160px] px-3 py-2">Profit</th>
               </tr>
             </thead>
             <tbody>
@@ -150,6 +186,9 @@ export function PricingPage() {
                 const minCost = costs.length ? Math.min(...costs) : null;
                 const head = p.category !== lastCategory;
                 lastCategory = p.category;
+                const mode: "fixed" | "margin" = p.marginPct != null || pendingMargin[p.id] ? "margin" : "fixed";
+                const maxCost = costs.length ? Math.max(...costs) : null;
+                const preview = mode === "margin" && draftMargin[p.id] != null && maxCost != null ? Math.ceil(maxCost * (1 + draftMargin[p.id] / 100)) : null;
                 return (
                   <>
                     {head && (
@@ -176,16 +215,56 @@ export function PricingPage() {
                               ↺ default
                             </button>
                           )}
-                          <PriceCell
-                            label={`Selling price for ${p.name}`}
-                            value={pincode ? override ?? null : p.sellingPrice}
-                            placeholder={pincode ? `₹${p.sellingPrice}` : undefined}
-                            saving={savingKey === `s-${p.id}` && (sell.isPending || q.isFetching)}
-                            onSave={(v) => {
-                              setSavingKey(`s-${p.id}`);
-                              sell.mutate({ productId: p.id, pincode, price: v });
-                            }}
-                          />
+                          {!pincode && (
+                            <ModeToggle
+                              label={p.name}
+                              mode={mode}
+                              onChange={(m) => {
+                                if (m === "margin") setPendingMargin((s) => ({ ...s, [p.id]: true }));
+                                else {
+                                  setPendingMargin(({ [p.id]: _, ...rest }) => rest);
+                                  if (p.marginPct != null) {
+                                    setSavingKey(`s-${p.id}`);
+                                    margin.mutate({ productId: p.id, marginPct: null });
+                                  }
+                                }
+                              }}
+                            />
+                          )}
+                          {!pincode && mode === "margin" ? (
+                            <>
+                              <PriceCell
+                                label={`Margin % for ${p.name}`}
+                                value={p.marginPct}
+                                placeholder="15"
+                                suffix="%"
+                                narrow
+                                onDraft={(v) => setDraftMargin(({ [p.id]: _, ...rest }) => (v == null ? rest : { ...rest, [p.id]: v }))}
+                                saving={savingKey === `s-${p.id}` && (margin.isPending || q.isFetching)}
+                                onSave={(v) => {
+                                  setSavingKey(`s-${p.id}`);
+                                  margin.mutate({ productId: p.id, marginPct: v });
+                                }}
+                              />
+                              <span
+                                className={`w-[64px] text-right font-bold tabular-nums ${preview != null ? "text-primary" : ""}`}
+                                title={maxCost == null ? "Set a shop cost first" : preview != null ? `₹${maxCost} cost + ${draftMargin[p.id]}%, not saved yet` : `₹${maxCost} cost + ${p.marginPct ?? "?"}%`}
+                              >
+                                = ₹{preview ?? p.sellingPrice}
+                              </span>
+                            </>
+                          ) : (
+                            <PriceCell
+                              label={`Selling price for ${p.name}`}
+                              value={pincode ? override ?? null : p.sellingPrice}
+                              placeholder={pincode ? `₹${p.sellingPrice}` : undefined}
+                              saving={savingKey === `s-${p.id}` && (sell.isPending || q.isFetching)}
+                              onSave={(v) => {
+                                setSavingKey(`s-${p.id}`);
+                                sell.mutate({ productId: p.id, pincode, price: v });
+                              }}
+                            />
+                          )}
                         </div>
                       </td>
                       {(d?.dealers ?? []).map((s) => (
@@ -213,6 +292,7 @@ export function PricingPage() {
         </section>
         <div className="mt-2 text-[11px] text-muted">
           New orders use the new price at once; already-placed orders keep the price they were placed at. Profit uses the cheapest shop when several stock a product.
+          In % mode the selling price follows the shop cost: highest shop cost plus the margin, rounded up to the rupee, recomputed whenever a cost changes. Typing a ₹ price switches back to fixed.
         </div>
       </div>
     </div>
