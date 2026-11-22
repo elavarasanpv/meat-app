@@ -158,11 +158,21 @@ export class OrdersController {
     const home = order.addresses as unknown as { lat: number | null; lng: number | null } | null;
     if (!key || order.pickup_lat == null || order.pickup_lng == null || home?.lat == null || home?.lng == null) return null;
     try {
-      const url = `https://maps.googleapis.com/maps/api/directions/json?origin=${order.pickup_lat},${order.pickup_lng}&destination=${home.lat},${home.lng}&mode=driving&key=${key}`;
-      const res = (await (await fetch(url)).json()) as { status: string; routes?: { overview_polyline?: { points?: string } }[] };
-      const encoded = res.routes?.[0]?.overview_polyline?.points;
-      if (res.status !== "OK" || !encoded) {
-        console.warn("[route]", res.status);
+      // Routes API (the legacy Directions API is closed to new Google Cloud projects).
+      const res = (await (
+        await fetch("https://routes.googleapis.com/directions/v2:computeRoutes", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-Goog-Api-Key": key, "X-Goog-FieldMask": "routes.polyline.encodedPolyline" },
+          body: JSON.stringify({
+            origin: { location: { latLng: { latitude: order.pickup_lat, longitude: order.pickup_lng } } },
+            destination: { location: { latLng: { latitude: home.lat, longitude: home.lng } } },
+            travelMode: "TWO_WHEELER",
+          }),
+        })
+      ).json()) as { routes?: { polyline?: { encodedPolyline?: string } }[]; error?: { message?: string } };
+      const encoded = res.routes?.[0]?.polyline?.encodedPolyline;
+      if (!encoded) {
+        console.warn("[route]", res.error?.message ?? "no route");
         return null;
       }
       const points = decodePolyline(encoded);
