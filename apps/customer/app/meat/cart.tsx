@@ -9,7 +9,7 @@ import { DeliverTo } from "@/components/DeliverTo";
 import { GlassDock } from "@/components/GlassDock";
 import { Icon } from "@/components/Icon";
 import { useHomePincode } from "@/hooks/useOffers";
-import { useAddresses, usePlaceOrder, useSlots } from "@/hooks/useOrders";
+import { usePlaceOrder, useSelectedAddress, useSlots } from "@/hooks/useOrders";
 import { useLocalName, useT } from "@/i18n";
 import { dayLabel, slotWindow } from "@/lib/format";
 import { cartImage } from "@/lib/images";
@@ -38,12 +38,11 @@ export default function MeatCartScreen() {
   const coupon = useCart((s) => s.coupon);
   const setVertical = useVertical((s) => s.set);
   const bill = useBill(useHomePincode());
-  const addresses = useAddresses();
   const slots = useSlots();
   const place = usePlaceOrder();
   const [error, setError] = useState<string | null>(null);
 
-  const single = addresses.data?.length === 1 ? addresses.data[0] : null;
+  const single = useSelectedAddress();
   const slot = slots.data?.[0];
 
   const back = () => {
@@ -102,13 +101,13 @@ export default function MeatCartScreen() {
               <Icon name="clock" color={c.primary} size={20} />
             </View>
             <View style={{ flex: 1 }}>
-              <AppText variant="bodyBold" numberOfLines={1} style={{ fontSize: 14 }}>
-                {slot ? `${t("gt_arrives")} ${dayLabel(slot.startsAt, { today: t("today"), tomorrow: t("tomorrow") }).toLowerCase()} · ${slotWindow(slot.startsAt, slot.endsAt)}` : t("gt_arrives")}
+              <AppText variant="caption" muted>{t("gt_arrives")} · {items.length === 1 ? t("oneItem") : t("itemsCount", { n: items.length })}</AppText>
+              <AppText variant="bodyBold" style={{ fontSize: 14 }}>
+                {slot ? `${dayLabel(slot.startsAt, { today: t("today"), tomorrow: t("tomorrow") })} · ${slotWindow(slot.startsAt, slot.endsAt)}` : "—"}
               </AppText>
-              <AppText variant="caption" muted numberOfLines={1}>{items.length === 1 ? t("oneItem") : t("itemsCount", { n: items.length })}</AppText>
             </View>
             <Pressable onPress={() => router.push("/checkout")} accessibilityRole="button" style={{ height: 34, paddingHorizontal: 12, borderRadius: 10, backgroundColor: c.tintSoft, borderWidth: 1, borderColor: c.tint, flexDirection: "row", alignItems: "center", gap: 6 }}>
-              <AppText variant="label" color={c.price} numberOfLines={1} style={{ fontSize: 12 }}>{t("changeSlot")}</AppText>
+              <AppText variant="label" color={c.price} style={{ fontSize: 12 }}>{t("changeSlot")}</AppText>
             </Pressable>
           </View>
 

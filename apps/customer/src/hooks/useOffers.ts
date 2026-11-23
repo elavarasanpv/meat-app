@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
-import { useAddresses } from "@/hooks/useOrders";
+import { useSelectedAddress } from "@/hooks/useOrders";
 import type { CartItem } from "@/store/cart";
 
 export type LiveOffer = {
@@ -32,8 +32,7 @@ export type Quote = {
 
 /** Pincode of the customer's default (newest) address, for area-only offers. */
 export function useHomePincode() {
-  const a = useAddresses();
-  return a.data?.[0]?.pincode as string | undefined;
+  return useSelectedAddress()?.pincode ?? undefined;
 }
 
 export function useLiveOffers() {

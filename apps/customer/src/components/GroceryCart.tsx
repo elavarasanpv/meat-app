@@ -92,13 +92,13 @@ export function GroceryCart({ bill, onBack, cta, address }: { bill: ReturnType<t
               <Icon name="clock" color={c.primary} size={20} />
             </View>
             <View style={{ flex: 1 }}>
-              <AppText variant="bodyBold" numberOfLines={1} style={{ fontSize: 14 }}>
-                {slot ? `${t("gt_arrives")} ${dayLabel(slot.startsAt, { today: t("today"), tomorrow: t("tomorrow") }).toLowerCase()} · ${slotWindow(slot.startsAt, slot.endsAt)}` : t("gt_arrives")}
+              <AppText variant="caption" muted>{t("gt_arrives")} · {items.length === 1 ? t("oneItem") : t("itemsCount", { n: items.length })}</AppText>
+              <AppText variant="bodyBold" style={{ fontSize: 14 }}>
+                {slot ? `${dayLabel(slot.startsAt, { today: t("today"), tomorrow: t("tomorrow") })} · ${slotWindow(slot.startsAt, slot.endsAt)}` : "—"}
               </AppText>
-              <AppText variant="caption" muted numberOfLines={1}>{items.length === 1 ? t("oneItem") : t("itemsCount", { n: items.length })}</AppText>
             </View>
             <Pressable onPress={() => router.push("/checkout")} accessibilityRole="button" style={{ height: 34, paddingHorizontal: 12, borderRadius: 10, backgroundColor: GROCERY.accentSoft, borderWidth: 1, borderColor: GROCERY.accent, flexDirection: "row", alignItems: "center", gap: 6 }}>
-              <AppText variant="label" color="#3D2E00" numberOfLines={1} style={{ fontSize: 12 }}>{t("changeSlot")}</AppText>
+              <AppText variant="label" color="#3D2E00" style={{ fontSize: 12 }}>{t("changeSlot")}</AppText>
             </Pressable>
           </View>
 

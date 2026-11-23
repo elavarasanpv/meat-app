@@ -86,6 +86,28 @@ export function StopCard({ o, stop, canReturn, isNext = true }: { o: RiderOrder;
         ) : null}
       </View>
 
+      {/* ordered for someone else: who is at the door, and who placed it */}
+      {contact.data?.orderedBy && !done ? (
+        <View style={{ borderRadius: 14, backgroundColor: c.warningBg, padding: 12, gap: 8 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+            <View style={{ flex: 1 }}>
+              <Txt size={12} muted>{t("receiver")}</Txt>
+              <Txt bold size={15}>{contact.data.name}</Txt>
+              <Txt size={13} muted>{contact.data.phone}</Txt>
+            </View>
+            <Txt bold size={11} color={c.warning}>{t("callFirst")}</Txt>
+          </View>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 10, borderTopWidth: 1, borderTopColor: c.border, paddingTop: 8 }}>
+            <View style={{ flex: 1 }}>
+              <Txt size={12} muted>{t("orderedBy")}</Txt>
+              <Txt bold size={15}>{contact.data.orderedBy.name || t("customer")}</Txt>
+              <Txt size={12} muted>{t("otpWithThem")}</Txt>
+            </View>
+            <Btn label={t("call")} icon="phone" kind="outline" onPress={() => callNumber(contact.data?.orderedBy?.phone)} disabled={!contact.data.orderedBy.phone} />
+          </View>
+        </View>
+      ) : null}
+
       {/* items + amount */}
       <View style={{ borderTopWidth: 1, borderTopColor: c.border, paddingTop: 10, gap: 4 }}>
         {items.map((it) => (
@@ -105,7 +127,7 @@ export function StopCard({ o, stop, canReturn, isNext = true }: { o: RiderOrder;
         <View style={{ gap: 10 }}>
           <View style={{ flexDirection: "row", gap: 10 }}>
             <Btn label={t("navigate")} icon="navigate" kind="soft" onPress={() => navigateTo({ lat: o.addresses?.lat, lng: o.addresses?.lng })} style={{ flex: 1 }} />
-            <Btn label={t("call")} icon="phone" kind="soft" onPress={() => callNumber(contact.data?.phone)} disabled={!contact.data?.phone} style={{ flex: 1 }} />
+            <Btn label={t(contact.data?.orderedBy ? "callReceiver" : "call")} icon="phone" kind="soft" onPress={() => callNumber(contact.data?.phone)} disabled={!contact.data?.phone} style={{ flex: 1 }} />
           </View>
 
           {!isNext && mode !== "reorder" ? (

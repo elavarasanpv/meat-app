@@ -34,7 +34,7 @@ type Detail = {
   createdAt: string;
   readyBy: string | null;
   customer: { name: string | null; phone: string | null };
-  address: { address_text: string; landmark: string | null; pincode: string; lat: number | null; lng: number | null } | null;
+  address: { address_text: string; landmark: string | null; pincode: string; lat: number | null; lng: number | null; receiver_name?: string | null; receiver_phone?: string | null } | null;
   shop: { id: string; name: string; owner: string | null; phone: string | null } | null;
   rider: { id: string; name: string | null; phone: string | null; vehicle: string | null } | null;
   items: { id: string; name: string; unit: string; qty: number; cut: string; size: string | null; unavailable: boolean; price: number }[];
@@ -194,6 +194,11 @@ function OrderDrawer({ id, onClose }: { id: string; onClose: () => void }) {
 
           <div className="grid gap-3 md:grid-cols-2">
             <Person title="Customer" name={o.customer.name} phone={o.customer.phone}>
+              {o.address?.receiver_phone && (
+                <div className="mt-1 text-[12px] font-bold text-ink">
+                  Deliver to: {o.address.receiver_name} · +{o.address.receiver_phone}
+                </div>
+              )}
               {o.address && (
                 <div className="mt-1 text-[12px] text-muted">
                   {o.address.address_text}

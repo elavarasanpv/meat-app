@@ -7,18 +7,24 @@ import * as Location from "expo-location";
 import { AppText } from "@/components/AppText";
 import { Button } from "@/components/Button";
 import { Icon } from "@/components/Icon";
-import { NotServed } from "@/components/NotServed";
 import { MapTypeToggle } from "@/components/MapTypeToggle";
 import { useAddresses, useServiceablePincodes, useUpdateAddressLocation } from "@/hooks/useOrders";
 import { useT } from "@/i18n";
 import { RURAL_MAP_STYLE, type MapKind } from "@/lib/mapStyle";
-import { DEFAULT_CENTER, describePlace, findPlace, usePinDraft, type LatLng, type Place } from "@/lib/pin";
+import { haversineKm } from "@thanjozmart/shared";
+import { DEFAULT_CENTER, describePlace, findPlace, nameFor, NO_PLACE, usePinDraft, zoneFor, type LatLng, type Place } from "@/lib/pin";
 import { fonts, radius, useTheme } from "@/theme";
 
 /** ~1.3 km across: close enough to see lanes, wide enough to recognise the village. */
 const ZOOM: Pick<Region, "latitudeDelta" | "longitudeDelta"> = { latitudeDelta: 0.012, longitudeDelta: 0.012 };
 /** Worse than this, we ask the user to drag the map to their gate. */
 const WEAK_GPS_M = 60;
+/** The map settling within this of the last checked spot is the same spot: no new lookup. */
+const SAME_SPOT_KM = 0.008;
+/** Height of the bottom sheet in its normal state; the map ends here and never resizes. */
+const SHEET_BASE = 172;
+/** The sheet's rounded top overlaps the map by this much; the map keeps its centre and logo clear of it. */
+const SHEET_LIP = 24;
 
 /**
  * Full-screen "Select your location" step (Zepto-style): a big map under a fixed
@@ -54,6 +60,15 @@ export default function SelectLocationScreen() {
   const [accuracy, setAccuracy] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const nameReq = useRef(0);
+  const lastCenter = useRef<LatLng | null>(null);
+
+  // The map reports "settled" for every tiny shift too; only a real move is a new spot to check.
+  function onSettled(p: LatLng) {
+    setMoving(false);
+    if (lastCenter.current && haversineKm(lastCenter.current, p) < SAME_SPOT_KM) return;
+    lastCenter.current = p;
+    setCenter(p);
+  }
 
   const saved = address?.lat != null && address?.lng != null ? { lat: address.lat, lng: address.lng } : null;
   const start = saved ?? (from === "form" && draft ? { lat: draft.lat, lng: draft.lng } : null);
@@ -83,7 +98,7 @@ export default function SelectLocationScreen() {
         const p = await describePlace(center);
         if (req === nameReq.current) setPlace(p);
       } catch {
-        if (req === nameReq.current) setPlace({ title: "", subtitle: "", pincode: null });
+        if (req === nameReq.current) setPlace(NO_PLACE);
       } finally {
         if (req === nameReq.current) setNaming(false);
       }
@@ -132,33 +147,36 @@ export default function SelectLocationScreen() {
   }
 
   async function confirm() {
-    if (!center) return;
+    if (!center || !zone) return;
     if (id) {
       try {
-        await update.mutateAsync({ id, lat: center.lat, lng: center.lng });
+        await update.mutateAsync({ id, lat: center.lat, lng: center.lng, pincode: zone.pincode });
         router.back();
       } catch (e) {
         setError((e as Error).message);
       }
       return;
     }
-    setDraft({ ...center, title: place?.title ?? "", subtitle: place?.subtitle ?? "", pincode: place?.pincode ?? null });
+    setDraft({ ...center, ...shown, pincode: zone.pincode });
     if (from === "form") router.back();
     else router.replace("/address/new");
   }
 
-  const zone = place?.pincode ? served.data?.find((z) => z.pincode === place.pincode) : undefined;
-  const notServed = !!place?.pincode && !!served.data && !zone;
-  const busy = moving || naming;
-  const hint = error
+  // The last checked place stays on screen while the map moves, so the sheet never jumps.
+  const zone = center && place && served.data ? zoneFor(center, place.pincode, served.data) : null;
+  const shown = place ? nameFor(place, zone) : { title: "", subtitle: "" };
+  const busy = moving || naming || (!!center && !place);
+  const notServed = !!place && !!served.data && !zone;
+  const areas = (served.data ?? []).filter((z, i, all) => z.lat != null && z.lng != null && all.findIndex((o) => (o.area ?? o.pincode) === (z.area ?? z.pincode)) === i);
+  const status = error
     ? { text: error, color: c.danger }
-    : accuracy != null && accuracy > WEAK_GPS_M
-      ? { text: t("gpsWeak", { m: accuracy }), color: c.warningText }
-      : accuracy != null
-        ? { text: t("gpsAccuracy", { m: accuracy }), color: c.successText }
+    : served.isError
+      ? { text: t("areaCheckFailed"), color: c.danger }
+      : accuracy != null && accuracy > WEAK_GPS_M
+        ? { text: t("gpsWeak", { m: accuracy }), color: c.warningText }
         : zone
-            ? { text: t("pincodeServed", { area: zone.area ?? zone.pincode }), color: c.successText }
-            : { text: t("deliverHereSub"), color: c.muted };
+          ? { text: t("pincodeServed", { area: zone.area ?? zone.pincode }), color: c.successText }
+          : { text: t("deliverHereSub"), color: c.muted };
 
   const initial = start ?? DEFAULT_CENTER;
 
@@ -198,19 +216,19 @@ export default function SelectLocationScreen() {
       </View>
 
       <View style={{ flex: 1 }}>
+        {/* The map has a fixed size: the sheet below grows over it, so showing a message never moves the map. */}
+        <View style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: SHEET_BASE + insets.bottom - SHEET_LIP }}>
         <MapView
           ref={mapRef}
           provider={Platform.OS === "android" ? PROVIDER_GOOGLE : undefined}
           style={{ flex: 1 }}
+          mapPadding={{ top: 0, left: 0, right: 0, bottom: SHEET_LIP }}
           mapType={kind}
           customMapStyle={kind === "standard" ? RURAL_MAP_STYLE : []}
           initialRegion={{ latitude: initial.lat, longitude: initial.lng, ...ZOOM }}
           onPanDrag={() => setAccuracy(null)}
           onRegionChange={() => setMoving(true)}
-          onRegionChangeComplete={(r) => {
-            setMoving(false);
-            setCenter({ lat: r.latitude, lng: r.longitude });
-          }}
+          onRegionChangeComplete={(r) => onSettled({ lat: r.latitude, lng: r.longitude })}
           showsUserLocation
           showsMyLocationButton={false}
           toolbarEnabled={false}
@@ -219,7 +237,7 @@ export default function SelectLocationScreen() {
         />
 
         {/* Fixed centre pin with the "delivered here" callout; the pin lifts while the map moves */}
-        <View pointerEvents="none" style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0, alignItems: "center", justifyContent: "center" }}>
+        <View pointerEvents="none" style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: SHEET_LIP, alignItems: "center", justifyContent: "center" }}>
           <View style={{ alignItems: "center", marginTop: moving ? -118 : -112 }}>
             <View style={{ paddingHorizontal: 16, paddingVertical: 10, borderRadius: 14, backgroundColor: c.ink, alignItems: "center", maxWidth: 300 }}>
               <AppText variant="bodyBold" color="#FFFFFF" numberOfLines={1} style={{ fontSize: 15 }}>{t("deliverHere")}</AppText>
@@ -238,50 +256,82 @@ export default function SelectLocationScreen() {
           <MapTypeToggle value={kind} onChange={setKind} />
         </View>
 
-        {/* Zoom in / out */}
-        <View style={{ position: "absolute", right: 16, bottom: 84, borderRadius: 14, backgroundColor: c.surface, overflow: "hidden", elevation: 4, shadowColor: "#000", shadowOpacity: 0.15, shadowRadius: 4, shadowOffset: { width: 0, height: 2 } }}>
-          {([1, -1] as const).map((step) => (
+        </View>
+
+        <View pointerEvents="box-none" style={{ position: "absolute", left: 0, right: 0, bottom: 0 }}>
+          {/* Zoom and GPS ride on top of the sheet */}
+          <View pointerEvents="box-none" style={{ alignItems: "flex-end", paddingRight: 16, paddingBottom: 12, gap: 12 }}>
+            <View style={{ borderRadius: 14, backgroundColor: c.surface, overflow: "hidden", elevation: 4, shadowColor: "#000", shadowOpacity: 0.15, shadowRadius: 4, shadowOffset: { width: 0, height: 2 } }}>
+              {([1, -1] as const).map((step) => (
+                <Pressable
+                  key={step}
+                  onPress={() => zoomBy(step)}
+                  accessibilityRole="button"
+                  accessibilityLabel={step === 1 ? "Zoom in" : "Zoom out"}
+                  style={({ pressed }) => ({ width: 48, height: 44, alignItems: "center", justifyContent: "center", backgroundColor: pressed ? c.tint : c.surface, borderTopWidth: step === -1 ? 1 : 0, borderTopColor: c.border })}
+                >
+                  <AppText variant="title" style={{ fontSize: 24, lineHeight: 28 }}>{step === 1 ? "+" : "−"}</AppText>
+                </Pressable>
+              ))}
+            </View>
             <Pressable
-              key={step}
-              onPress={() => zoomBy(step)}
+              onPress={() => useMyLocation(false)}
               accessibilityRole="button"
-              accessibilityLabel={step === 1 ? "Zoom in" : "Zoom out"}
-              style={({ pressed }) => ({ width: 52, height: 48, alignItems: "center", justifyContent: "center", backgroundColor: pressed ? c.tint : c.surface, borderTopWidth: step === -1 ? 1 : 0, borderTopColor: c.border })}
+              accessibilityLabel={t("useMyLocation")}
+              style={({ pressed }) => ({ width: 48, height: 48, borderRadius: 24, backgroundColor: pressed ? c.tint : c.surface, alignItems: "center", justifyContent: "center", elevation: 4, shadowColor: "#000", shadowOpacity: 0.15, shadowRadius: 4, shadowOffset: { width: 0, height: 2 } })}
             >
-              <AppText variant="title" style={{ fontSize: 26, lineHeight: 30 }}>{step === 1 ? "+" : "−"}</AppText>
+              {locating ? <ActivityIndicator size="small" color={c.primary} /> : <Icon name="pin" color={c.primary} size={22} />}
             </Pressable>
-          ))}
-        </View>
-
-        <Pressable
-          onPress={() => useMyLocation(false)}
-          accessibilityRole="button"
-          accessibilityLabel={t("useMyLocation")}
-          style={({ pressed }) => ({ position: "absolute", right: 16, bottom: 16, width: 52, height: 52, borderRadius: 26, backgroundColor: pressed ? c.tint : c.surface, alignItems: "center", justifyContent: "center", elevation: 4, shadowColor: "#000", shadowOpacity: 0.15, shadowRadius: 4, shadowOffset: { width: 0, height: 2 } })}
-        >
-          {locating ? <ActivityIndicator size="small" color={c.primary} /> : <Icon name="pin" color={c.primary} size={24} />}
-        </Pressable>
-      </View>
-
-      {/* What's under the pin + confirm */}
-      <View style={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12 + insets.bottom, gap: 12, backgroundColor: c.surface, borderTopWidth: 1, borderTopColor: c.border }}>
-        <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 12 }}>
-          <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: c.tint, alignItems: "center", justifyContent: "center", marginTop: 2 }}>
-            {busy ? <ActivityIndicator size="small" color={c.primary} /> : <Icon name="pin" color={c.primary} size={20} />}
           </View>
-          <View style={{ flex: 1, minHeight: 44 }}>
-            <AppText variant="title" numberOfLines={1} style={{ fontSize: 18 }}>
-              {busy && !place ? t("locating") : place?.title || t("pinLocation")}
-            </AppText>
-            <AppText variant="caption" muted numberOfLines={2}>{place?.subtitle ?? ""}</AppText>
+
+          {/* What's under the pin + confirm */}
+          <View style={{ minHeight: SHEET_BASE + insets.bottom, paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12 + insets.bottom, gap: 12, backgroundColor: c.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, elevation: 16, shadowColor: "#000", shadowOpacity: 0.12, shadowRadius: 10, shadowOffset: { width: 0, height: -3 } }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+              <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: notServed ? c.warningBg : c.tint, alignItems: "center", justifyContent: "center" }}>
+                {busy ? <ActivityIndicator size="small" color={c.primary} /> : <Icon name="pin" color={notServed ? c.warning : c.primary} size={20} />}
+              </View>
+              <View style={{ flex: 1 }}>
+                <AppText variant="title" style={{ fontSize: 18 }}>
+                  {place ? shown.title || t("pinLocation") : t("locating")}
+                </AppText>
+                {shown.subtitle ? <AppText variant="caption" muted>{shown.subtitle}</AppText> : null}
+              </View>
+            </View>
+
+            {notServed ? (
+              <View style={{ borderRadius: 16, backgroundColor: c.warningBg, padding: 12, gap: 8 }}>
+                <AppText variant="bodyBold" color={c.warningText}>{t("notServedTitle", { place: shown.title || t("thisPlace") })}</AppText>
+                {areas.length > 0 && (
+                  <>
+                    <AppText variant="caption" color={c.warningText} style={{ opacity: 0.85 }}>{t("notServedPick")}</AppText>
+                    <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+                      {areas.slice(0, 8).map((z) => (
+                        <Pressable
+                          key={z.pincode}
+                          onPress={() => {
+                            setAccuracy(null);
+                            goTo({ lat: z.lat!, lng: z.lng! });
+                          }}
+                          accessibilityRole="button"
+                          style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 6, minHeight: 40, paddingHorizontal: 14, borderRadius: 999, backgroundColor: pressed ? c.tint : c.surface, borderWidth: 1, borderColor: c.border })}
+                        >
+                          <Icon name="pin" color={c.success} size={14} />
+                          <AppText variant="bodyBold" style={{ fontSize: 13 }}>{z.area ?? z.pincode}</AppText>
+                        </Pressable>
+                      ))}
+                    </View>
+                  </>
+                )}
+              </View>
+            ) : (
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                {zone && status.color === c.successText ? <Icon name="check" color={c.success} size={16} strokeWidth={2.6} /> : null}
+                <AppText variant="caption" color={status.color} style={{ flex: 1 }}>{status.text}</AppText>
+              </View>
+            )}
+            <Button label={t("confirmLocation")} onPress={confirm} disabled={busy || !zone} loading={update.isPending} />
           </View>
         </View>
-        {notServed && !busy ? (
-          <NotServed place={place?.title || place?.pincode || ""} compact />
-        ) : (
-          <AppText variant="caption" color={hint.color} numberOfLines={2} style={{ height: 34 }}>{hint.text}</AppText>
-        )}
-        <Button label={t("confirmLocation")} onPress={confirm} disabled={!center || moving || notServed} loading={update.isPending} />
       </View>
     </SafeAreaView>
   );

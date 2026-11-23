@@ -6,7 +6,7 @@ import { AppText } from "@/components/AppText";
 import { useBill } from "@/components/BillSummary";
 import { GroceryCart } from "@/components/GroceryCart";
 import { useHomePincode } from "@/hooks/useOffers";
-import { useAddresses, usePlaceGroceryOrder, useSlots } from "@/hooks/useOrders";
+import { usePlaceGroceryOrder, useSelectedAddress, useSlots } from "@/hooks/useOrders";
 import { useT } from "@/i18n";
 import { errorMessage } from "@/lib/network";
 import { useCart } from "@/store/cart";
@@ -26,7 +26,6 @@ export default function GroceryCartScreen() {
   const router = useRouter();
   const pincode = useHomePincode();
   const bill = useBill(pincode);
-  const addresses = useAddresses();
   const slots = useSlots();
   const items = useCart((s) => s.items);
   const clearCart = useCart((s) => s.clear);
@@ -34,7 +33,7 @@ export default function GroceryCartScreen() {
   const place = usePlaceGroceryOrder();
   const [error, setError] = useState<string | null>(null);
 
-  const single = addresses.data?.length === 1 ? addresses.data[0] : null;
+  const single = useSelectedAddress();
   const slot = slots.data?.[0];
 
   const back = () => {

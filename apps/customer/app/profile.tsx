@@ -7,7 +7,7 @@ import { AppText } from "@/components/AppText";
 import { Button } from "@/components/Button";
 import { Icon, type IconName } from "@/components/Icon";
 import { LangToggle } from "@/components/LangToggle";
-import { useAddresses } from "@/hooks/useOrders";
+import { useSelectedAddress } from "@/hooks/useOrders";
 import { useProfile, useUpdateName } from "@/hooks/useProfile";
 import { useWallet } from "@/hooks/useSupport";
 import { useAuth } from "@/store/auth";
@@ -30,7 +30,7 @@ export default function ProfileScreen() {
   const profile = useProfile();
   const saveName = useUpdateName();
   const wallet = useWallet();
-  const address = useAddresses().data?.[0];
+  const address = useSelectedAddress();
   const [draft, setDraft] = useState<string | null>(null); // null = not editing
 
   // Android's back key hides the keyboard without blurring the input, so close on hide too.

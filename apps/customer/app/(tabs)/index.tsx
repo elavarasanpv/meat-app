@@ -18,7 +18,7 @@ const GROCERY_DOODLE = require("@thanjozmart/assets/images/doodle-grocery.png");
 import { offerTag, useOfferForProduct } from "@/hooks/useOffers";
 import { ErrorState, ProductGridSkeleton, Skeleton } from "@/components/States";
 import { byPopularity, useCategories, useProductStats, useProducts, useSubcategories, type Subcategory } from "@/hooks/useCatalog";
-import { useAddresses } from "@/hooks/useOrders";
+import { useSelectedAddress } from "@/hooks/useOrders";
 import { useGroceryLive } from "@/hooks/useGrocery";
 import { GroceryHome } from "@/components/GroceryHome";
 import { useVertical } from "@/store/vertical";
@@ -66,8 +66,8 @@ export default function HomeScreen() {
   const { width: screenWidth } = useWindowDimensions();
   const cardWidth = Math.floor((screenWidth - 40 - GAP) / 2);
   const t = useT();
-  // Newest saved address — the same one checkout picks by default. Tapping it opens its edit page.
-  const address = useAddresses().data?.[0];
+  // The chosen delivery address (newest saved until one is picked). Tapping it opens its edit page.
+  const address = useSelectedAddress();
   const hasCart = useCart((s) => s.items.length > 0);
   const addressLine = address ? `${address.label} · ${address.landmark || address.address_text}` : t("setAddress");
   const openAddress = () => router.push(address ? { pathname: "/address/new", params: { id: address.id } } : "/address/location");

@@ -21,7 +21,7 @@ const RIDER_ACTIVE = ["RIDER_ASSIGNED", "PICKED_UP", "OUT_FOR_DELIVERY", "DELIVE
 
 const ORDER_SELECT =
   "id, display_id, status, est_amount, final_amount, payment_mode, rider_fee, created_at, pickup_lat, pickup_lng, arrived_at, " +
-  "dealers(shop_name, lat, lng), addresses(label, address_text, landmark, lat, lng), " +
+  "dealers(shop_name, lat, lng), addresses(label, address_text, landmark, lat, lng, receiver_name), " +
   "delivery_slots(starts_at, ends_at), order_items(id, requested_kg, size, notes, unavailable, products(name, name_ta, unit), master_products(name, name_ta, unit))";
 
 /** Grocery lines carry master_products; present them as products for the app. */
@@ -379,14 +379,22 @@ export class RiderService {
     return { returned: true };
   }
 
-  /** Who to call for this order. Today the real number; later a masked one — same endpoint. */
+  /**
+   * Who to call for this order. name/phone is the person at the door: the
+   * receiver the customer named on the address, else the customer. When they
+   * differ, orderedBy is the customer who placed (and holds the OTP for) the order.
+   * Today the real numbers; later masked ones — same endpoint.
+   */
   async contact(profileId: string, orderId: string) {
     const rider = await this.resolveRider(profileId);
     const db = this.supabase.admin;
-    const { data: order } = await db.from("orders").select("id, rider_id, customer_id").eq("id", orderId).maybeSingle();
+    const { data: order } = await db.from("orders").select("id, rider_id, customer_id, addresses(receiver_name, receiver_phone)").eq("id", orderId).maybeSingle();
     if (!order || order.rider_id !== rider.id) throw new ForbiddenException("Not your order");
     const { data: profile } = await db.from("profiles").select("phone, full_name").eq("id", order.customer_id).single();
-    return { name: profile?.full_name ?? null, phone: profile?.phone ? `+${profile.phone}` : null };
+    const customer = { name: profile?.full_name ?? null, phone: profile?.phone ? `+${profile.phone}` : null };
+    const a = order.addresses as unknown as { receiver_name: string | null; receiver_phone: string | null } | null;
+    if (!a?.receiver_phone || a.receiver_phone === profile?.phone) return { ...customer, orderedBy: null };
+    return { name: a.receiver_name, phone: `+${a.receiver_phone}`, orderedBy: customer };
   }
 
   /** Today's numbers for the rider's Home. */

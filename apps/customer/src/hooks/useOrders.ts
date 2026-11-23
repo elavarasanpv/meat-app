@@ -3,12 +3,16 @@ import type { OrderStatus } from "@thanjozmart/shared";
 import { api } from "@/lib/api";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/store/auth";
+import { useChosenAddress } from "@/store/address";
 
 export type Address = {
   id: string;
   label: string;
   address_text: string;
   landmark: string | null;
+  /** Set when someone else receives the delivery (91XXXXXXXXXX); null = the customer. */
+  receiver_name: string | null;
+  receiver_phone: string | null;
   pincode: string;
   lat: number | null;
   lng: number | null;
@@ -73,7 +77,7 @@ export function useAddresses() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("addresses")
-        .select("id, label, address_text, landmark, pincode, lat, lng")
+        .select("id, label, address_text, landmark, pincode, lat, lng, receiver_name, receiver_phone")
         .is("archived_at", null)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -82,11 +86,18 @@ export function useAddresses() {
   });
 }
 
+/** The address we deliver to: the one the customer picked, else the newest saved. */
+export function useSelectedAddress(): Address | null {
+  const list = useAddresses().data ?? [];
+  const id = useChosenAddress((s) => s.id);
+  return list.find((a) => a.id === id) ?? list[0] ?? null;
+}
+
 export function useAddAddress() {
   const qc = useQueryClient();
   const userId = useAuth((s) => s.session?.user.id);
   return useMutation({
-    mutationFn: async (input: { label: string; address_text: string; landmark?: string; pincode: string; lat?: number; lng?: number }) => {
+    mutationFn: async (input: AddressInput) => {
       const { data, error } = await supabase
         .from("addresses")
         .insert({ ...input, user_id: userId })
@@ -95,7 +106,11 @@ export function useAddAddress() {
       if (error) throw error;
       return data as { id: string };
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["addresses"] }),
+    // A new address is the one the customer means to use next.
+    onSuccess: (data) => {
+      useChosenAddress.getState().set(data.id);
+      return qc.invalidateQueries({ queryKey: ["addresses"] });
+    },
   });
 }
 
@@ -114,7 +129,7 @@ export function useServiceablePincodes() {
   });
 }
 
-export type AddressInput = { label: string; address_text: string; landmark?: string; pincode: string; lat?: number; lng?: number };
+export type AddressInput = { label: string; address_text: string; landmark?: string; pincode: string; lat?: number; lng?: number; receiver_name: string | null; receiver_phone: string | null };
 
 export function useUpdateAddress() {
   const qc = useQueryClient();
@@ -142,8 +157,8 @@ export function useDeleteAddress() {
 export function useUpdateAddressLocation() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, lat, lng }: { id: string; lat: number; lng: number }) => {
-      const { error } = await supabase.from("addresses").update({ lat, lng }).eq("id", id);
+    mutationFn: async ({ id, lat, lng, pincode }: { id: string; lat: number; lng: number; pincode?: string }) => {
+      const { error } = await supabase.from("addresses").update(pincode ? { lat, lng, pincode } : { lat, lng }).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["addresses"] }),

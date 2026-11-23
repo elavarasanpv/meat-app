@@ -23,7 +23,7 @@ export function DeliverTo({ address, onChange, color }: { address: Address | nul
         {address ? (
           <>
             <AppText variant="body" numberOfLines={1} style={{ fontSize: 14 }}>
-              {t("deliveringTo")} <AppText variant="bodyBold" style={{ fontSize: 14 }}>{address.label}</AppText>
+              {t("deliveringTo")} <AppText variant="bodyBold" style={{ fontSize: 14 }}>{address.receiver_name || address.label}</AppText>
             </AppText>
             <AppText variant="caption" muted numberOfLines={1}>{[address.landmark, address.address_text].filter(Boolean).join(", ")}</AppText>
           </>

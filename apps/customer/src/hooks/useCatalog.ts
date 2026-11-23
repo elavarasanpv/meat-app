@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import { useAddresses } from "./useOrders";
+import { useSelectedAddress } from "./useOrders";
 
 export type Category = { id: string; name: string; name_ta: string | null; sort: number };
 export type ProductUnit = "kg" | "piece";
@@ -60,7 +60,7 @@ export function useCategories() {
  * area differently; everywhere else sees the default product price.
  */
 export function useSellPrices() {
-  const pincode = useAddresses().data?.[0]?.pincode;
+  const pincode = useSelectedAddress()?.pincode;
   return useQuery({
     queryKey: ["sell_prices", pincode ?? "none"],
     enabled: !!pincode,

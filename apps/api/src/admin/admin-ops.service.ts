@@ -276,7 +276,7 @@ export class AdminOpsService {
     const { data: o, error } = await db
       .from("orders")
       .select(
-        "id, display_id, status, payment_mode, payment_status, est_amount, final_amount, cancel_reason, created_at, ready_by, dealer_id, rider_id, profiles!orders_customer_id_fkey(full_name, phone), addresses(address_text, landmark, pincode, lat, lng), dealers(id, shop_name, profiles(full_name, phone)), delivery_partners(id, vehicle, profiles(full_name, phone)), order_items(id, requested_kg, cut, size, unavailable, unit_price_per_kg, products(name, unit), master_products(name, unit))",
+        "id, display_id, status, payment_mode, payment_status, est_amount, final_amount, cancel_reason, created_at, ready_by, dealer_id, rider_id, profiles!orders_customer_id_fkey(full_name, phone), addresses(address_text, landmark, pincode, lat, lng, receiver_name, receiver_phone), dealers(id, shop_name, profiles(full_name, phone)), delivery_partners(id, vehicle, profiles(full_name, phone)), order_items(id, requested_kg, cut, size, unavailable, unit_price_per_kg, products(name, unit), master_products(name, unit))",
       )
       .eq("id", id)
       .maybeSingle();

@@ -97,13 +97,13 @@ export function CouponCard({ quote, quoting }: { quote: Quote | undefined; quoti
               placeholder={t("cpPlaceholder")}
               placeholderTextColor={c.muted}
               onSubmitEditing={() => typing.length >= 3 && apply(typing)}
-              style={{ flex: 1, height: 46, color: c.ink, fontFamily: fonts.bodyBold, fontSize: 15, letterSpacing: 1 }}
+              style={{ flex: 1, height: 46, paddingVertical: 0, color: c.ink, fontFamily: typing ? fonts.bodyBold : fonts.body, fontSize: typing ? 15 : 14, letterSpacing: typing ? 1 : 0 }}
             />
           </View>
           <Pressable
             disabled={typing.length < 3}
             onPress={() => apply(typing)}
-            style={({ pressed }) => ({ height: 46, paddingHorizontal: 18, borderRadius: radius.input, backgroundColor: typing.length < 3 ? c.surface2 : pressed ? c.primaryPressed : c.primary, justifyContent: "center" })}
+            style={({ pressed }) => ({ height: 46, paddingHorizontal: 14, borderRadius: radius.input, backgroundColor: typing.length < 3 ? c.surface2 : pressed ? c.primaryPressed : c.primary, justifyContent: "center" })}
           >
             <AppText variant="label" color={typing.length < 3 ? c.muted : "#FFFFFF"} style={{ fontSize: 14 }}>{t("cpApply")}</AppText>
           </Pressable>

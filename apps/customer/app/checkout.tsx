@@ -7,7 +7,8 @@ import { Button } from "@/components/Button";
 import { ConfirmSheet } from "@/components/ConfirmSheet";
 import { Icon } from "@/components/Icon";
 import { ErrorState, Skeleton } from "@/components/States";
-import { useAddresses, useDeleteAddress, usePlaceGroceryOrder, usePlaceOrder, useSlots, type Slot } from "@/hooks/useOrders";
+import { useAddresses, useDeleteAddress, usePlaceGroceryOrder, usePlaceOrder, useSelectedAddress, useSlots, type Slot } from "@/hooks/useOrders";
+import { useChosenAddress } from "@/store/address";
 import { useT } from "@/i18n";
 import { errorMessage, queryState } from "@/lib/network";
 import { cartVertical, useCart } from "@/store/cart";
@@ -31,17 +32,13 @@ export default function CheckoutScreen() {
   const placeGrocery = usePlaceGroceryOrder();
   const vertical = cartVertical(items);
 
-  const [addressId, setAddressId] = useState<string | null>(null);
+  // Starts on the chosen delivery address; picking another one here changes it everywhere.
+  const chosen = useSelectedAddress();
+  const addressId = chosen?.id ?? null;
+  const setAddressId = useChosenAddress((s) => s.set);
   const [slot, setSlot] = useState<Slot | null>(null);
   const [payment, setPayment] = useState<Payment>("cod");
   const [error, setError] = useState<string | null>(null);
-
-  // Default to the newest address / first slot once loaded
-  useEffect(() => {
-    const list = addresses.data ?? [];
-    if (list.length === 0) return setAddressId(null);
-    if (!addressId || !list.some((a) => a.id === addressId)) setAddressId(list[0].id);
-  }, [addresses.data]);
 
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const confirmDelete = (id: string) => setDeleteId(id);
@@ -141,6 +138,7 @@ export default function CheckoutScreen() {
                   <View style={{ flex: 1 }}>
                     <AppText variant="bodyBold" numberOfLines={1}>{a.label} · {a.pincode}</AppText>
                     <AppText variant="caption" muted numberOfLines={2}>{a.address_text}{a.landmark ? ` · ${a.landmark}` : ""}</AppText>
+                    {a.receiver_phone ? <AppText variant="caption" style={{ marginTop: 2 }}>{t("deliverToPerson")}: {a.receiver_name} · +91 {a.receiver_phone.replace(/^91/, "")}</AppText> : null}
                     {a.lat != null && a.lng != null ? (
                       <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 4 }}>
                         <Icon name="pin" color={c.successText} size={12} strokeWidth={2.6} />

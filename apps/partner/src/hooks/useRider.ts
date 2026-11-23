@@ -26,7 +26,7 @@ export type RiderOrder = {
   created_at: string;
   arrived_at: string | null;
   dealers: { shop_name: string; lat: number | null; lng: number | null } | null;
-  addresses: { label: string | null; address_text: string; landmark: string | null; lat: number | null; lng: number | null } | null;
+  addresses: { label: string | null; address_text: string; landmark: string | null; lat: number | null; lng: number | null; receiver_name?: string | null } | null;
   delivery_slots: { starts_at: string; ends_at: string } | null;
   order_items: RiderOrderItem[];
   /** Offers only: straight-line km from the rider to the shop and shop to the customer. */
@@ -164,9 +164,13 @@ export function useReturn() {
   });
 }
 
-/** Phone to call for an order — via the server so it can be masked later. */
+/**
+ * Who to call for an order — via the server so it can be masked later.
+ * name/phone is the person at the door; orderedBy is set when someone else placed the order.
+ */
+export type Contact = { name: string | null; phone: string | null; orderedBy?: { name: string | null; phone: string | null } | null };
 export function useContact(orderId: string | undefined) {
-  return useQuery<{ name: string | null; phone: string | null }>({
+  return useQuery<Contact>({
     queryKey: ["rider", "contact", orderId],
     enabled: !!orderId,
     staleTime: 10 * 60_000,
