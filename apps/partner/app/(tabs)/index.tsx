@@ -5,7 +5,7 @@ import { Header } from "@/components/Header";
 import { usePullRefresh } from "@/hooks/usePullRefresh";
 import { Icon, type IconName } from "@/components/Icon";
 import { OrderCard } from "@/components/OrderCard";
-import { useDealerMe, useDealerOrders, useShopState, useSummary } from "@/hooks/useDealer";
+import { byUrgency, useDealerMe, useDealerOrders, useShopState, useSummary } from "@/hooks/useDealer";
 import { readyState } from "@/components/ReadyBy";
 import { useT, type TKey } from "@/i18n";
 import { Txt, useC } from "@/ui";
@@ -31,9 +31,9 @@ export default function HomeScreen() {
   }, [me.data?.is_open]);
 
   const s = summary.data;
-  // Most urgent first: a new offer, then anything being prepared, then ready.
-  const rank: Record<string, number> = { DEALER_ASSIGNED: 0, ACCEPTED: 1, PACKING: 2, PACKED: 3, RIDER_ASSIGNED: 4 };
-  const latest = [...(orders.data ?? [])].sort((a, b) => rank[a.status] - rank[b.status])[0];
+  // The order to act on first (the answer window closing soonest), and how many more new ones wait behind it.
+  const latest = [...(orders.data ?? [])].sort(byUrgency)[0];
+  const moreNew = latest?.status === "DEALER_ASSIGNED" ? (orders.data ?? []).filter((o) => o.status === "DEALER_ASSIGNED").length - 1 : 0;
   // Orders past their promised ready time (refreshed with the 15 s poll).
   const lateCount = (orders.data ?? []).filter((o) => o.ready_by && (o.status === "ACCEPTED" || o.status === "PACKING") && readyState(o.ready_by, Date.now()).phase === "late").length;
 
@@ -97,7 +97,7 @@ export default function HomeScreen() {
 
         {/* Latest order */}
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 4 }}>
-          <Txt bold size={17}>{t("latestOrder")}</Txt>
+          <Txt bold size={17}>{t(latest?.status === "DEALER_ASSIGNED" ? "answerFirst" : "latestOrder")}</Txt>
           {latest ? (
             <Pressable onPress={() => router.push("/(tabs)/orders")} style={{ flexDirection: "row", alignItems: "center", gap: 2 }}>
               <Txt bold size={13} color={c.primary}>{t("viewAll")}</Txt>
@@ -106,7 +106,19 @@ export default function HomeScreen() {
           ) : null}
         </View>
         {latest ? (
-          <OrderCard o={latest} />
+          <>
+            <OrderCard o={latest} />
+            {moreNew > 0 ? (
+              <Pressable
+                onPress={() => router.push({ pathname: "/(tabs)/orders", params: { seg: "new", at: String(Date.now()) } })}
+                style={{ padding: 14, borderRadius: 18, backgroundColor: c.tint, flexDirection: "row", alignItems: "center", gap: 10 }}
+              >
+                <Icon name="inbox" color={c.primary} size={20} />
+                <Txt bold size={15} color={c.primary} style={{ flex: 1 }}>{t(moreNew === 1 ? "moreNewOne" : "moreNewN").replace("{n}", String(moreNew))}</Txt>
+                <Icon name="chevronRight" color={c.primary} size={18} />
+              </Pressable>
+            ) : null}
+          </>
         ) : (
           <View style={{ padding: 28, borderRadius: 22, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, alignItems: "center", gap: 8 }}>
             <Icon name="bell" color={c.muted} size={28} />

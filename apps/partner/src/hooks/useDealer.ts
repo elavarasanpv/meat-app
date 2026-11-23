@@ -38,6 +38,22 @@ export type DealerOrder = {
   order_items: DealerOrderItem[];
 };
 
+const STAGE: Record<DealerOrder["status"], number> = { DEALER_ASSIGNED: 0, ACCEPTED: 1, PACKING: 2, PACKED: 3, RIDER_ASSIGNED: 4 };
+const ms = (s: string | null | undefined) => (s ? new Date(s).getTime() : Infinity);
+
+/**
+ * Most urgent first: new offers before work in hand before ready; among new
+ * ones the answer window that closes soonest, among the rest the earliest
+ * promised ready time, then the oldest order.
+ */
+export function byUrgency(a: DealerOrder, b: DealerOrder) {
+  return (
+    STAGE[a.status] - STAGE[b.status] ||
+    (a.status === "DEALER_ASSIGNED" ? ms(a.accept_deadline) - ms(b.accept_deadline) : ms(a.ready_by) - ms(b.ready_by)) ||
+    ms(a.created_at) - ms(b.created_at)
+  );
+}
+
 export function useDealerMe() {
   return useQuery<DealerMe>({ queryKey: ["dealer", "me"], queryFn: () => api("/dealer/me"), retry: false });
 }

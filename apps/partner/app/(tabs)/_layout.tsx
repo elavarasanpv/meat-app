@@ -3,6 +3,7 @@ import { Tabs } from "expo-router";
 import { TabBar } from "@/components/TabBar";
 import { ScaleCamera } from "@/components/ScaleCamera";
 import { OfflineBanner } from "@/components/OfflineBanner";
+import { AlertsOffBanner } from "@/components/AlertsOffBanner";
 import { useDealerMe, useDealerRealtime, useSummary } from "@/hooks/useDealer";
 import { usePush } from "@/hooks/usePush";
 import { playOrderAlert } from "@/lib/sounds";
@@ -31,6 +32,7 @@ export default function TabsLayout() {
       <Tabs.Screen name="account" />
     </Tabs>
     <OfflineBanner />
+    <AlertsOffBanner role="dealer" />
     <ScaleCamera />
     </>
   );

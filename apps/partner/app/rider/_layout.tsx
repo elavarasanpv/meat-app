@@ -1,6 +1,7 @@
 import { Tabs } from "expo-router";
 import { TabBar } from "@/components/TabBar";
 import { OfflineBanner } from "@/components/OfflineBanner";
+import { AlertsOffBanner } from "@/components/AlertsOffBanner";
 import { OfferSheet } from "@/components/OfferSheet";
 import { useRiderMe, useRiderRealtime, useTasks } from "@/hooks/useRider";
 import { useRiderGps } from "@/hooks/useRiderGps";
@@ -30,6 +31,7 @@ export default function RiderLayout() {
       </Tabs>
       <OfflineBanner />
       <GpsHint mode={gps} />
+      <AlertsOffBanner role="rider" />
       <OfferSheet />
       <ScaleCamera />
     </>

@@ -5,7 +5,7 @@ import { Header } from "@/components/Header";
 import { usePullRefresh } from "@/hooks/usePullRefresh";
 import { Icon } from "@/components/Icon";
 import { OrderCard } from "@/components/OrderCard";
-import { useDealerMe, useDealerOrders, type DealerOrder } from "@/hooks/useDealer";
+import { byUrgency, useDealerMe, useDealerOrders, type DealerOrder } from "@/hooks/useDealer";
 import { useT, type TKey } from "@/i18n";
 import { Txt, useC } from "@/ui";
 
@@ -32,7 +32,7 @@ export default function OrdersScreen() {
 
   const all = orders.data ?? [];
   const countOf = (s: Seg) => all.filter((o) => SEGMENTS.find((x) => x.key === s)!.statuses.includes(o.status)).length;
-  const list = all.filter((o) => SEGMENTS.find((x) => x.key === seg)!.statuses.includes(o.status));
+  const list = all.filter((o) => SEGMENTS.find((x) => x.key === seg)!.statuses.includes(o.status)).sort(byUrgency);
 
   return (
     <View style={{ flex: 1 }}>
