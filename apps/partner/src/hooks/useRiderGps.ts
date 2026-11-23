@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { AppState } from "react-native";
 import { startGps, stopGps } from "@/lib/riderGps";
 import { useT } from "@/i18n";
 
@@ -10,6 +11,12 @@ import { useT } from "@/i18n";
 export function useRiderGps(online: boolean | undefined, onTrip: boolean) {
   const t = useT();
   const [mode, setMode] = useState<"background" | "foreground" | "denied" | "off">("off");
+  // Coming back to the app (e.g. from Settings) re-checks, so the strip goes once location is allowed.
+  const [back, setBack] = useState(0);
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", (s) => s === "active" && setBack((n) => n + 1));
+    return () => sub.remove();
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -30,7 +37,7 @@ export function useRiderGps(online: boolean | undefined, onTrip: boolean) {
     return () => {
       cancelled = true;
     };
-  }, [online, onTrip]);
+  }, [online, onTrip, back]);
 
   return mode;
 }

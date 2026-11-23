@@ -1,3 +1,4 @@
+import { Linking } from "react-native";
 import { Alert } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Location from "expo-location";
@@ -163,6 +164,26 @@ async function doStart(onTrip: boolean, text: { title: string; body: string; not
   } catch {
     return "foreground"; // Expo Go: background updates aren't available
   }
+}
+
+/**
+ * The rider tapped the location strip. Ask Android again; when it won't ask any
+ * more, open this app's settings page. On Android 11+ the background request
+ * itself opens the page with "Allow all the time".
+ */
+export async function fixLocationAccess(mode: "foreground" | "denied") {
+  try {
+    if (mode === "denied") {
+      const fg = await Location.requestForegroundPermissionsAsync();
+      if (fg.status === "granted") return;
+    } else {
+      const bg = await Location.requestBackgroundPermissionsAsync();
+      if (bg.status === "granted") return;
+    }
+  } catch {
+    // fall through to Settings
+  }
+  await Linking.openSettings().catch(() => {});
 }
 
 function stopWatcher() {
