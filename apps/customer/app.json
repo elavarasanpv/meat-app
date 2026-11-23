@@ -8,6 +8,7 @@
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "platforms": [
+      "ios",
       "android",
       "web"
     ],
@@ -90,6 +91,17 @@
     },
     "web": {
       "favicon": "./assets/brand/favicon.png"
+    },
+    "ios": {
+      "bundleIdentifier": "com.thanjozmart.customer",
+      "supportsTablet": false,
+      "config": {
+        "usesNonExemptEncryption": false
+      },
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Thanjoz Mart uses your location to pin your delivery address and show shops that deliver to you.",
+        "NSMicrophoneUsageDescription": "Thanjoz Mart uses the microphone when you search by voice."
+      }
     }
   }
 }

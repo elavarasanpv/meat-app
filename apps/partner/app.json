@@ -8,6 +8,7 @@
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "platforms": [
+      "ios",
       "android",
       "web"
     ],
@@ -99,6 +100,21 @@
     },
     "web": {
       "favicon": "./assets/brand/favicon.png"
+    },
+    "ios": {
+      "bundleIdentifier": "com.thanjozmart.partner",
+      "supportsTablet": false,
+      "config": {
+        "usesNonExemptEncryption": false
+      },
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Thanjoz Mart Partner shares your location during deliveries so customers can track their order.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Allow location all the time so customers can track their order even when the screen is off or you are in Maps.",
+        "UIBackgroundModes": [
+          "location"
+        ],
+        "NSCameraUsageDescription": "Thanjoz Mart Partner uses the camera to photograph each packed item on the scale."
+      }
     }
   }
 }
