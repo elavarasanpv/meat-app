@@ -346,8 +346,8 @@ export default function OrderDetailScreen() {
                 );
               })}
               <View style={{ height: 1, backgroundColor: c.border }} />
-              <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-                <AppText variant="bodyBold">{t("toPay")} · {t(o.payment_mode === "cod" ? "payCod" : "payUpi")}</AppText>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+                <AppText variant="bodyBold" style={{ flex: 1 }}>{t("toPay")} · {t(o.payment_mode === "cod" ? "payCod" : "payUpi")}</AppText>
                 <AppText variant="price" color={c.price} style={{ fontSize: 20, lineHeight: 25 }}>₹ {Number(o.final_amount ?? o.est_amount)}</AppText>
               </View>
             </View>

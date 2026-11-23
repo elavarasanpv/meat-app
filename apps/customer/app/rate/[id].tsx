@@ -15,7 +15,8 @@ import { fonts, radius, useTheme } from "@/theme";
 
 const SCOOTER = require("@thanjozmart/assets/images/rate-scooter.png");
 const THANKS = require("@thanjozmart/assets/images/rate-thanks.png");
-const LOGO = require("@thanjozmart/assets/images/icon-for-you.png");
+// The app's own icon, full-bleed: this card rates the app itself.
+const LOGO = require("../../assets/brand/icon.png");
 
 /** Chips offered under the delivery stars: praise for 4–5, what went wrong for 1–3. */
 const GOOD = ["fast", "polite", "packaging", "careful"] as const;
@@ -195,9 +196,7 @@ export default function RateOrderScreen() {
           {o ? (
             <View style={card}>
               <View style={row}>
-                <View style={{ width: 48, height: 48, borderRadius: 14, backgroundColor: c.tint, alignItems: "center", justifyContent: "center" }}>
-                  <Image source={LOGO} resizeMode="contain" style={{ width: 30, height: 30 }} />
-                </View>
+                <Image source={LOGO} resizeMode="cover" style={{ width: 48, height: 48, borderRadius: 14 }} />
                 <View style={{ flex: 1, gap: 6 }}>
                   <AppText variant="subtitle" numberOfLines={1}>{t("rateAppCard")}</AppText>
                   <StarPicker value={appStars} onChange={setAppStars} size={28} />

@@ -50,8 +50,8 @@ export function DeliveredHero({ displayId, placedAt, history, slotStart, slotEnd
     <View style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 14, backgroundColor: "rgba(255,255,255,0.16)" }}>
       <Icon name={icon} color={tone} size={15} strokeWidth={2.8} />
       <View style={{ flex: 1 }}>
-        <AppText variant="caption" color="rgba(255,255,255,0.72)" numberOfLines={1} style={{ fontSize: 11 }}>{label}</AppText>
-        <AppText variant="bodyBold" color={tone} numberOfLines={1} style={{ fontSize: 13 }}>{value}</AppText>
+        <AppText variant="caption" color="rgba(255,255,255,0.72)" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={{ fontSize: 11 }}>{label}</AppText>
+        <AppText variant="bodyBold" color={tone} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={{ fontSize: 13 }}>{value}</AppText>
       </View>
     </View>
   );

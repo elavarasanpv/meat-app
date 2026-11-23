@@ -29,8 +29,8 @@ export function DeliveredCard({ orderId, hasRider }: { orderId: string; hasRider
         {r ? (
           <Pressable onPress={() => openRate()} accessibilityRole="button" style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
             <View style={{ flex: 1, gap: 2 }}>
-              <AppText variant="subtitle" numberOfLines={1}>{t("youRated")}</AppText>
-              {hasRider && rider.data?.name ? <AppText variant="caption" muted numberOfLines={1}>{t("deliveredBy", { name: rider.data.name })}</AppText> : null}
+              <AppText variant="subtitle">{t("youRated")}</AppText>
+              {hasRider && rider.data?.name ? <AppText variant="caption" muted>{t("deliveredBy", { name: rider.data.name })}</AppText> : null}
             </View>
             <View style={{ flexDirection: "row", gap: 2 }}>
               {[1, 2, 3, 4, 5].map((n) => (
@@ -43,13 +43,13 @@ export function DeliveredCard({ orderId, hasRider }: { orderId: string; hasRider
           <>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
               <View style={{ flex: 1, gap: 2 }}>
-                <AppText variant="subtitle" numberOfLines={1}>{t("howWasDelivery")}</AppText>
-                {hasRider && rider.data?.name ? <AppText variant="caption" muted numberOfLines={1}>{t("deliveredBy", { name: rider.data.name })}</AppText> : null}
+                <AppText variant="subtitle">{t("howWasDelivery")}</AppText>
+                {hasRider && rider.data?.name ? <AppText variant="caption" muted>{t("deliveredBy", { name: rider.data.name })}</AppText> : null}
               </View>
               <StarPicker value={0} onChange={(n) => openRate(n)} size={30} />
             </View>
             <Pressable onPress={() => openRate()} accessibilityRole="button" style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 2 }}>
-              <AppText variant="label" color={c.price} numberOfLines={1}>{t("rateItemsLink")}</AppText>
+              <AppText variant="label" color={c.price} style={{ flexShrink: 1 }}>{t("rateItemsLink")}</AppText>
               <View style={{ transform: [{ rotate: "180deg" }] }}>
                 <Icon name="back" color={c.price} size={14} strokeWidth={2.6} />
               </View>
