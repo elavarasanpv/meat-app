@@ -109,7 +109,7 @@ export function OrderCard({ o, compact }: { o: DealerOrder; compact?: boolean })
       <View style={{ gap: 8, borderTopWidth: 1, borderTopColor: c.border, paddingTop: 10 }}>
         {compact ? null : items.map((it) => <ItemRow key={it.id} it={it} />)}
         <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-          <Txt size={13} muted>{items.length} {t("items")}</Txt>
+          <Txt size={13} muted>{items.length} {t(items.length === 1 ? "item" : "items")}</Txt>
           <Txt bold size={16} color={c.primary}>{t("yourAmount")} ₹{shopTotal}</Txt>
         </View>
       </View>

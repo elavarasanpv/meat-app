@@ -70,7 +70,7 @@ export default function TasksScreen() {
                   <View key={o.id} style={{ flexDirection: "row", alignItems: "center", gap: 10, padding: 10, borderRadius: 14, backgroundColor: on ? c.tintSoft : c.surface2 }}>
                     <Icon name="box" color={on ? c.primary : c.muted} size={20} filled={on} />
                     <Txt bold size={14} style={{ flex: 1 }}>{o.display_id}</Txt>
-                    <Txt size={13} muted>{o.order_items.length} items · ₹{amountDue(o)}</Txt>
+                    <Txt size={13} muted>{o.order_items.length} {t(o.order_items.length === 1 ? "item" : "items")} · ₹{amountDue(o)}</Txt>
                   </View>
                 );
               })}

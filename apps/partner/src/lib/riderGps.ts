@@ -119,7 +119,9 @@ async function doStart(onTrip: boolean, text: { title: string; body: string; not
   if (!backgroundOn) {
     stopWatcher();
     watcher = await Location.watchPositionAsync(
-      { accuracy: Location.Accuracy.Balanced, timeInterval: interval, distanceInterval: 30 },
+      // GPS itself (riders are outdoors), and never Google's "Location Accuracy" prompt:
+      // a rider who taps No thanks there would otherwise get no tracking at all.
+      { accuracy: Location.Accuracy.High, mayShowUserSettingsDialog: false, timeInterval: interval, distanceInterval: 30 },
       (loc) => void record([loc]),
     );
     // Send a first fix now rather than waiting for movement.
@@ -146,7 +148,8 @@ async function doStart(onTrip: boolean, text: { title: string; body: string; not
 
   try {
     await Location.startLocationUpdatesAsync(GPS_TASK, {
-      accuracy: Location.Accuracy.Balanced,
+      accuracy: Location.Accuracy.High,
+      mayShowUserSettingsDialog: false,
       timeInterval: interval,
       distanceInterval: 30,
       deferredUpdatesInterval: interval,
