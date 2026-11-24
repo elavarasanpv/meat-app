@@ -10,8 +10,8 @@ import { Btn, Chip, Empty, ErrorBox, Field, Modal, Segments, ago, inputCls, inr 
 import { Select } from "../ui/pickers";
 
 /**
- * Catalog (grocery vertical, G1). Five tabs:
- *   Categories · Master (approved) · Pending (approval queue) · Imports · Fees
+ * Catalog (grocery vertical, G1). Four tabs:
+ *   Categories · Master (approved) · Pending (approval queue) · Imports
  * plus the vertical switch. Everything here is admin-only and invisible to
  * shoppers until the grocery vertical is switched on.
  */
@@ -65,14 +65,12 @@ type ImportRow = {
   matched: { id: string; name: string; pack_size: string | null; mrp: number | null } | null;
   suggestion: { id: string; name: string; pack_size: string | null; mrp: number | null } | null;
 };
-type FeeRule = { id: string; vertical_type: string; zone_id: string | null; zone: string | null; min_order: number; fee: number; free_above: number | null; is_active: boolean };
 
 const TABS = [
   { id: "categories", label: "Categories" },
   { id: "master", label: "Master" },
   { id: "pending", label: "Pending" },
   { id: "imports", label: "Imports" },
-  { id: "fees", label: "Delivery fees" },
 ] as const;
 type Tab = (typeof TABS)[number]["id"];
 
@@ -93,7 +91,7 @@ export function CatalogPage() {
 
   return (
     <div className="pb-6">
-      <PageHeader title="Catalog" sub="Grocery products, the approval queue, shop imports and delivery fees." />
+      <PageHeader title="Catalog" sub="Grocery products, the approval queue and shop imports." />
       <div className="px-4 pt-4 md:px-6">
         {grocery && (
           <div className={`mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border p-4 ${grocery.is_active ? "border-ok/40 bg-ok/5" : "border-line bg-surface"}`}>
@@ -123,7 +121,6 @@ export function CatalogPage() {
         {tab === "master" && <MasterTab status="approved" />}
         {tab === "pending" && <MasterTab status="pending" />}
         {tab === "imports" && <ImportsTab />}
-        {tab === "fees" && <FeesTab />}
       </div>
       {confirmLive && (
         <Modal pad title="Switch grocery on for customers?" sub="Every active grocery shop and approved product becomes visible in the customer app immediately." onClose={() => setConfirmLive(false)}>
@@ -707,86 +704,5 @@ function ImportReview({ id, onClose }: { id: string; onClose: () => void }) {
         </table>
       </div>
     </Modal>
-  );
-}
-
-// ───────────────────────────── fees ───────────────────────────────────
-function FeesTab() {
-  const qc = useQueryClient();
-  const rules = useQuery({ queryKey: ["catalog", "fees"], queryFn: () => api<FeeRule[]>("/admin/catalog/fee-rules") });
-  const [editing, setEditing] = useState<Partial<FeeRule> | null>(null);
-  const save = useMutation({
-    mutationFn: (r: Partial<FeeRule>) => {
-      const body = { verticalType: VERTICAL, zoneId: r.zone_id ?? null, minOrder: r.min_order ?? 0, fee: r.fee ?? 0, freeAbove: r.free_above ?? null, isActive: r.is_active ?? true };
-      return r.id ? api(`/admin/catalog/fee-rules/${r.id}`, { method: "PATCH", body }) : api("/admin/catalog/fee-rules", { method: "POST", body });
-    },
-    onSuccess: () => {
-      setEditing(null);
-      void qc.invalidateQueries({ queryKey: ["catalog", "fees"] });
-    },
-  });
-  return (
-    <section className="card">
-      <div className="mb-3 flex items-center justify-between">
-        <div>
-          <div className="card-title">Delivery fees — grocery</div>
-          <div className="card-sub">The platform's revenue floor. Meat keeps its own rule (free above ₹499, else ₹20).</div>
-        </div>
-        <Btn kind="primary" onClick={() => setEditing({ min_order: 99, fee: 20, free_above: 499, is_active: true })}>
-          <IconPlus size={14} /> Add rule
-        </Btn>
-      </div>
-      <ul className="divide-y divide-line">
-        {(rules.data ?? [])
-          .filter((r) => r.vertical_type === VERTICAL)
-          .map((r) => (
-            <li key={r.id} className="flex flex-wrap items-center gap-3 py-2 text-[12.5px]">
-              <span className="font-bold">{r.zone ?? "All zones"}</span>
-              <span className="text-muted">
-                min order {inr(r.min_order)} · fee {inr(r.fee)} · {r.free_above != null ? `free above ${inr(r.free_above)}` : "never free"}
-              </span>
-              {!r.is_active && <Chip tone="mute">off</Chip>}
-              <Btn kind="ghost" onClick={() => setEditing(r)}>
-                Edit
-              </Btn>
-            </li>
-          ))}
-      </ul>
-      {editing && (
-        <Modal pad title={editing.id ? "Edit fee rule" : "New fee rule"} onClose={() => setEditing(null)}>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Minimum order (₹)">
-              <input className={inputCls} type="number" value={editing.min_order ?? 0} onChange={(e) => setEditing({ ...editing, min_order: Number(e.target.value) })} />
-            </Field>
-            <Field label="Delivery fee (₹)">
-              <input className={inputCls} type="number" value={editing.fee ?? 0} onChange={(e) => setEditing({ ...editing, fee: Number(e.target.value) })} />
-            </Field>
-            <Field label="Free above (₹)" hint="Blank = never free.">
-              <input className={inputCls} type="number" value={editing.free_above ?? ""} onChange={(e) => setEditing({ ...editing, free_above: e.target.value === "" ? null : Number(e.target.value) })} />
-            </Field>
-            <Field label="Active">
-              <Select
-                label="Active"
-                value={editing.is_active === false ? "0" : "1"}
-                onChange={(v) => setEditing({ ...editing, is_active: v === "1" })}
-                options={[
-                  { value: "1", label: "On" },
-                  { value: "0", label: "Off" },
-                ]}
-              />
-            </Field>
-          </div>
-          <ErrorBox error={save.error} />
-          <div className="mt-3 flex justify-end gap-2">
-            <Btn kind="ghost" onClick={() => setEditing(null)}>
-              Cancel
-            </Btn>
-            <Btn kind="primary" busy={save.isPending} onClick={() => save.mutate(editing)}>
-              Save
-            </Btn>
-          </div>
-        </Modal>
-      )}
-    </section>
   );
 }

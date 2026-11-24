@@ -468,13 +468,23 @@ export const importRowDecisionSchema = z.object({
   masterProductId: z.string().uuid().optional(),
 });
 
-export const feeRuleSchema = z.object({
+/** A delivery rule: the default for a vertical (no pincode) or one pincode's own. */
+export const deliveryRuleSchema = z.object({
   verticalType: verticalSchema,
-  zoneId: z.string().uuid().nullable().optional(),
+  pincode: z.string().regex(/^\d{6}$/, "6-digit pincode").nullable().optional(),
   minOrder: z.number().min(0).max(100_000),
   fee: z.number().min(0).max(10_000),
   freeAbove: z.number().positive().max(100_000).nullable().optional(),
   isActive: z.boolean().optional(),
 });
+export type DeliveryRuleInput = z.infer<typeof deliveryRuleSchema>;
+export const deliveryFirstFreeSchema = z.object({ verticalType: verticalSchema, on: z.boolean() });
+export const deliveryTestSchema = z.object({
+  verticalType: verticalSchema,
+  pincode: z.string().regex(/^\d{6}$/, "6-digit pincode").nullable().optional(),
+  amount: z.number().min(0).max(1_000_000),
+  firstOrder: z.boolean().optional(),
+});
+export type DeliveryTestInput = z.infer<typeof deliveryTestSchema>;
 export const verticalToggleSchema = z.object({ isActive: z.boolean() });
 export const adminStoreTypeSchema = z.object({ storeType: verticalSchema });

@@ -1,9 +1,10 @@
 import { BadRequestException, Body, Controller, Delete, Get, Headers, Param, Patch, Post, Query, UploadedFile, UseInterceptors } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
-import { adminHeadlineSchema, adminOfferSchema, ticketResolveSchema, ticketReplySchema, adminInviteSchema, adminProfileSchema, adminCancelSchema, adminCashVerifySchema, adminReassignShopSchema, adminRiderSchema, adminShopSchema, adminBroadcastSchema, adminSellPriceSchema, adminShopPriceSchema, adminMarginSchema } from "@thanjozmart/shared";
+import { adminHeadlineSchema, adminOfferSchema, ticketResolveSchema, ticketReplySchema, adminInviteSchema, adminProfileSchema, adminCancelSchema, adminCashVerifySchema, adminReassignShopSchema, adminRiderSchema, adminShopSchema, adminBroadcastSchema, adminSellPriceSchema, adminShopPriceSchema, adminMarginSchema, deliveryRuleSchema, deliveryFirstFreeSchema, deliveryTestSchema } from "@thanjozmart/shared";
 import type { ZodTypeAny, z } from "zod";
 import { AdminOpsService } from "./admin-ops.service";
 import { AdminAccountService } from "./admin-account.service";
+import { DeliverySettingsService } from "./delivery-settings.service";
 import { SupportService } from "../support/support.service";
 import { OffersService } from "../offers/offers.service";
 import { SupabaseService } from "../supabase.service";
@@ -21,6 +22,7 @@ export class AdminController {
     private readonly support: SupportService,
     private readonly offersSvc: OffersService,
     private readonly images: ImagesService,
+    private readonly delivery: DeliverySettingsService,
   ) {}
 
   private guard(auth: string | undefined) {
@@ -377,6 +379,58 @@ export class AdminController {
   async rules(@Headers("authorization") auth: string | undefined) {
     await this.guard(auth);
     return this.account.rules();
+  }
+
+  // ── delivery settings: minimum order, fee, free-from amount, by vertical and pincode ──
+
+  /** GET /admin/delivery — every vertical with its default rule, pincode rules and first-order switch. */
+  @Get("delivery")
+  async deliverySettings(@Headers("authorization") auth: string | undefined) {
+    await this.guard(auth);
+    return this.delivery.get();
+  }
+
+  @Post("delivery/rules")
+  async createDeliveryRule(@Headers("authorization") auth: string | undefined, @Body() body: unknown) {
+    const a = await this.guard(auth);
+    const v = parse(deliveryRuleSchema, body);
+    const r = await this.delivery.saveRule(a.id, undefined, v);
+    await this.admin.log(a.id, "delivery.rule.create", r.id, { vertical: r.verticalType, pincode: r.pincode ?? "all", minOrder: r.minOrder, fee: r.fee, freeAbove: r.freeAbove });
+    return r;
+  }
+
+  @Patch("delivery/rules/:id")
+  async updateDeliveryRule(@Headers("authorization") auth: string | undefined, @Param("id") id: string, @Body() body: unknown) {
+    const a = await this.guard(auth);
+    const v = parse(deliveryRuleSchema, body);
+    const r = await this.delivery.saveRule(a.id, id, v);
+    await this.admin.log(a.id, "delivery.rule.update", id, { vertical: r.verticalType, pincode: r.pincode ?? "all", minOrder: r.minOrder, fee: r.fee, freeAbove: r.freeAbove, active: r.isActive });
+    return r;
+  }
+
+  @Delete("delivery/rules/:id")
+  async deleteDeliveryRule(@Headers("authorization") auth: string | undefined, @Param("id") id: string) {
+    const a = await this.guard(auth);
+    const r = await this.delivery.deleteRule(id);
+    await this.admin.log(a.id, "delivery.rule.delete", id, { vertical: r.verticalType, pincode: r.pincode });
+    return { ok: true };
+  }
+
+  /** PATCH /admin/delivery/first-order — free delivery on a customer's first order, per vertical. */
+  @Patch("delivery/first-order")
+  async deliveryFirstOrder(@Headers("authorization") auth: string | undefined, @Body() body: unknown) {
+    const a = await this.guard(auth);
+    const v = parse(deliveryFirstFreeSchema, body);
+    const r = await this.delivery.setFirstOrderFree(v.verticalType, v.on);
+    await this.admin.log(a.id, v.on ? "delivery.first_free.on" : "delivery.first_free.off", v.verticalType);
+    return r;
+  }
+
+  /** POST /admin/delivery/test — what a basket pays at a pincode, and which rule decided it. Changes nothing. */
+  @Post("delivery/test")
+  async deliveryTest(@Headers("authorization") auth: string | undefined, @Body() body: unknown) {
+    await this.guard(auth);
+    return this.delivery.test(parse(deliveryTestSchema, body));
   }
 }
 

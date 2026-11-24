@@ -39,8 +39,8 @@ export function CartBar({ aboveTabBar = false }: Props) {
   const insets = useSafeAreaInsets();
   const items = useCart((s) => s.items);
   const lastAdded = useCart((s) => s.lastAdded);
-  const feeRule = useCart((s) => s.feeRule);
   const grocery = cartVertical(items) === "grocery";
+  const feeRule = useCart((s) => (grocery ? s.feeRule : s.meatRule));
   const { itemTotal, freeAbove, delivery } = cartTotals(items, feeRule);
   const g = withAccent(c, grocery ? "grocery" : "meat", dark);
   const primary = g.primary;

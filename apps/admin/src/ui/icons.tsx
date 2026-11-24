@@ -24,6 +24,13 @@ export const IconShop = ({ size, className }: P) => (
 export const IconRider = ({ size, className }: P) => (
   <svg {...base(size, className)}><circle cx="6" cy="17" r="3" /><circle cx="18" cy="17" r="3" /><path d="M6 17l3-8h5l1 4h3" /><path d="M12 5h3l1 4" /><path d="M9 9H5" /></svg>
 );
+/** A parcel with a rupee coin: what delivery costs. */
+export const IconDeliveryFee = ({ size, className }: P) => (
+  <svg {...base(size, className)}><path d="M11 20H6a2.5 2.5 0 0 1-2.5-2.5v-11A2.5 2.5 0 0 1 6 4h11a2.5 2.5 0 0 1 2.5 2.5V10" /><path d="M9 4v4.6l1.25-.9 1.25.9 1.25-.9 1.25.9V4" /><circle cx="17.25" cy="17.25" r="4.75" /><g strokeWidth={1.2}><path d="M15.4 15.2h3.7" /><path d="M15.4 16.9h3.7" /><path d="M15.4 15.2h1.2a1.7 1.7 0 0 1 0 3.4h-1.2l2.5 1.6" /></g></svg>
+);
+export const IconMore = ({ size, className }: P) => (
+  <svg {...base(size, className)}><circle cx="5.5" cy="12" r="1.4" /><circle cx="12" cy="12" r="1.4" /><circle cx="18.5" cy="12" r="1.4" /></svg>
+);
 export const IconCash = ({ size, className }: P) => (
   <svg {...base(size, className)}><path d="M3.5 7.5A2.5 2.5 0 0 1 6 5h12.5v3" /><path d="M3.5 7.5v10A2.5 2.5 0 0 0 6 20h14v-9H6a2.5 2.5 0 0 1-2.5-2.5z" /><circle cx="16" cy="15.5" r="1.3" /></svg>
 );

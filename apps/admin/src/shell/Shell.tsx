@@ -9,12 +9,14 @@ import {
   IconBan,
   IconBell,
   IconCash,
+  IconDeliveryFee,
   IconChat,
   IconChevronDown,
   IconGrid,
   IconHistory,
   IconPackage,
   IconLogout,
+  IconMore,
   IconOrders,
   IconClock,
   IconRider,
@@ -39,6 +41,7 @@ const SECTIONS: { title: string; items: { to: string; label: string; Icon: typeo
       { to: "/support", label: "Support", Icon: IconChat },
       { to: "/offers", label: "Offers", Icon: IconTag },
       { to: "/pricing", label: "Pricing", Icon: IconCash },
+      { to: "/delivery", label: "Delivery fees", Icon: IconDeliveryFee },
       { to: "/catalog", label: "Catalog", Icon: IconPackage },
       { to: "/ratings", label: "Ratings", Icon: IconStar },
     ],
@@ -51,7 +54,20 @@ const SECTIONS: { title: string; items: { to: string; label: string; Icon: typeo
     ],
   },
 ];
-const TABS = SECTIONS.slice(0, 2).flatMap((s) => s.items);
+const ALL = SECTIONS.flatMap((s) => s.items);
+/** Phone: the four busiest screens sit in the bottom bar; everything else opens from More. */
+const TABS = ALL.slice(0, 3);
+/** The fourth slot holds whichever of these was opened last; the rest sit in More. */
+const REST = ALL.slice(3);
+const SLOT_KEY = "tm.nav.slot";
+const onPath = (to: string, pathname: string) => pathname === to || pathname.startsWith(`${to}/`);
+function savedSlot(): string {
+  try {
+    const v = localStorage.getItem(SLOT_KEY);
+    if (v && REST.some((r) => r.to === v)) return v;
+  } catch {}
+  return REST[0].to;
+}
 
 /** The admin's display name: profile name, else the part of the email before @. */
 export function displayName(me: AdminMe) {
@@ -104,13 +120,79 @@ export function Shell() {
         </main>
       </div>
 
-      <nav className="fixed inset-x-0 bottom-0 z-20 flex border-t border-line bg-surface md:hidden">
-        {TABS.map(({ to, label, Icon }) => (
-          <NavLink key={to} to={to} end={to === "/"} className={({ isActive }) => `flex flex-1 flex-col items-center gap-0.5 py-2 text-[10px] font-bold ${isActive ? "text-primary" : "text-muted"}`}>
-            <Icon size={20} />
-            {label}
+      <PhoneNav unread={unread} />
+    </div>
+  );
+}
+
+/** Bottom bar on phones: four tabs and a More sheet with the rest, so no label is squeezed. */
+function PhoneNav({ unread }: { unread: number }) {
+  const { pathname } = useLocation();
+  const [open, setOpen] = useState(false);
+  useEffect(() => setOpen(false), [pathname]);
+  // Opening a screen from More puts it in the last slot; the one it replaces goes back to More.
+  const [slot, setSlot] = useState(savedSlot);
+  const current = REST.find((r) => onPath(r.to, pathname))?.to;
+  useEffect(() => {
+    if (!current || current === slot) return;
+    setSlot(current);
+    try {
+      localStorage.setItem(SLOT_KEY, current);
+    } catch {}
+  }, [current]);
+  const shown = current ?? slot;
+  const tabs = [...TABS, REST.find((r) => r.to === shown)!];
+  const more = REST.filter((r) => r.to !== shown);
+  const tab = (active: boolean) => `relative flex min-w-0 flex-1 flex-col items-center gap-1 pb-2 pt-2.5 text-[11px] font-bold ${active ? "text-primary" : "text-muted"}`;
+  const bar = (active: boolean) => (active ? <span className="absolute inset-x-5 top-0 h-[3px] rounded-b-full bg-primary" /> : null);
+  return (
+    <div className="md:hidden">
+      {open && (
+        <div className="fixed inset-0 z-40 flex flex-col justify-end">
+          <button aria-label="Close menu" className="absolute inset-0 bg-ink/45" onClick={() => setOpen(false)} />
+          <div className="relative max-h-[80vh] overflow-y-auto rounded-t-3xl bg-surface px-4 pt-3 shadow-2xl" style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 16px)" }}>
+            <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-line" />
+            <div className="px-1 pb-3 text-[15px] font-extrabold">More</div>
+            <div className="grid grid-cols-3 gap-2.5">
+              {more.map(({ to, label, Icon }) => (
+                <NavLink
+                  key={to}
+                  to={to}
+                  onClick={() => setOpen(false)}
+                  className={({ isActive }) =>
+                    `relative flex min-h-[86px] flex-col items-center justify-center gap-2 rounded-2xl border px-2 py-3 text-center text-[12px] font-bold leading-tight ${isActive ? "border-primary bg-primary/10 text-primary" : "border-line bg-surface-2 text-ink"}`
+                  }
+                >
+                  <Icon size={22} />
+                  <span>{label}</span>
+                  {to === "/notifications" && unread > 0 && <span className="absolute right-2 top-2 rounded-full bg-primary px-1.5 text-[10.5px] font-extrabold text-white">{unread}</span>}
+                </NavLink>
+              ))}
+            </div>
+            <button onClick={() => void supabase.auth.signOut()} className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl border border-line py-3 text-[13px] font-bold text-muted">
+              <IconLogout size={16} /> Sign out
+            </button>
+          </div>
+        </div>
+      )}
+      <nav className="fixed inset-x-0 bottom-0 z-30 flex border-t border-line bg-surface" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+        {tabs.map(({ to, label, Icon }) => (
+          <NavLink key={to} to={to} end={to === "/"} className={({ isActive }) => tab(isActive && !open)}>
+            {({ isActive }) => (
+              <>
+                {bar(isActive && !open)}
+                <Icon size={21} />
+                <span className="w-full truncate text-center">{label}</span>
+              </>
+            )}
           </NavLink>
         ))}
+        <button type="button" aria-expanded={open} onClick={() => setOpen((o) => !o)} className={tab(open)}>
+          {bar(open)}
+          <IconMore size={21} />
+          <span>More</span>
+          {unread > 0 && <span className="absolute right-[calc(50%-18px)] top-1.5 h-2 w-2 rounded-full bg-primary" />}
+        </button>
       </nav>
     </div>
   );

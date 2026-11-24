@@ -179,7 +179,11 @@ export function usePlaceOrder() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (body: unknown) => api<PlaceOrderResult>("/orders", { method: "POST", body }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["orders"] }),
+    onSuccess: () => {
+      // The first-order offer may just have been used.
+      void qc.invalidateQueries({ queryKey: ["delivery"] });
+      return qc.invalidateQueries({ queryKey: ["orders"] });
+    },
   });
 }
 
@@ -189,7 +193,10 @@ export function usePlaceGroceryOrder() {
   return useMutation({
     mutationFn: (body: { addressId: string; slot: { startsAt: string; endsAt: string }; paymentMode: "cod" | "upi_on_delivery"; items: { masterProductId: string; qty: number; notes?: string }[] }) =>
       api<PlaceOrderResult>("/orders/grocery", { method: "POST", body }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["orders"] }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["delivery"] });
+      return qc.invalidateQueries({ queryKey: ["orders"] });
+    },
   });
 }
 

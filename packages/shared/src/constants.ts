@@ -2,6 +2,8 @@
 export const WEIGHT_TOLERANCE = 0.05;
 
 /** Delivery pricing (also enforced in the create_order SQL function). */
+// Delivery fees live in delivery_fee_rules (admin > Delivery). These two only
+// cover orders placed before the fee was saved on the order.
 export const DELIVERY_FEE = 20;
 export const FREE_DELIVERY_ABOVE = 499;
 

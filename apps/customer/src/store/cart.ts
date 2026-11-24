@@ -4,8 +4,8 @@ import { createJSONStorage, persist } from "zustand/middleware";
 import type { ProductUnit } from "@/hooks/useCatalog";
 
 export type Vertical = "meat" | "grocery";
-/** Grocery delivery rule for the chosen shop's area (from grocery_fee()); meat uses the constants below. */
-export type FeeRule = { minOrder: number; fee: number; freeAbove: number | null };
+/** Delivery terms for a pincode, set by the admin (delivery_quote()). */
+export type FeeRule = { minOrder: number; fee: number; freeAbove: number | null; /** This customer's first order: no delivery fee. */ firstOrderFree?: boolean };
 
 export type CartItem = {
   /** Meat: products.id. Grocery: master_products.id. */
@@ -33,7 +33,7 @@ export type CartItem = {
   imagePath?: string | null;
 };
 
-/** Delivery pricing (v1; moves to the API with checkout). */
+/** Meat delivery terms until the live ones have loaded once (what the app charged before they were configurable). */
 export const DELIVERY_FEE = 20;
 export const FREE_DELIVERY_ABOVE = 499;
 
@@ -42,6 +42,9 @@ type CartState = {
   /** Grocery delivery rule captured when the basket was started. */
   feeRule: FeeRule | null;
   setFeeRule: (rule: FeeRule | null) => void;
+  /** Meat delivery terms last seen for the chosen address. */
+  meatRule: FeeRule | null;
+  setMeatRule: (rule: FeeRule | null) => void;
   /** The line most recently added/changed — lets the floating cart bar say "X added". */
   lastAdded: { name: string; nameTa?: string; at: number } | null;
   /** Coupon the customer typed; the server still picks the single best offer. */
@@ -61,6 +64,8 @@ export const useCart = create<CartState>()(
       items: [],
       feeRule: null,
       setFeeRule: (feeRule) => set({ feeRule }),
+      meatRule: null,
+      setMeatRule: (meatRule) => set({ meatRule }),
       lastAdded: null,
       coupon: null,
       setCoupon: (code) => set({ coupon: code }),
@@ -77,9 +82,10 @@ export const useCart = create<CartState>()(
               : s.items.map((i) => (i.productId === productId ? { ...i, qty } : i)),
         })),
       remove: (productId) => set((s) => ({ items: s.items.filter((i) => i.productId !== productId) })),
-      clear: () => set({ items: [], lastAdded: null, coupon: null, feeRule: null }),
+      // The first-order offer is asked afresh for the next basket: an order may just have used it.
+      clear: () => set((s) => ({ items: [], lastAdded: null, coupon: null, feeRule: null, meatRule: s.meatRule ? { ...s.meatRule, firstOrderFree: false } : null })),
     }),
-    { name: "thanjozmart.cart", storage: createJSONStorage(() => AsyncStorage), partialize: (s) => ({ items: s.items, coupon: s.coupon, feeRule: s.feeRule }) },
+    { name: "thanjozmart.cart", storage: createJSONStorage(() => AsyncStorage), partialize: (s) => ({ items: s.items, coupon: s.coupon, feeRule: s.feeRule, meatRule: s.meatRule }) },
   ),
 );
 
@@ -101,11 +107,14 @@ export function basketConflict(items: CartItem[], item: CartItem): "vertical" | 
 export function cartTotals(items: CartItem[], feeRule?: FeeRule | null) {
   const itemTotal = items.reduce((sum, i) => sum + lineTotal(i), 0);
   const grocery = cartVertical(items) === "grocery";
-  const fee = grocery ? feeRule?.fee ?? 0 : DELIVERY_FEE;
-  const freeAbove = grocery ? feeRule?.freeAbove ?? null : FREE_DELIVERY_ABOVE;
-  const minOrder = grocery ? feeRule?.minOrder ?? 0 : 0;
-  const delivery = itemTotal === 0 || (freeAbove != null && itemTotal >= freeAbove) ? 0 : fee;
-  return { itemTotal, delivery, toPay: itemTotal + delivery, freeAbove, minOrder, belowMin: itemTotal > 0 && itemTotal < minOrder };
+  const rule: FeeRule = feeRule ?? (grocery ? { minOrder: 0, fee: 0, freeAbove: null } : { minOrder: 0, fee: DELIVERY_FEE, freeAbove: FREE_DELIVERY_ABOVE });
+  const fee = rule.fee;
+  // A rule with no fee has nothing to unlock.
+  const freeAbove = fee > 0 ? rule.freeAbove : null;
+  const minOrder = rule.minOrder;
+  const firstFree = !!rule.firstOrderFree && fee > 0 && itemTotal > 0;
+  const delivery = itemTotal === 0 || firstFree || (freeAbove != null && itemTotal >= freeAbove) ? 0 : fee;
+  return { itemTotal, delivery, toPay: itemTotal + delivery, fee, freeAbove, minOrder, firstFree, belowMin: itemTotal > 0 && itemTotal < minOrder };
 }
 
 /** Step for the +/- controls: 0.5 kg or 1 piece for meat; the master's step for grocery. */

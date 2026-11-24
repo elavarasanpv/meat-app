@@ -208,10 +208,10 @@ export class DealerService {
 
     await db.from("order_items").update({ unavailable: true }).eq("id", item.id);
 
-    // New estimate from the remaining items (same fee rule as create_order).
+    // New estimate from the remaining items. The delivery fee stays as it was when the order was placed.
     const rest = items.filter((i) => !i.unavailable && i.id !== item.id);
     const itemsTotal = rest.reduce((sum, i) => sum + Math.round(Number(i.unit_price_per_kg) * Number(i.requested_kg)), 0);
-    const estAmount = itemsTotal + (itemsTotal >= FREE_DELIVERY_ABOVE ? 0 : DELIVERY_FEE);
+    const estAmount = itemsTotal + savedFee(order.delivery_fee, itemsTotal);
     await db.from("orders").update({ est_amount: estAmount }).eq("id", input.orderId);
     await db.from("order_status_history").insert({
       order_id: input.orderId,
@@ -301,9 +301,9 @@ export class DealerService {
     if (missing) throw new BadRequestException(`${missing} item(s) still need a photo on the scale`);
 
     const itemsTotal = items.reduce((sum, i) => sum + Math.round(Number(i.unit_price_per_kg) * Number(i.requested_kg)), 0);
-    // Delivery fee is decided on the items total before any discount, same as at checkout.
+    // The delivery fee is the one saved on the order at checkout; a rule change since then doesn't touch it.
     const discount = await this.offers.discountAtPacking(orderId, itemsTotal);
-    const finalAmount = itemsTotal - discount + (itemsTotal >= FREE_DELIVERY_ABOVE ? 0 : DELIVERY_FEE);
+    const finalAmount = itemsTotal - discount + savedFee(order.delivery_fee, itemsTotal);
     await db.from("orders").update({ final_amount: finalAmount }).eq("id", orderId);
     const result = await this.orders.transition({ orderId, to: "PACKED", actorId: profileId });
     void this.ringRiders(orderId, dealer.id, finalAmount);
@@ -393,11 +393,16 @@ export class DealerService {
   private async ownedOrder(orderId: string, dealerId: string, statuses: string[]) {
     const { data: order } = await this.supabase.admin
       .from("orders")
-      .select("id, status, dealer_id, order_items(id, product_id, requested_kg, actual_kg, unit_price_per_kg, unavailable)")
+      .select("id, status, dealer_id, delivery_fee, order_items(id, product_id, requested_kg, actual_kg, unit_price_per_kg, unavailable)")
       .eq("id", orderId)
       .maybeSingle();
     if (!order || order.dealer_id !== dealerId) throw new NotFoundException("Order not found");
     if (!statuses.includes(order.status)) throw new ConflictException(`Order is ${order.status}`);
     return order;
   }
+}
+
+/** The fee fixed on the order when it was placed; orders from before that was saved use the old flat rule. */
+function savedFee(fee: number | string | null | undefined, itemsTotal: number): number {
+  return fee == null ? (itemsTotal >= FREE_DELIVERY_ABOVE ? 0 : DELIVERY_FEE) : Number(fee);
 }

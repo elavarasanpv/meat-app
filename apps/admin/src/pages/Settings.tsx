@@ -232,7 +232,7 @@ function TeamTab() {
   );
 }
 
-type Rules = { deliveryFee: number; freeDeliveryAbove: number; shopAcceptMinutes: number; riderRadiusKm: number; riderMaxOrders: number; detourKm: number; weightTolerancePct: number; riderWaitAlertMin: number };
+type Rules = { shopAcceptMinutes: number; riderRadiusKm: number; riderMaxOrders: number; detourKm: number; weightTolerancePct: number; riderWaitAlertMin: number };
 
 function RulesTab() {
   const r = useQuery<Rules>({ queryKey: ["admin", "rules"], queryFn: () => api("/admin/rules"), staleTime: 600_000 });
@@ -242,8 +242,7 @@ function RulesTab() {
         {
           title: "Customers",
           items: [
-            ["Delivery fee", inr(d.deliveryFee), "Added to each order below the free-delivery amount."],
-            ["Free delivery above", inr(d.freeDeliveryAbove), "Orders at or above this pay no delivery fee."],
+            ["Delivery fee and minimum order", "See Delivery fees", "Set per pincode on the Delivery fees page."],
             ["Weight tolerance", `±${d.weightTolerancePct}%`, "How far a packed weight may differ from what was ordered."],
           ],
         },
@@ -299,6 +298,11 @@ const ACTION: Record<string, string> = {
   "admin.invite": "Invited an admin",
   "admin.remove": "Removed an admin",
   "admin.profile": "Updated their profile",
+  "delivery.rule.create": "Added a delivery rule",
+  "delivery.rule.update": "Changed a delivery rule",
+  "delivery.rule.delete": "Removed a delivery rule",
+  "delivery.first_free.on": "Switched on free first delivery",
+  "delivery.first_free.off": "Switched off free first delivery",
 };
 function describe(a: Activity) {
   const d = a.detail ?? {};

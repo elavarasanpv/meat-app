@@ -751,21 +751,6 @@ export class CatalogService {
     await this.db.from("catalog_imports").update({ matched: c.matched, needs_review: c.review, new_items: c.new }).eq("id", importId);
   }
 
-  // ───────────────────────────── fee rules ─────────────────────────────
-  async feeRules() {
-    const { data, error } = await this.db.from("delivery_fee_rules").select("id, vertical_type, zone_id, min_order, fee, free_above, is_active, zones(name)").order("vertical_type").order("zone_id");
-    if (error) throw error;
-    return (data ?? []).map((r) => ({ ...r, zone: (r.zones as unknown as { name: string } | null)?.name ?? null, zones: undefined }));
-  }
-
-  async upsertFeeRule(id: string | undefined, input: { verticalType: Vertical; zoneId?: string | null; minOrder: number; fee: number; freeAbove?: number | null; isActive?: boolean }) {
-    const row = { vertical_type: input.verticalType, zone_id: input.zoneId ?? null, min_order: input.minOrder, fee: input.fee, free_above: input.freeAbove ?? null, is_active: input.isActive ?? true };
-    const q = id ? this.db.from("delivery_fee_rules").update(row).eq("id", id) : this.db.from("delivery_fee_rules").insert(row);
-    const { data, error } = await q.select().single();
-    if (error) throw error;
-    return data;
-  }
-
   // ───────────────────────────── shop type ─────────────────────────────
   async setStoreType(dealerId: string, storeType: Vertical) {
     const { data, error } = await this.db.from("dealers").update({ store_type: storeType }).eq("id", dealerId).select("id, shop_name, store_type").maybeSingle();

@@ -5,7 +5,6 @@ import {
   adminStoreSellingSchema,
   adminStoreTypeSchema,
   catalogCategorySchema,
-  feeRuleSchema,
   importRowDecisionSchema,
   masterBulkReviewSchema,
   masterMergeSchema,
@@ -28,7 +27,7 @@ function parse<S extends ZodTypeAny>(schema: S, body: unknown): z.infer<S> {
 }
 
 /** Admin side of the grocery catalog: categories, master + approval queue,
- *  a shop's listings (incl. the selling-price lock), imports, fee rules. */
+ *  a shop's listings (incl. the selling-price lock), imports. */
 @Controller("admin/catalog")
 export class CatalogAdminController {
   constructor(
@@ -214,24 +213,5 @@ export class CatalogAdminController {
   async applyImport(@Headers("authorization") auth: string | undefined, @Param("id") id: string) {
     const a = await this.guard(auth);
     return this.catalog.applyImport(undefined, id, a);
-  }
-
-  // ── delivery fee rules ──
-  @Get("fee-rules")
-  async feeRules(@Headers("authorization") auth: string | undefined) {
-    await this.guard(auth);
-    return this.catalog.feeRules();
-  }
-
-  @Post("fee-rules")
-  async createFeeRule(@Headers("authorization") auth: string | undefined, @Body() body: unknown) {
-    await this.guard(auth);
-    return this.catalog.upsertFeeRule(undefined, parse(feeRuleSchema, body));
-  }
-
-  @Patch("fee-rules/:id")
-  async updateFeeRule(@Headers("authorization") auth: string | undefined, @Param("id") id: string, @Body() body: unknown) {
-    await this.guard(auth);
-    return this.catalog.upsertFeeRule(id, parse(feeRuleSchema, body));
   }
 }

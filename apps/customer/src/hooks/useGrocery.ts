@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/store/auth";
 import type { FeeRule } from "@/store/cart";
+import { useDeliveryTerms } from "@/hooks/useDelivery";
 
 /**
  * Grocery vertical (G2). Everything here is empty/false until the admin
@@ -37,17 +38,7 @@ export function useGroceryLive(): boolean {
 
 /** Delivery rule for the pincode: min order, fee, free-above. Null when grocery has no rule. */
 export function useGroceryFee(pincode?: string) {
-  return useQuery({
-    queryKey: ["grocery", "fee", pincode ?? "none"],
-    enabled: !!pincode,
-    staleTime: 5 * 60_000,
-    queryFn: async (): Promise<FeeRule | null> => {
-      const { data, error } = await supabase.rpc("grocery_fee", { p_pincode: pincode });
-      if (error) throw error;
-      const row = (Array.isArray(data) ? data[0] : data) as { min_order: number; fee: number; free_above: number | null } | undefined;
-      return row ? { minOrder: Number(row.min_order), fee: Number(row.fee), freeAbove: row.free_above == null ? null : Number(row.free_above) } : null;
-    },
-  });
+  return useDeliveryTerms("grocery", pincode);
 }
 
 export type GroceryCategory = { id: string; parent_id: string | null; name: string; name_ta: string | null; image_path: string | null; sort: number };

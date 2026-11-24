@@ -48,7 +48,7 @@ export function GroceryCart({ bill, onBack, cta, address }: { bill: ReturnType<t
 
   const freeAbove = bill.freeAbove;
   const remaining = freeAbove != null ? Math.max(0, freeAbove - bill.itemTotal) : 0;
-  const unlocked = freeAbove != null && remaining === 0;
+  const unlocked = bill.firstFree || (freeAbove != null && remaining === 0);
   const minReached = bill.itemTotal >= bill.minOrder;
   // Progress from 0 (empty) through the minimum to free delivery.
   const progress = freeAbove ? Math.min(1, bill.itemTotal / freeAbove) : 1;
@@ -152,7 +152,7 @@ export function GroceryCart({ bill, onBack, cta, address }: { bill: ReturnType<t
         {/* Free-delivery milestones + what gets you there */}
         {freeAbove != null && (
           <View style={{ ...box, padding: 14, paddingHorizontal: 12, gap: 12 }}>
-            <AppText variant="subtitle" numberOfLines={2}>{unlocked ? t("freeUnlocked") : t("addMoreFree", { n: remaining })}</AppText>
+            <AppText variant="subtitle">{bill.firstFree ? t("firstOrderFree") : unlocked ? t("freeUnlocked") : t("addMoreFree", { n: remaining })}</AppText>
             <View style={{ height: 62 }}>
               <View style={{ position: "absolute", left: 10, right: 10, top: 14, height: 3, borderRadius: 2, backgroundColor: c.surface2 }} />
               <View style={{ position: "absolute", left: 10, right: 10, top: 14, height: 3, borderRadius: 2, overflow: "hidden" }}>
@@ -161,7 +161,7 @@ export function GroceryCart({ bill, onBack, cta, address }: { bill: ReturnType<t
               <View style={{ position: "absolute", left: 0, right: 0, top: 0, flexDirection: "row", justifyContent: "space-between" }}>
                 <Milestone done label={t("minOrderShort")} sub={`₹${bill.minOrder}`} c={c} first />
                 <Milestone done={minReached} label={t("minOrderShort")} sub={`₹${bill.minOrder}`} c={c} hidden />
-                <Milestone done={unlocked} label={t("freeDeliveryShort")} sub={t("saveN", { n: bill.delivery || (unlocked ? 0 : 20) })} c={c} />
+                <Milestone done={unlocked} label={t("freeDeliveryShort")} sub={t("saveN", { n: bill.fee })} c={c} />
               </View>
             </View>
             {suggestions.length > 0 && (
@@ -183,7 +183,8 @@ export function GroceryCart({ bill, onBack, cta, address }: { bill: ReturnType<t
           <Row label={t("itemTotal")} value={`₹${bill.itemTotal}`} />
           <Row label={t("deliveryFee")} value={bill.delivery === 0 ? t("free") : `₹${bill.delivery}`} />
           {!unlocked && remaining > 0 ? <AppText variant="caption" color={c.primary} style={{ marginTop: -4, fontSize: 11.5 }}>{t("freeAbove", { n: freeAbove! })} · {t("addNMore", { n: remaining })}</AppText> : null}
-          {bill.belowMin ? <AppText variant="caption" color={c.danger} style={{ fontSize: 11.5 }}>{t("groceryBelowMin", { n: bill.minOrder - bill.itemTotal })}</AppText> : null}
+          {bill.firstFree ? <AppText variant="caption" color={c.primary} style={{ marginTop: -4, fontSize: 11.5 }}>{t("firstOrderFree")}</AppText> : null}
+          {bill.belowMin ? <AppText variant="caption" color={c.danger} style={{ fontSize: 11.5 }}>{t("addMoreToOrder", { n: bill.minOrder - bill.itemTotal, min: bill.minOrder })}</AppText> : null}
           <View style={{ height: 1, backgroundColor: c.border }} />
           <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
             <AppText variant="bodyBold">{t("toPay")}</AppText>

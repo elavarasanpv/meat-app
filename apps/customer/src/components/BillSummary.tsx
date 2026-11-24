@@ -1,7 +1,7 @@
 import { View } from "react-native";
 import { AppText } from "./AppText";
 import { Icon } from "./Icon";
-import { useGroceryFee } from "@/hooks/useGrocery";
+import { useBasketTerms } from "@/hooks/useDelivery";
 import { useOfferQuote } from "@/hooks/useOffers";
 import { CouponCard } from "./CouponCard";
 import { cartTotals, cartVertical, useCart } from "@/store/cart";
@@ -16,14 +16,11 @@ import { useTheme } from "@/theme";
 export function useBill(pincode?: string) {
   const items = useCart((s) => s.items);
   const coupon = useCart((s) => s.coupon);
-  const feeRule = useCart((s) => s.feeRule);
   const vertical = cartVertical(items);
   // Offers are meat-only for now; a grocery basket never asks for a quote.
   const quote = useOfferQuote(items, coupon, pincode, vertical === "meat");
-  // Grocery: the rule for the address being checked out wins over the one captured in the shop;
-  // the basket's copy covers the moment before the lookup answers.
-  const liveFee = useGroceryFee(vertical === "grocery" ? pincode : undefined);
-  const totals = cartTotals(items, liveFee.data !== undefined ? liveFee.data : feeRule);
+  // The terms for the address being checked out; the kept copy covers the moment before the lookup answers.
+  const totals = cartTotals(items, useBasketTerms(vertical, pincode));
   const discount = vertical === "meat" ? quote.data?.discount ?? 0 : 0;
   return { ...totals, vertical, discount, toPay: totals.itemTotal - discount + totals.delivery, quote: vertical === "meat" ? quote.data : undefined, quoting: vertical === "meat" && quote.isFetching };
 }
@@ -55,7 +52,9 @@ export function BillSummary({ bill }: { bill: ReturnType<typeof useBill> }) {
         )}
         <View style={row}>
           <AppText variant="caption" muted>{t("deliveryFee")}</AppText>
-          {bill.delivery === 0 && bill.freeAbove != null && bill.itemTotal >= bill.freeAbove ? (
+          {bill.firstFree ? (
+            <AppText variant="caption" color={c.successText}>{t("free")}</AppText>
+          ) : bill.delivery === 0 && bill.freeAbove != null && bill.itemTotal >= bill.freeAbove ? (
             <AppText variant="caption" color={c.successText}>{t("freeAbove", { n: bill.freeAbove })}</AppText>
           ) : bill.delivery === 0 ? (
             <AppText variant="caption" color={c.successText}>{t("free")}</AppText>
@@ -63,6 +62,11 @@ export function BillSummary({ bill }: { bill: ReturnType<typeof useBill> }) {
             <AppText variant="bodyBold" style={{ fontSize: 13 }}>₹ {bill.delivery}</AppText>
           )}
         </View>
+        {bill.firstFree ? (
+          <AppText variant="caption" color={c.successText} style={{ lineHeight: 16 }}>{t("firstOrderFree")}</AppText>
+        ) : bill.delivery > 0 && bill.freeAbove != null && !bill.belowMin ? (
+          <AppText variant="caption" color={c.price} style={{ lineHeight: 16 }}>{t("addMoreFree", { n: bill.freeAbove - bill.itemTotal })}</AppText>
+        ) : null}
         <View style={{ height: 1, backgroundColor: c.border }} />
         <View style={row}>
           <AppText variant="bodyBold">{t("toPay")}</AppText>
@@ -74,9 +78,9 @@ export function BillSummary({ bill }: { bill: ReturnType<typeof useBill> }) {
           </View>
         )}
         {bill.belowMin && (
-          <AppText variant="caption" color={c.price} numberOfLines={2} style={{ lineHeight: 16 }}>{t("groceryBelowMin", { n: bill.minOrder - bill.itemTotal })}</AppText>
+          <AppText variant="caption" color={c.danger} style={{ lineHeight: 16 }}>{t("addMoreToOrder", { n: bill.minOrder - bill.itemTotal, min: bill.minOrder })}</AppText>
         )}
-        <AppText variant="caption" muted numberOfLines={2} style={{ lineHeight: 16 }}>{t(bill.vertical === "grocery" ? "groceryNote" : "weightNote")}</AppText>
+        <AppText variant="caption" muted style={{ lineHeight: 16 }}>{t(bill.vertical === "grocery" ? "groceryNote" : "weightNote")}</AppText>
       </View>
     </View>
   );
