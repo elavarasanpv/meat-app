@@ -438,7 +438,7 @@ function MasterTab({ status }: { status: "approved" | "pending" }) {
                 <input className={inputCls} value={editing.brand ?? ""} onChange={(e) => setEditing({ ...editing, brand: e.target.value })} />
               </Field>
               <Field label="Pack size">
-                <input className={inputCls} value={editing.pack_size ?? ""} onChange={(e) => setEditing({ ...editing, pack_size: e.target.value })} placeholder="100 g" />
+                <PackSize value={editing.pack_size ?? null} onChange={(v) => setEditing({ ...editing, pack_size: v })} />
               </Field>
               <Field label="Unit">
                 <Select
@@ -704,5 +704,46 @@ function ImportReview({ id, onClose }: { id: string; onClose: () => void }) {
         </table>
       </div>
     </Modal>
+  );
+}
+
+const PACK_UNITS = ["g", "kg", "ml", "L", "pcs"] as const;
+
+/** "500 g" → { qty: "500", unit: "g" }; anything else keeps its text so nothing is lost. */
+function parsePack(v: string | null): { qty: string; unit: string } {
+  const m = /^\s*(\d+(?:\.\d*)?)\s*(g|gm|gms|kg|ml|l|ltr|pcs|pc|nos)?\s*$/i.exec(v ?? "");
+  if (!m) return { qty: "", unit: "g" };
+  const u = (m[2] ?? "g").toLowerCase();
+  const unit = u.startsWith("g") ? "g" : u === "kg" ? "kg" : u === "ml" ? "ml" : u === "l" || u === "ltr" ? "L" : "pcs";
+  return { qty: m[1], unit };
+}
+
+/** Pack size as a number plus a unit; saved as "500 g", which the app shows after the name and price. */
+function PackSize({ value, onChange }: { value: string | null; onChange: (v: string | null) => void }) {
+  const parsed = parsePack(value);
+  const [unit, setUnit] = useState(parsed.unit);
+  const odd = !!value && !parsed.qty;
+  const set = (qty: string, u: string) => onChange(qty === "" ? null : `${qty} ${u}`);
+  return (
+    <div className="space-y-1">
+      <div className="flex gap-2">
+        <input
+          className={`${inputCls} min-w-0 flex-1`}
+          inputMode="decimal"
+          value={parsed.qty}
+          onChange={(e) => set(e.target.value.replace(/[^\d.]/g, ""), unit)}
+          placeholder="500"
+        />
+        <div className="w-[92px] shrink-0">
+          <Select
+            label="Pack unit"
+            value={unit}
+            onChange={(u) => { setUnit(u); if (parsed.qty) set(parsed.qty, u); }}
+            options={PACK_UNITS.map((u) => ({ value: u, label: u }))}
+          />
+        </div>
+      </div>
+      {odd ? <div className="text-[11px] text-muted">Was "{value}". Type the number to replace it.</div> : null}
+    </div>
   );
 }
