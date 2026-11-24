@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Image, Pressable, ScrollView, View } from "react-native";
+import { Pressable, ScrollView, View } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
@@ -16,8 +16,9 @@ import { cartVertical, useCart } from "@/store/cart";
 import { useT } from "@/i18n";
 import { useTheme } from "@/theme";
 import { queryState } from "@/lib/network";
+import { Photo } from "@/components/Photo";
 
-const HANDOFF = require("@thanjozmart/assets/images/doodle-handoff.png");
+const HANDOFF = require("@thanjozmart/assets/images/doodle-handoff.webp");
 const CLOSED = ["DELIVERED", "CANCELLED", "DELIVERY_FAILED", "RETURNED", "REFUNDED"];
 const THUMBS = 4;
 
@@ -83,7 +84,7 @@ function OrderCard({ o }: { o: OrderSummary }) {
             const img = productImage(i.products!.name, i.products!.image_path);
             return (
               <View key={i.id} style={{ width: 60, height: 60, borderRadius: 14, backgroundColor: c.tintSoft, borderWidth: 1, borderColor: c.border, alignItems: "center", justifyContent: "center", overflow: "hidden", opacity: i.unavailable ? 0.45 : 1 }}>
-                {img ? <Image source={img} resizeMode="contain" style={{ width: 52, height: 52 }} /> : <AppText variant="title" color={c.price}>{i.products!.name.charAt(0)}</AppText>}
+                {img ? <Photo source={img} style={{ width: 52, height: 52 }} /> : <AppText variant="title" color={c.price}>{i.products!.name.charAt(0)}</AppText>}
               </View>
             );
           })}
@@ -130,7 +131,7 @@ export default function OrdersScreen() {
     return (
       <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: c.ground }}>
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 12, padding: 24 }}>
-          <Image source={HANDOFF} resizeMode="contain" style={{ width: 260, height: 240 }} />
+          <Photo source={HANDOFF} style={{ width: 260, height: 240 }} />
           <AppText variant="title" numberOfLines={1}>{t("noOrders")}</AppText>
           <AppText muted numberOfLines={2} style={{ textAlign: "center", maxWidth: 280 }}>{t("noOrdersSub")}</AppText>
           <View style={{ width: 220, marginTop: 4 }}>

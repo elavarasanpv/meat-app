@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Image, Pressable, ScrollView, TextInput, View } from "react-native";
+import { Pressable, ScrollView, TextInput, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
@@ -15,6 +15,7 @@ import { useCart } from "@/store/cart";
 import { useLocalName, useT } from "@/i18n";
 import { fonts, radius, useTheme } from "@/theme";
 import { queryState } from "@/lib/network";
+import { Photo } from "@/components/Photo";
 
 const KG_CHIPS = [0.5, 1, 1.5, 2];
 const PIECE_CHIPS = [6, 12, 30];
@@ -122,7 +123,7 @@ export default function ProductDetailScreen() {
           end={{ x: 0.8, y: 1 }}
           style={{ margin: 20, marginBottom: 12, height: 230, borderRadius: 28, borderWidth: 1, borderColor: productBorder, alignItems: "center", justifyContent: "center", overflow: "hidden" }}
         >
-          {img ? <Image source={img} resizeMode="contain" style={{ width: "86%", height: "86%" }} /> : null}
+          {img ? <Photo source={img} width={320} priority="high" style={{ width: "86%", height: "86%" }} /> : null}
         </LinearGradient>
 
         <View style={{ paddingHorizontal: 20, gap: 16 }}>

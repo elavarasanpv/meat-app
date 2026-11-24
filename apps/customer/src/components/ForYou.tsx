@@ -5,7 +5,7 @@ import * as Haptics from "expo-haptics";
 import { AppText } from "./AppText";
 import { Icon } from "./Icon";
 import { Doodle, type DoodleName } from "./Doodles";
-const FOR_YOU_ICON = require("@thanjozmart/assets/images/icon-for-you.png");
+const FOR_YOU_ICON = require("@thanjozmart/assets/images/icon-for-you.webp");
 import { useSuggestions, type Suggestion } from "@/hooks/useSuggestions";
 import { useHeadline, useLiveOffers, type LiveOffer } from "@/hooks/useOffers";
 import { useRouter } from "expo-router";
@@ -13,6 +13,7 @@ import { suggestionImage } from "@/lib/images";
 import { formatQty, useCart } from "@/store/cart";
 import { useLang, useT, type TKey } from "@/i18n";
 import { fonts, radius, useTheme } from "@/theme";
+import { Photo } from "@/components/Photo";
 
 const GAP = 12;
 const H = 164;
@@ -124,9 +125,9 @@ function Banner({ s, width }: { s: Suggestion; width: number }) {
       <LinearGradient colors={(dark ? TINT_DARK : TINT)[s.kind]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0 }} />
       {/* soft spotlight behind the photo */}
       <View style={{ position: "absolute", right: -40, top: -30, width: imgW + 70, height: imgW + 70, borderRadius: 999, backgroundColor: glow(0.5) }} />
-      <Image
+      <Photo
         source={suggestionImage(s.kind, s.items)}
-        resizeMode="contain"
+        width={imgW + 10}
         style={{ position: "absolute", right: -6, top: 6, width: imgW + 10, height: H - 12 }}
       />
 
@@ -206,7 +207,7 @@ function OfferBanner({ o, width }: { o: LiveOffer; width: number }) {
       {/* decorative rings */}
       <View style={{ position: "absolute", right: -70, top: -90, width: 240, height: 240, borderRadius: 120, borderWidth: 28, borderColor: "rgba(255,255,255,0.08)" }} />
       <View style={{ position: "absolute", left: -40, bottom: -70, width: 140, height: 140, borderRadius: 70, backgroundColor: "rgba(255,255,255,0.07)" }} />
-      {o.imageUrl && <Image source={{ uri: o.imageUrl }} resizeMode="contain" style={{ position: "absolute", right: -4, bottom: -2, width: imgW, height: H - 14 }} />}
+      {o.imageUrl && <Photo source={{ uri: o.imageUrl }} style={{ position: "absolute", right: -4, bottom: -2, width: imgW, height: H - 14 }} />}
 
       <View style={{ flex: 1, padding: 16, paddingRight: o.imageUrl ? imgW - 12 : 16, justifyContent: "space-between" }}>
         <View style={{ gap: 6 }}>

@@ -10,16 +10,17 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
-    "@thanjozmart/shared": "workspace:*",
     "@nestjs/common": "^10.4.0",
     "@nestjs/core": "^10.4.0",
     "@nestjs/platform-express": "^10.4.0",
     "@supabase/supabase-js": "^2.47.0",
+    "@thanjozmart/shared": "workspace:*",
     "bcryptjs": "^2.4.3",
     "dotenv": "^16.4.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
     "sharp": "^0.35.5",
+    "thumbhash": "0.1.1",
     "zod": "^3.24.0"
   },
   "devDependencies": {

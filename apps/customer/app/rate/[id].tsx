@@ -12,9 +12,10 @@ import { useOrder, useOrderRating, useRateOrder, useRiderContact } from "@/hooks
 import { productImage } from "@/lib/images";
 import { useLocalName, useT, type TKey } from "@/i18n";
 import { fonts, radius, useTheme } from "@/theme";
+import { Photo } from "@/components/Photo";
 
-const SCOOTER = require("@thanjozmart/assets/images/rate-scooter.png");
-const THANKS = require("@thanjozmart/assets/images/rate-thanks.png");
+const SCOOTER = require("@thanjozmart/assets/images/rate-scooter.webp");
+const THANKS = require("@thanjozmart/assets/images/rate-thanks.webp");
 // The app's own icon, full-bleed: this card rates the app itself.
 const LOGO = require("../../assets/brand/icon.png");
 
@@ -177,7 +178,7 @@ export default function RateOrderScreen() {
                 return (
                   <View key={i.id} style={row}>
                     <View style={{ width: 64, height: 64, borderRadius: 16, backgroundColor: c.tintSoft, borderWidth: 1, borderColor: c.border, alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
-                      {img ? <Image source={img} resizeMode="contain" style={{ width: 56, height: 56 }} /> : <AppText variant="title" color={c.price}>{p.name.charAt(0)}</AppText>}
+                      {img ? <Photo source={img} style={{ width: 56, height: 56 }} /> : <AppText variant="title" color={c.price}>{p.name.charAt(0)}</AppText>}
                     </View>
                     <View style={{ flex: 1, gap: 4 }}>
                       <AppText variant="bodyBold" numberOfLines={1} style={{ fontSize: 14 }}>{localName(p)}</AppText>

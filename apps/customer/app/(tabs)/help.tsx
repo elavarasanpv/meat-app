@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Image, Linking, Pressable, ScrollView, View } from "react-native";
-const CHEF = require("@thanjozmart/assets/images/doodle-chef.png");
+const CHEF = require("@thanjozmart/assets/images/doodle-chef.webp");
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { AppText } from "@/components/AppText";

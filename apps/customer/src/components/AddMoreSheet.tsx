@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Animated, Easing, Image, Modal, Pressable, ScrollView, View, useWindowDimensions } from "react-native";
+import { Animated, Easing, Modal, Pressable, ScrollView, View, useWindowDimensions } from "react-native";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { CUSTOMER_CANCELLABLE, type OrderStatus } from "@thanjozmart/shared";
@@ -14,6 +14,7 @@ import { productImage } from "@/lib/images";
 import { formatQty, qtyStep, useCart } from "@/store/cart";
 import { useLocalName, useT } from "@/i18n";
 import { useTheme } from "@/theme";
+import { Photo } from "@/components/Photo";
 
 type Props = {
   orderId: string;
@@ -130,7 +131,7 @@ export function AddMoreSheet({ orderId, status, visible, onClose }: Props) {
                 return (
                   <View key={p.id} style={{ flexDirection: "row", alignItems: "center", gap: 12, padding: 10, borderRadius: 18, backgroundColor: c.surface, borderWidth: 1, borderColor: qty ? c.primary : c.border }}>
                     <View style={{ width: 56, height: 56, borderRadius: 14, backgroundColor: c.tintSoft, alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
-                      {img ? <Image source={img} resizeMode="contain" style={{ width: 50, height: 50 }} /> : <AppText variant="title" color={c.price}>{p.name.charAt(0)}</AppText>}
+                      {img ? <Photo source={img} style={{ width: 50, height: 50 }} /> : <AppText variant="title" color={c.price}>{p.name.charAt(0)}</AppText>}
                     </View>
                     <View style={{ flex: 1, gap: 2 }}>
                       <AppText variant="bodyBold" numberOfLines={1} style={{ fontSize: 14 }}>{localName(p)}</AppText>

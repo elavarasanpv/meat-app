@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import type { AdminHeadlineInput, AdminOfferInput } from "@thanjozmart/shared";
 import { SupabaseService } from "../supabase.service";
+import { ImagesService } from "../images/images.service";
 
 export type OfferRow = {
   id: string;
@@ -43,7 +44,10 @@ const OFFER_COLS =
  */
 @Injectable()
 export class OffersService {
-  constructor(private readonly supabase: SupabaseService) {}
+  constructor(
+    private readonly supabase: SupabaseService,
+    private readonly images: ImagesService,
+  ) {}
 
   private get db() {
     return this.supabase.admin;
@@ -396,17 +400,18 @@ export class OffersService {
       if (error) throw new BadRequestException(error.message);
       offerId = data.id;
     }
-    if (input.imageBase64) {
-      // A PNG keeps its transparent edge; anything else is stored as JPEG.
-      const png = /^data:image\/png;base64,/.test(input.imageBase64);
-      const body = Buffer.from(input.imageBase64.replace(/^data:image\/\w+;base64,/, ""), "base64");
-      if (body.byteLength > 1_200_000) throw new BadRequestException("Image too large");
-      const path = `offers/${offerId}-${Date.now()}.${png ? "png" : "jpg"}`;
-      const { error } = await db.storage.from("product-images").upload(path, body, { contentType: png ? "image/png" : "image/jpeg", upsert: true });
-      if (error) throw new BadRequestException(error.message);
+    if (input.imageBase64 || (input.removeImage && id)) {
+      const { data: before } = await db.from("offers").select("image_path").eq("id", offerId!).single();
+      let path: string | null = null;
+      if (input.imageBase64) {
+        // Same pipeline as catalogue photos: WebP in three sizes plus a blurred preview (PNG transparency is kept).
+        const body = Buffer.from(input.imageBase64.replace(/^data:image\/\w+;base64,/, ""), "base64");
+        if (body.byteLength > 1_200_000) throw new BadRequestException("Image too large");
+        path = (await this.images.store("offer", offerId!, { buffer: body, size: body.byteLength })).path;
+      }
       await db.from("offers").update({ image_path: path }).eq("id", offerId!);
-    } else if (input.removeImage && id) {
-      await db.from("offers").update({ image_path: null }).eq("id", id);
+      // Older banners (offers/<id>-<time>.jpg) were single files; only the new layout is cleaned up.
+      if (before?.image_path && before.image_path !== path && /^offer\//.test(before.image_path)) await this.images.remove(before.image_path);
     }
     return { id: offerId };
   }

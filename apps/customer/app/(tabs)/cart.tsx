@@ -4,7 +4,7 @@ import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 import { AppText } from "@/components/AppText";
 import { Button } from "@/components/Button";
 import { EmptyBasket } from "@/components/EmptyBasket";
-const PATTERN = require("@thanjozmart/assets/images/pattern-doodles.png");
+const PATTERN = require("@thanjozmart/assets/images/pattern-doodles.webp");
 import { cartVertical, useCart } from "@/store/cart";
 import { useT } from "@/i18n";
 import { useTheme } from "@/theme";

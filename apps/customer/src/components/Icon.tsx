@@ -2,7 +2,7 @@ import { Image } from "react-native";
 import Svg, { Circle, Path, Rect } from "react-native-svg";
 
 /** Delivery rider on a scooter — the same artwork as the rider app, tinted to any colour. */
-const RIDER = require("@thanjozmart/assets/images/icon-rider.png");
+const RIDER = require("@thanjozmart/assets/images/icon-rider.webp");
 
 export type IconName =
   | "search" | "mic" | "bell" | "pin" | "chevronDown" | "back" | "sparkle"

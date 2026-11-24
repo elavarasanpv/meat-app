@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
-import shop from "@thanjozmart/assets/images/slide-shop.png";
-import rider from "@thanjozmart/assets/images/slide-rider.png";
+import shop from "@thanjozmart/assets/images/slide-shop.webp";
+import rider from "@thanjozmart/assets/images/slide-rider.webp";
 import { BrandMark } from "../ui/BrandMark";
-import tracking from "@thanjozmart/assets/images/slide-tracking.png";
+import tracking from "@thanjozmart/assets/images/slide-tracking.webp";
 
 const SLIDES = [
   { text: "Shops, sales and margins at a glance, updated live.", img: shop, alt: "Butcher shop with a sales card" },

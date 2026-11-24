@@ -2,8 +2,8 @@ import { useEffect, useMemo } from "react";
 import { MapContainer, Marker, Polyline, TileLayer, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import riderIcon from "@thanjozmart/assets/images/icon-rider.png";
-import shopIcon from "@thanjozmart/assets/images/icon-shop.png";
+import riderIcon from "@thanjozmart/assets/images/icon-rider.webp";
+import shopIcon from "@thanjozmart/assets/images/icon-shop.webp";
 
 export type LatLng = { lat: number; lng: number };
 export type Stop = { id: string; displayId: string; status: string; customer: string; at: LatLng | null; shop: { name: string; at: LatLng | null } | null };

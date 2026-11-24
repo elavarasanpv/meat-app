@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Image, Pressable, ScrollView, View, useWindowDimensions } from "react-native";
+import { Pressable, ScrollView, View, useWindowDimensions } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
@@ -18,6 +18,7 @@ import { dayLabel, slotWindow } from "@/lib/format";
 import { groceryImage } from "@/lib/images";
 import { basketConflict, useCart, type CartItem } from "@/store/cart";
 import { Accent, radius, useTheme, withAccent } from "@/theme";
+import { Photo } from "@/components/Photo";
 
 /**
  * One grocery item: photo hero, price against MRP, the delivery rule for the
@@ -103,7 +104,7 @@ export default function GroceryItemScreen() {
               </Pressable>
             </View>
             <View style={{ height: Math.min(260, width * 0.62), alignItems: "center", justifyContent: "center", marginTop: 6 }}>
-              {img ? <Image source={img} resizeMode="contain" style={{ width: "80%", height: "100%" }} /> : <AppText style={{ fontSize: 72, lineHeight: 80 }} color={c.primary}>{item.name.charAt(0)}</AppText>}
+              {img ? <Photo source={img} width={300} priority="high" style={{ width: "80%", height: "100%" }} /> : <AppText style={{ fontSize: 72, lineHeight: 80 }} color={c.primary}>{item.name.charAt(0)}</AppText>}
             </View>
             {off > 0 && (
               <View style={{ position: "absolute", left: 16, bottom: 16, paddingHorizontal: 10, height: 24, borderRadius: 12, backgroundColor: GROCERY.accent, justifyContent: "center" }}>
@@ -158,7 +159,7 @@ export default function GroceryItemScreen() {
                     return (
                       <Pressable key={r.master_product_id} onPress={() => router.push(`/grocery/item/${r.master_product_id}`)} accessibilityRole="button" style={{ width: 124, borderRadius: 16, backgroundColor: c.surface, borderWidth: 1, borderColor: theme.tone.groceryBorder, padding: 8, gap: 6 }}>
                         <View style={{ height: 64, borderRadius: 10, backgroundColor: c.tintSoft, alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
-                          {ri ? <Image source={ri} resizeMode="contain" style={{ width: 56, height: 56 }} /> : <AppText variant="title" color={c.primary}>{r.name.charAt(0)}</AppText>}
+                          {ri ? <Photo source={ri} style={{ width: 56, height: 56 }} /> : <AppText variant="title" color={c.primary}>{r.name.charAt(0)}</AppText>}
                         </View>
                         <AppText variant="label" numberOfLines={2} style={{ fontSize: 11.5, lineHeight: 15 }}>{localName(r)}</AppText>
                         <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>

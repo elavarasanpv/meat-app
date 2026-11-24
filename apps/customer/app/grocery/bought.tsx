@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Image, Pressable, ScrollView, TextInput, View } from "react-native";
+import { Pressable, ScrollView, TextInput, View } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AppText } from "@/components/AppText";
@@ -13,6 +13,7 @@ import { useHomePincode } from "@/hooks/useOffers";
 import { useLocalName, useT } from "@/i18n";
 import { groceryThumb } from "@/lib/images";
 import { Accent, radius, useTheme, withAccent } from "@/theme";
+import { Photo } from "@/components/Photo";
 
 /** Everything this customer has bought before, as a searchable list with + / stepper per row. */
 export default function BoughtBeforeScreen() {
@@ -64,7 +65,7 @@ export default function BoughtBeforeScreen() {
               return (
                 <Pressable key={r.master_product_id} onPress={() => router.push(`/grocery/item/${r.master_product_id}`)} accessibilityRole="button" style={{ flexDirection: "row", alignItems: "center", gap: 12, padding: 10, borderRadius: radius.card, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, opacity: r.in_stock ? 1 : 0.55 }}>
                   <View style={{ width: 64, height: 64, borderRadius: 14, backgroundColor: c.tintSoft, alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
-                    {img ? <Image source={img} resizeMode="contain" style={{ width: 58, height: 58 }} /> : <AppText variant="title" color={c.primary}>{r.name.charAt(0)}</AppText>}
+                    {img ? <Photo source={img} style={{ width: 58, height: 58 }} /> : <AppText variant="title" color={c.primary}>{r.name.charAt(0)}</AppText>}
                   </View>
                   <View style={{ flex: 1, gap: 2 }}>
                     <AppText variant="bodyBold" numberOfLines={2} style={{ fontSize: 13, lineHeight: 18 }}>{localName(r)}</AppText>

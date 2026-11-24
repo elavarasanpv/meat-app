@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { Pressable, ScrollView, View, useWindowDimensions } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { FlashList } from "@shopify/flash-list";
 import { AppText } from "@/components/AppText";
 import { CartBar, CART_BAR_SPACE } from "@/components/CartBar";
 import { BasketConfirm, GroceryCard } from "@/components/GroceryHome";
@@ -19,7 +20,9 @@ const GAP = 12;
 /**
  * One sub-category: its sibling tiles as chips across the top (hop between
  * "Atta, rice & dal" and "Oil, ghee & masala" without going back), then the
- * 2-up product cards.
+ * 2-up product cards. The cards sit in a FlashList, so a sub-category with
+ * hundreds of items only builds the rows on screen and reuses them as the
+ * customer scrolls.
  */
 export default function GroceryCategoryScreen() {
   const theme = useTheme();
@@ -67,21 +70,31 @@ export default function GroceryCategoryScreen() {
           </ScrollView>
         )}
 
-        <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: basket.items.length ? CART_BAR_SPACE + 20 : 24 }}>
-          {cs.loading ? (
-            <ListSkeleton rows={4} height={cardWidth * 1.2} />
-          ) : cs.failed ? (
-            <ErrorState onRetry={() => catalog.refetch()} />
-          ) : rows.length === 0 ? (
-            <ErrorState icon="cart" title={t("noItems")} compact onRetry={() => catalog.refetch()} />
-          ) : (
-            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: GAP }}>
-              {rows.map((r) => (
-                <GroceryCard key={r.master_product_id} item={r} width={cardWidth} qty={basket.qtyOf(r.master_product_id)} onAdd={() => basket.add(r)} onStep={(d) => basket.step(r, d)} onOpen={() => router.push(`/grocery/item/${r.master_product_id}`)} />
-              ))}
-            </View>
-          )}
-        </ScrollView>
+        {cs.loading || cs.failed || rows.length === 0 ? (
+          <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 24 }}>
+            {cs.loading ? (
+              <ListSkeleton rows={4} height={cardWidth * 1.2} />
+            ) : cs.failed ? (
+              <ErrorState onRetry={() => catalog.refetch()} />
+            ) : (
+              <ErrorState icon="cart" title={t("noItems")} compact onRetry={() => catalog.refetch()} />
+            )}
+          </ScrollView>
+        ) : (
+          <FlashList
+            data={rows}
+            numColumns={2}
+            keyExtractor={(r) => r.master_product_id}
+            extraData={basket.items}
+            contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: basket.items.length ? CART_BAR_SPACE + 20 : 24 }}
+            ItemSeparatorComponent={Gap}
+            renderItem={({ item: r, index }) => (
+              <View style={{ flex: 1, alignItems: index % 2 ? "flex-end" : "flex-start" }}>
+                <GroceryCard item={r} width={cardWidth} qty={basket.qtyOf(r.master_product_id)} onAdd={() => basket.add(r)} onStep={(d) => basket.step(r, d)} onOpen={() => router.push(`/grocery/item/${r.master_product_id}`)} />
+              </View>
+            )}
+          />
+        )}
 
         <CartBar />
         <BasketConfirm basket={basket} />
@@ -89,3 +102,5 @@ export default function GroceryCategoryScreen() {
     </Accent>
   );
 }
+
+const Gap = () => <View style={{ height: GAP }} />;

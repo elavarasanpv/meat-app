@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Image, Pressable, ScrollView, View } from "react-native";
+import { Pressable, ScrollView, View } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AppText } from "@/components/AppText";
@@ -17,6 +17,7 @@ import { errorMessage } from "@/lib/network";
 import { formatQty, lineTotal, qtyStep, useCart } from "@/store/cart";
 import { useVertical } from "@/store/vertical";
 import { radius, useTheme } from "@/theme";
+import { Photo } from "@/components/Photo";
 
 /**
  * Full-screen meat cart (no tab bar), laid out like the grocery one: back
@@ -122,7 +123,7 @@ export default function MeatCartScreen() {
             return (
               <View key={item.productId} style={{ flexDirection: "row", alignItems: "center", gap: 12, padding: 12, paddingTop: i === 0 ? 12 : 0 }}>
                 <View style={{ width: 64, height: 64, borderRadius: 14, backgroundColor: c.tintSoft, borderWidth: 1, borderColor: c.tint, alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
-                  {img ? <Image source={img} resizeMode="contain" style={{ width: 56, height: 56 }} /> : <AppText variant="title" color={c.price}>{item.name.charAt(0)}</AppText>}
+                  {img ? <Photo source={img} style={{ width: 56, height: 56 }} /> : <AppText variant="title" color={c.price}>{item.name.charAt(0)}</AppText>}
                 </View>
                 <View style={{ flex: 1, minWidth: 0 }}>
                   <AppText variant="bodyBold" numberOfLines={2} style={{ fontSize: 14, lineHeight: 18 }}>{localName({ name: item.name, name_ta: item.nameTa })}</AppText>

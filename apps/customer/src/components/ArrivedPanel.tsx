@@ -7,7 +7,7 @@ import { Icon } from "./Icon";
 import { useT } from "@/i18n";
 import { fonts, useTheme } from "@/theme";
 
-const rider = require("@thanjozmart/assets/images/rider-arrived.png");
+const rider = require("@thanjozmart/assets/images/rider-arrived.webp");
 const chime = require("../../assets/sounds/arrived.wav");
 
 /** How far the panel slides up over the map above it. */

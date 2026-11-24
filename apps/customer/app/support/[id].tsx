@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Image, Pressable, ScrollView, TextInput, View } from "react-native";
+import { Pressable, ScrollView, TextInput, View } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { AppText } from "@/components/AppText";
@@ -8,6 +8,7 @@ import { Icon } from "@/components/Icon";
 import { pickPhotoBase64, useReplyTicket, useTicket } from "@/hooks/useSupport";
 import { useT, type TKey } from "@/i18n";
 import { radius, useTheme } from "@/theme";
+import { Photo } from "@/components/Photo";
 
 /** One support request: the conversation with Thanjoz Mart, and a reply box. */
 export default function TicketScreen() {
@@ -66,7 +67,7 @@ export default function TicketScreen() {
               }}
             >
               {m.body ? <AppText variant="body" color={m.sender === "customer" ? "#fff" : undefined}>{m.body}</AppText> : null}
-              {m.photoUrl && <Image source={{ uri: m.photoUrl }} style={{ width: 180, height: 180, borderRadius: 12 }} resizeMode="cover" />}
+              {m.photoUrl && <Photo source={{ uri: m.photoUrl }} contentFit="cover" style={{ width: 180, height: 180, borderRadius: 12 }} />}
               <AppText variant="caption" color={m.sender === "customer" ? "rgba(255,255,255,0.7)" : c.muted}>
                 {new Date(m.at).toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" }).toLowerCase()}
               </AppText>

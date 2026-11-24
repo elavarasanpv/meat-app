@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Image, Pressable, ScrollView, View, useWindowDimensions } from "react-native";
+import { Pressable, ScrollView, View, useWindowDimensions } from "react-native";
 import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { AppText } from "@/components/AppText";
@@ -12,6 +12,7 @@ import { useLocalName, useT } from "@/i18n";
 import { groceryThumb } from "@/lib/images";
 import { queryState } from "@/lib/network";
 import { radius, useTheme } from "@/theme";
+import { Photo } from "@/components/Photo";
 
 /** Grocery accent — the green/yellow half of the brand (GroceryHome design). */
 export const GROCERY = {
@@ -133,7 +134,7 @@ function Tile({ cat, width, label, onPress, c }: { cat: GroceryCategory; width: 
   return (
     <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={label} style={({ pressed }) => ({ width, alignItems: "center", gap: 6, opacity: pressed ? 0.85 : 1 })}>
       <View style={{ width, height: Math.round(width * 1.05), borderRadius: 18, backgroundColor: c.tint, alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
-        {img ? <Image source={img} resizeMode="contain" style={{ width: "88%", height: "88%" }} /> : <AppText variant="title" color={c.primary} style={{ fontSize: 26 }}>{label.charAt(0)}</AppText>}
+        {img ? <Photo source={img} width={width * 0.88} style={{ width: "88%", height: "88%" }} /> : <AppText variant="title" color={c.primary} style={{ fontSize: 26 }}>{label.charAt(0)}</AppText>}
       </View>
       <AppText variant="label" numberOfLines={2} style={{ fontSize: 12, lineHeight: 15, textAlign: "center" }}>{label}</AppText>
     </Pressable>
@@ -158,7 +159,7 @@ export function MiniCard({ item: r, width, qty, onAdd, onStep, onOpen }: { item:
       style={{ width, borderRadius: 18, backgroundColor: c.surface, borderWidth: 1, borderColor: tone.groceryBorder, padding: 10, gap: 8, opacity: r.in_stock ? 1 : 0.55, shadowColor: c.primary, shadowOpacity: 0.1, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 2 }}
     >
       <View style={{ height: Math.round(width * 0.66), alignItems: "center", justifyContent: "center" }}>
-        {img ? <Image source={img} resizeMode="contain" style={{ width: "86%", height: "92%" }} /> : <AppText variant="title" color={c.primary} style={{ fontSize: 30 }}>{r.name.charAt(0)}</AppText>}
+        {img ? <Photo source={img} width={width * 0.86} style={{ width: "86%", height: "92%" }} /> : <AppText variant="title" color={c.primary} style={{ fontSize: 30 }}>{r.name.charAt(0)}</AppText>}
         {off > 0 && (
           <View style={{ position: "absolute", top: 0, left: 0, paddingHorizontal: 7, height: 18, borderRadius: 9, backgroundColor: GROCERY.accentSoft, justifyContent: "center" }}>
             <AppText variant="label" color="#7A5A00" style={{ fontSize: 9.5 }}>{t("percentOff", { n: off })}</AppText>
@@ -207,7 +208,7 @@ export function GroceryCard({ item: r, width, qty, onAdd, onStep, onOpen }: { it
           </View>
         ) : null}
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-          {img ? <Image source={img} resizeMode="contain" style={{ width: "80%", height: "85%" }} /> : <AppText style={{ fontSize: 40, lineHeight: 48 }} color={c.primary}>{r.name.charAt(0)}</AppText>}
+          {img ? <Photo source={img} width={width * 0.8} style={{ width: "80%", height: "85%" }} /> : <AppText style={{ fontSize: 40, lineHeight: 48 }} color={c.primary}>{r.name.charAt(0)}</AppText>}
         </View>
         <View style={{ flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", height: 40, marginTop: 2 }}>
           <View style={{ flexShrink: 1 }}>

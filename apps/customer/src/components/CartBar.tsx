@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Animated, Easing, Image, Platform, Pressable, View } from "react-native";
+import { Animated, Easing, Platform, Pressable, View } from "react-native";
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
@@ -12,6 +12,7 @@ import { cartTotals, cartVertical, useCart } from "@/store/cart";
 import { useExpand } from "@/store/expand";
 import { EXPAND_MS } from "./ExpandSheet";
 import { radius, useTheme, withAccent } from "@/theme";
+import { Photo } from "@/components/Photo";
 
 /** How long the bar says "X added" after a change before going back to the item count. */
 const ADDED_FLASH_MS = 2500;
@@ -134,7 +135,7 @@ export function CartBar({ aboveTabBar = false }: Props) {
                       key={it.productId}
                       style={{ position: "absolute", left: i * AVATAR_STEP, zIndex: i + 1, width: 48, height: 48, borderRadius: 24, backgroundColor: tone.raised, borderWidth: 2, borderColor: tone.raised, alignItems: "center", justifyContent: "center", overflow: "hidden", elevation: 2, shadowColor: "#000", shadowOpacity: 0.12, shadowRadius: 4, shadowOffset: { width: 0, height: 2 } }}
                     >
-                      {img ? <Image source={img} resizeMode="contain" style={{ width: 38, height: 38 }} /> : <Icon name="cart" color={primary} size={20} />}
+                      {img ? <Photo source={img} style={{ width: 38, height: 38 }} /> : <Icon name="cart" color={primary} size={20} />}
                     </View>
                   );
                 })}

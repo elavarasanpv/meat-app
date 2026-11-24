@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "expo-router";
 import { Image, Pressable, ScrollView, View, useWindowDimensions } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
@@ -13,8 +13,8 @@ import { SearchHint } from "@/components/SearchHint";
 import { SubcategoryCard } from "@/components/SubcategoryCard";
 import { CartBar, CART_BAR_SPACE } from "@/components/CartBar";
 import { ForYou } from "@/components/ForYou";
-const INGREDIENTS = require("@thanjozmart/assets/images/doodle-ingredients.png");
-const GROCERY_DOODLE = require("@thanjozmart/assets/images/doodle-grocery.png");
+const INGREDIENTS = require("@thanjozmart/assets/images/doodle-ingredients.webp");
+const GROCERY_DOODLE = require("@thanjozmart/assets/images/doodle-grocery.webp");
 import { offerTag, useOfferForProduct } from "@/hooks/useOffers";
 import { ErrorState, ProductGridSkeleton, Skeleton } from "@/components/States";
 import { byPopularity, useCategories, useProductStats, useProducts, useSubcategories, type Subcategory } from "@/hooks/useCatalog";
@@ -27,6 +27,7 @@ import { categoryImage, productImage, subcategoryImage } from "@/lib/images";
 import { useLocalName, useT, type TKey } from "@/i18n";
 import { Accent, radius, useTheme, withAccent } from "@/theme";
 import { queryState } from "@/lib/network";
+import { prefetchPhotos } from "@/lib/photo";
 
 function greetingKey(): TKey {
   const h = new Date().getHours();
@@ -76,6 +77,10 @@ export default function HomeScreen() {
   const categories = useCategories();
   const subcategories = useSubcategories();
   const products = useProducts(); // all products once; grouped below
+  // On Wi-Fi, fetch every product's big photo now so the product page opens with it already on the phone.
+  useEffect(() => {
+    if (products.data) prefetchPhotos(products.data.map((p) => (p.image_path ? productImage(p.name, p.image_path) : undefined)), 320);
+  }, [products.data]);
   const stats = useProductStats(); // stars + how many customers bought each; most-bought first
   const groceryLive = useGroceryLive(); // false until admin switches the vertical on
   const vertical = useVertical((s) => s.vertical);

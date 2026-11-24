@@ -14,8 +14,8 @@ import { toE164India } from "@/store/auth";
 import { useT } from "@/i18n";
 import { fonts, radius, useTheme } from "@/theme";
 
-const HERO = require("@thanjozmart/assets/images/doodle-handoff.png");
-const PATTERN = require("@thanjozmart/assets/images/pattern-doodles.png");
+const HERO = require("@thanjozmart/assets/images/doodle-handoff.webp");
+const PATTERN = require("@thanjozmart/assets/images/pattern-doodles.webp");
 
 /** Step 1 of login: enter mobile number → Supabase sends SMS OTP. */
 export default function LoginScreen() {

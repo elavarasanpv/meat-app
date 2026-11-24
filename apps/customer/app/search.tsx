@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Image, Pressable, ScrollView, TextInput, View } from "react-native";
+import { Pressable, ScrollView, TextInput, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AppText } from "@/components/AppText";
@@ -16,6 +16,7 @@ import { useLocalName, useT } from "@/i18n";
 import { fonts, radius, useTheme } from "@/theme";
 import { queryState } from "@/lib/network";
 import { useCart } from "@/store/cart";
+import { Photo } from "@/components/Photo";
 
 function Row({ product, onPress }: { product: Product; onPress: () => void }) {
   const { c } = useTheme();
@@ -29,7 +30,7 @@ function Row({ product, onPress }: { product: Product; onPress: () => void }) {
       style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 12, padding: 10, borderRadius: 18, backgroundColor: pressed ? c.tintSoft : c.surface, borderWidth: 1, borderColor: c.border })}
     >
       <View style={{ width: 56, height: 56, borderRadius: 14, backgroundColor: c.tintSoft, alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
-        {img ? <Image source={img} resizeMode="contain" style={{ width: 50, height: 50 }} /> : <AppText variant="title" color={c.price}>{product.name.charAt(0)}</AppText>}
+        {img ? <Photo source={img} style={{ width: 50, height: 50 }} /> : <AppText variant="title" color={c.price}>{product.name.charAt(0)}</AppText>}
       </View>
       <View style={{ flex: 1 }}>
         <AppText variant="bodyBold" numberOfLines={2} style={{ fontSize: 14, lineHeight: 19 }}>{localName(product)}</AppText>

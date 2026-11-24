@@ -3,38 +3,38 @@ import { supabase } from "./supabase";
 
 /** Bundled cut-outs used until every product has an uploaded image. */
 export const bundled = {
-  allMeats: require("@thanjozmart/assets/images/all-meats.png") as ImageSourcePropType,
-  countryChicken: require("@thanjozmart/assets/images/country-chicken.png") as ImageSourcePropType,
-  broilerChicken: require("@thanjozmart/assets/images/broiler-chicken.png") as ImageSourcePropType,
-  mutton: require("@thanjozmart/assets/images/mutton.png") as ImageSourcePropType,
-  muttonBoneless: require("@thanjozmart/assets/images/mutton-boneless.png") as ImageSourcePropType,
-  eggsTray: require("@thanjozmart/assets/images/eggs-tray.png") as ImageSourcePropType,
-  farmEggs: require("@thanjozmart/assets/images/farm-eggs.png") as ImageSourcePropType,
-  countryEggs: require("@thanjozmart/assets/images/country-eggs.png") as ImageSourcePropType,
+  allMeats: require("@thanjozmart/assets/images/all-meats.webp") as ImageSourcePropType,
+  countryChicken: require("@thanjozmart/assets/images/country-chicken.webp") as ImageSourcePropType,
+  broilerChicken: require("@thanjozmart/assets/images/broiler-chicken.webp") as ImageSourcePropType,
+  mutton: require("@thanjozmart/assets/images/mutton.webp") as ImageSourcePropType,
+  muttonBoneless: require("@thanjozmart/assets/images/mutton-boneless.webp") as ImageSourcePropType,
+  eggsTray: require("@thanjozmart/assets/images/eggs-tray.webp") as ImageSourcePropType,
+  farmEggs: require("@thanjozmart/assets/images/farm-eggs.webp") as ImageSourcePropType,
+  countryEggs: require("@thanjozmart/assets/images/country-eggs.webp") as ImageSourcePropType,
   // chicken cuts
-  wholeChicken: require("@thanjozmart/assets/images/whole-chicken.png") as ImageSourcePropType,
-  curryCut: require("@thanjozmart/assets/images/curry-cut.png") as ImageSourcePropType,
-  skinlessCurryCut: require("@thanjozmart/assets/images/skinless-curry-cut.png") as ImageSourcePropType,
-  breastPiece: require("@thanjozmart/assets/images/breast-piece.png") as ImageSourcePropType,
-  legPiece: require("@thanjozmart/assets/images/leg-piece.png") as ImageSourcePropType,
-  wings: require("@thanjozmart/assets/images/wings.png") as ImageSourcePropType,
-  chickenBoneless: require("@thanjozmart/assets/images/chicken-boneless.png") as ImageSourcePropType,
+  wholeChicken: require("@thanjozmart/assets/images/whole-chicken.webp") as ImageSourcePropType,
+  curryCut: require("@thanjozmart/assets/images/curry-cut.webp") as ImageSourcePropType,
+  skinlessCurryCut: require("@thanjozmart/assets/images/skinless-curry-cut.webp") as ImageSourcePropType,
+  breastPiece: require("@thanjozmart/assets/images/breast-piece.webp") as ImageSourcePropType,
+  legPiece: require("@thanjozmart/assets/images/leg-piece.webp") as ImageSourcePropType,
+  wings: require("@thanjozmart/assets/images/wings.webp") as ImageSourcePropType,
+  chickenBoneless: require("@thanjozmart/assets/images/chicken-boneless.webp") as ImageSourcePropType,
   // country chicken
-  countryHenWhole: require("@thanjozmart/assets/images/country-hen-whole.png") as ImageSourcePropType,
-  countryCockWhole: require("@thanjozmart/assets/images/country-cock-whole.png") as ImageSourcePropType,
-  countryHenCut: require("@thanjozmart/assets/images/country-hen-cut.png") as ImageSourcePropType,
-  countryCockCut: require("@thanjozmart/assets/images/country-cock-cut.png") as ImageSourcePropType,
+  countryHenWhole: require("@thanjozmart/assets/images/country-hen-whole.webp") as ImageSourcePropType,
+  countryCockWhole: require("@thanjozmart/assets/images/country-cock-whole.webp") as ImageSourcePropType,
+  countryHenCut: require("@thanjozmart/assets/images/country-hen-cut.webp") as ImageSourcePropType,
+  countryCockCut: require("@thanjozmart/assets/images/country-cock-cut.webp") as ImageSourcePropType,
 };
 
 /** Studio photos for the "For you" banners. */
 const banners = {
-  muttonCurry: require("@thanjozmart/assets/images/banner-mutton-curry.png") as ImageSourcePropType,
-  muttonBoneless: require("@thanjozmart/assets/images/banner-mutton-boneless.png") as ImageSourcePropType,
-  chickenCurry: require("@thanjozmart/assets/images/banner-chicken-curry.png") as ImageSourcePropType,
-  countryChicken: require("@thanjozmart/assets/images/banner-country-chicken.png") as ImageSourcePropType,
-  eggs: require("@thanjozmart/assets/images/banner-eggs.png") as ImageSourcePropType,
-  combo: require("@thanjozmart/assets/images/banner-combo.png") as ImageSourcePropType,
-  popular: require("@thanjozmart/assets/images/banner-popular.png") as ImageSourcePropType,
+  muttonCurry: require("@thanjozmart/assets/images/banner-mutton-curry.webp") as ImageSourcePropType,
+  muttonBoneless: require("@thanjozmart/assets/images/banner-mutton-boneless.webp") as ImageSourcePropType,
+  chickenCurry: require("@thanjozmart/assets/images/banner-chicken-curry.webp") as ImageSourcePropType,
+  countryChicken: require("@thanjozmart/assets/images/banner-country-chicken.webp") as ImageSourcePropType,
+  eggs: require("@thanjozmart/assets/images/banner-eggs.webp") as ImageSourcePropType,
+  combo: require("@thanjozmart/assets/images/banner-combo.webp") as ImageSourcePropType,
+  popular: require("@thanjozmart/assets/images/banner-popular.webp") as ImageSourcePropType,
 };
 
 /** Banner photo for a product, or undefined when we don't have one yet (caller falls back to productImage). */
@@ -64,10 +64,8 @@ export function groceryImage(imagePath: string | null | undefined): ImageSourceP
   return imagePath ? { uri: supabase.storage.from("product-images").getPublicUrl(imagePath).data.publicUrl } : undefined;
 }
 
-/** The 300 px twin the API stores next to every admin upload (lists, cart rows). Seed paths without a twin fall back to the main file. */
-export function groceryThumb(imagePath: string | null | undefined): ImageSourcePropType | undefined {
-  return imagePath ? groceryImage(/\.webp$/.test(imagePath) ? imagePath.replace(/\.webp$/, "-300.webp") : imagePath) : undefined;
-}
+/** Same as groceryImage: <Photo> picks the 160/300/800 px file for the box, so callers always pass the main path. */
+export const groceryThumb = groceryImage;
 
 /** Image for a cart line, whichever vertical it came from. */
 export function cartImage(it: { name: string; imagePath?: string | null; vertical?: "meat" | "grocery" }): ImageSourcePropType | undefined {

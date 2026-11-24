@@ -1,9 +1,10 @@
-import { Image, Pressable, View, type ImageSourcePropType } from "react-native";
+import { Pressable, View, type ImageSourcePropType } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import Svg, { Defs, Ellipse, RadialGradient, Stop } from "react-native-svg";
 import { AppText } from "./AppText";
 import { radius, useTheme } from "@/theme";
 import { useT } from "@/i18n";
+import { Photo } from "@/components/Photo";
 
 type Props = {
   name: string;
@@ -52,7 +53,7 @@ export function SubcategoryCard({ name, count, price, unit = "kg", image, onPres
             </Defs>
             <Ellipse cx={width / 2} cy={14} rx={width * 0.36} ry={11} fill="url(#shadow)" />
           </Svg>
-          {image ? <Image source={image} resizeMode="contain" style={{ width: "100%", height: "100%" }} /> : null}
+          {image ? <Photo source={image} width={width} style={{ width: "100%", height: "100%" }} /> : null}
         </View>
 
         {/* Headline price (normal cut) + option count, and a View pill */}
