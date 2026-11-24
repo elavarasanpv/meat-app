@@ -145,7 +145,12 @@ export default function MeatCartScreen() {
                       <AppText variant="bodyBold" color="#FFFFFF" style={{ fontSize: 16, lineHeight: 18 }}>+</AppText>
                     </Pressable>
                   </View>
-                  <AppText variant="bodyBold" color={c.price} style={{ fontSize: 14 }}>₹{lineTotal(item)}</AppText>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                    <Pressable onPress={() => remove(item.productId)} hitSlop={10} accessibilityRole="button" accessibilityLabel={`${t("remove")} ${item.name}`} style={{ width: 26, height: 26, borderRadius: 13, backgroundColor: c.surface2, alignItems: "center", justifyContent: "center" }}>
+                      <Icon name="trash" color={c.danger} size={14} />
+                    </Pressable>
+                    <AppText variant="bodyBold" color={c.price} style={{ fontSize: 14 }}>₹{lineTotal(item)}</AppText>
+                  </View>
                 </View>
               </View>
             );

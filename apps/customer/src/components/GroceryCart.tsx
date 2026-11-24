@@ -133,7 +133,10 @@ export function GroceryCart({ bill, onBack, cta, address }: { bill: ReturnType<t
                       <AppText variant="bodyBold" color="#FFFFFF" style={{ fontSize: 16, lineHeight: 18 }}>+</AppText>
                     </Pressable>
                   </View>
-                  <View style={{ flexDirection: "row", alignItems: "baseline", gap: 4 }}>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                    <Pressable onPress={() => remove(item.productId)} hitSlop={10} accessibilityRole="button" accessibilityLabel={`${t("remove")} ${item.name}`} style={{ width: 26, height: 26, borderRadius: 13, backgroundColor: c.surface2, alignItems: "center", justifyContent: "center" }}>
+                      <Icon name="trash" color={c.danger} size={14} />
+                    </Pressable>
                     {item.mrp != null && item.mrp > item.price ? <AppText variant="caption" muted style={{ fontSize: 11, textDecorationLine: "line-through" }}>₹{Math.round(item.mrp * item.qty)}</AppText> : null}
                     <AppText variant="bodyBold" color={c.primary} style={{ fontSize: 14 }}>₹{lineTotal(item)}</AppText>
                   </View>
