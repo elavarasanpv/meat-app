@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { View } from "react-native";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AppText } from "@/components/AppText";
 import { useBill } from "@/components/BillSummary";
+import { EmptyCart } from "@/components/EmptyCart";
 import { GroceryCart } from "@/components/GroceryCart";
 import { useHomePincode } from "@/hooks/useOffers";
 import { usePlaceGroceryOrder, useSelectedAddress, useSlots } from "@/hooks/useOrders";
@@ -60,10 +61,13 @@ export default function GroceryCartScreen() {
   }
 
   // An empty basket has nothing to show here; Home has the empty state.
-  useEffect(() => {
-    if (items.length === 0) back();
-  }, [items.length]);
-  if (items.length === 0) return null;
+  // Only once this page is in front: going back from behind another page would pop that one instead.
+  useFocusEffect(
+    useCallback(() => {
+      if (items.length === 0) back();
+    }, [items.length]),
+  );
+  if (items.length === 0) return <EmptyCart onBrowse={back} />;
 
   return (
     <Accent value="grocery">

@@ -1,11 +1,12 @@
-import { useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AppText } from "@/components/AppText";
 import { BillSummary, useBill } from "@/components/BillSummary";
 import { Button } from "@/components/Button";
 import { DeliverTo } from "@/components/DeliverTo";
+import { EmptyCart } from "@/components/EmptyCart";
 import { GlassDock } from "@/components/GlassDock";
 import { Icon } from "@/components/Icon";
 import { useHomePincode } from "@/hooks/useOffers";
@@ -75,10 +76,13 @@ export default function MeatCartScreen() {
   }
 
   // An empty basket has nothing to show here; the Cart tab has the empty state.
-  useEffect(() => {
-    if (items.length === 0) back();
-  }, [items.length]);
-  if (items.length === 0) return null;
+  // Only once this page is in front: going back from behind another page would pop that one instead.
+  useFocusEffect(
+    useCallback(() => {
+      if (items.length === 0) back();
+    }, [items.length]),
+  );
+  if (items.length === 0) return <EmptyCart onBrowse={back} />;
 
   const box = { borderRadius: 20, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border } as const;
 
