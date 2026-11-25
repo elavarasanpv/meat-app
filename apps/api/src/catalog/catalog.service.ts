@@ -62,7 +62,7 @@ type Listing = {
 };
 
 const MASTER_COLS =
-  "id, vertical_type, category_id, barcode, name, name_ta, brand, pack_size, unit, min_qty, qty_step, mrp, image_path, description, description_ta, scope, status, owner_dealer_id, reviewed_by, reviewed_at, review_note, is_active, created_at, updated_at";
+  "id, vertical_type, category_id, barcode, name, name_ta, brand, pack_size, unit, min_qty, qty_step, mrp, image_path, card_bg, description, description_ta, scope, status, owner_dealer_id, reviewed_by, reviewed_at, review_note, is_active, created_at, updated_at";
 const LISTING_COLS =
   "dealer_id, master_product_id, shop_price, selling_price, mrp, price_mode, selling_set_by, out_of_stock_until, stock_qty, is_active, updated_at";
 
@@ -184,6 +184,7 @@ export class CatalogService {
         qty_step: input.qtyStep ?? (input.unit === "kg" ? 0.25 : 1),
         mrp: input.mrp ?? null,
         image_path: input.imagePath ?? null,
+        card_bg: input.cardBg ?? "green",
         description: input.description ?? null,
         description_ta: input.descriptionTa ?? null,
         scope: "shared",
@@ -234,6 +235,7 @@ export class CatalogService {
     if (input.qtyStep !== undefined) patch.qty_step = input.qtyStep;
     if (input.mrp !== undefined) patch.mrp = input.mrp;
     if (input.imagePath !== undefined) patch.image_path = input.imagePath;
+    if (input.cardBg !== undefined) patch.card_bg = input.cardBg;
     if (input.isActive !== undefined) patch.is_active = input.isActive;
     const { data, error } = await this.db.from("master_products").update(patch).eq("id", id).select(MASTER_COLS).maybeSingle();
     if (error) throw error;

@@ -17,7 +17,7 @@ import { useLang, useLocalName, useT } from "@/i18n";
 import { dayLabel, slotWindow } from "@/lib/format";
 import { groceryImage } from "@/lib/images";
 import { basketConflict, useCart, type CartItem } from "@/store/cart";
-import { Accent, radius, useTheme, withAccent } from "@/theme";
+import { Accent, cardBackdrop, radius, useTheme, withAccent } from "@/theme";
 import { Photo } from "@/components/Photo";
 
 /**
@@ -92,8 +92,7 @@ export default function GroceryItemScreen() {
       <View style={{ flex: 1, backgroundColor: c.ground }}>
         <ScrollView contentContainerStyle={{ paddingBottom: 24 }} showsVerticalScrollIndicator={false}>
           {/* Hero */}
-          <LinearGradient colors={[...theme.tone.groceryHeader]} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={{ paddingTop: insets.top + 8, paddingHorizontal: 16, paddingBottom: 18, borderBottomLeftRadius: 30, borderBottomRightRadius: 30, overflow: "hidden" }}>
-            <View pointerEvents="none" style={{ position: "absolute", right: -50, top: -40, width: 200, height: 200, borderRadius: 100, backgroundColor: theme.glow(0.45) }} />
+          <LinearGradient colors={[...cardBackdrop(item.card_bg, theme.dark).colors]} locations={[0.3, 1]} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={{ paddingTop: insets.top + 8, paddingHorizontal: 16, paddingBottom: 18, borderBottomLeftRadius: 30, borderBottomRightRadius: 30, overflow: "hidden" }}>
             <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
               <Pressable onPress={() => router.back()} hitSlop={10} accessibilityRole="button" accessibilityLabel="Back" style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, alignItems: "center", justifyContent: "center" }}>
                 <Icon name="back" color={c.ink} />

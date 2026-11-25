@@ -38,3 +38,17 @@ export type Role = (typeof ROLES)[number];
 
 export const PAYMENT_MODES = ["cod", "upi_on_delivery", "prepaid_upi"] as const;
 export type PaymentMode = (typeof PAYMENT_MODES)[number];
+
+/**
+ * Backdrops a grocery product photo can sit on (card and item page). All are
+ * near-white so a packet never melts into them; the admin picks the one that
+ * suits the photo. Colours run top → bottom.
+ */
+export const CARD_BACKGROUNDS = ["white", "green", "grey", "cream"] as const;
+export type CardBackground = (typeof CARD_BACKGROUNDS)[number];
+export const CARD_BG: Record<CardBackground, { label: string; light: readonly [string, string]; dark: readonly [string, string]; border: string; borderDark: string }> = {
+  white: { label: "White", light: ["#FFFFFF", "#FFFFFF"], dark: ["#231E1C", "#231E1C"], border: "#E9E5E1", borderDark: "#352F2C" },
+  green: { label: "Light green", light: ["#FFFFFF", "#EAF5EE"], dark: ["#1F1A18", "#1B2B21"], border: "#DCEBE0", borderDark: "#2A3A30" },
+  grey: { label: "Light grey", light: ["#FFFFFF", "#ECEEF1"], dark: ["#1F1A18", "#2B2C30"], border: "#E2E4E8", borderDark: "#3A3B40" },
+  cream: { label: "Cream", light: ["#FFFFFF", "#FAF0E1"], dark: ["#1F1A18", "#30271D"], border: "#EFE3D0", borderDark: "#42372A" },
+};

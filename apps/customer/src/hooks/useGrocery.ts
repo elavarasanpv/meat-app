@@ -71,6 +71,8 @@ export type GroceryItem = {
   mrp: number | null;
   in_stock: boolean;
   shops: number;
+  /** Backdrop the admin picked for the photo; absent until the catalogue carries it. */
+  card_bg?: string | null;
 };
 
 /** Everything a customer at this pincode can buy (empty while the vertical is off). */

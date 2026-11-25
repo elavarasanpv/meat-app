@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { CANCEL_REASONS, ORDER_STATUSES } from "./order-state";
-import { PAYMENT_MODES, ROLES } from "./constants";
+import { CARD_BACKGROUNDS, PAYMENT_MODES, ROLES } from "./constants";
 
 export const roleSchema = z.enum(ROLES);
 export const orderStatusSchema = z.enum(ORDER_STATUSES);
@@ -411,6 +411,7 @@ export const masterProductSchema = z.object({
   qtyStep: z.number().positive().max(100).optional(),
   mrp: money.nullable().optional(),
   imagePath: z.string().max(500).nullable().optional(),
+  cardBg: z.enum(CARD_BACKGROUNDS).optional(),
   description: z.string().trim().max(600).nullable().optional(),
   descriptionTa: z.string().trim().max(600).nullable().optional(),
   isActive: z.boolean().optional(),

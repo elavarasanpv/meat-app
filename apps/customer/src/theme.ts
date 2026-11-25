@@ -1,3 +1,4 @@
+import { CARD_BG, type CardBackground } from "@thanjozmart/shared";
 import { createContext, useContext } from "react";
 import { useColorScheme } from "react-native";
 
@@ -145,6 +146,12 @@ const GROCERY_ACCENT_DARK: Partial<Colors> = {
 };
 export const AccentContext = createContext<"meat" | "grocery">("meat");
 export const Accent = AccentContext.Provider;
+/** The near-white backdrop behind a grocery product photo: gradient (top → bottom) and border. */
+export function cardBackdrop(key: string | null | undefined, dark: boolean) {
+  const bg = CARD_BG[(key ?? "green") as CardBackground] ?? CARD_BG.green;
+  return { colors: dark ? bg.dark : bg.light, border: dark ? bg.borderDark : bg.border };
+}
+
 export function withAccent(c: Colors, vertical?: "meat" | "grocery" | null, dark = false): Colors {
   return vertical === "grocery" ? { ...c, ...(dark ? GROCERY_ACCENT_DARK : GROCERY_ACCENT) } : c;
 }

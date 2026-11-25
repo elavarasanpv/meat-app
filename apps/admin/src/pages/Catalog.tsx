@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { CARD_BACKGROUNDS, CARD_BG, type CardBackground } from "@thanjozmart/shared";
 import { api, upload } from "../lib/api";
 import { ImageField, imageUrl } from "../ui/ImageField";
 import { supabase } from "../lib/supabase";
@@ -43,6 +44,7 @@ type Master = {
   unit: "piece" | "pack" | "kg";
   mrp: number | null;
   image_path: string | null;
+  card_bg?: CardBackground;
   description: string | null;
   description_ta: string | null;
   scope: "shared" | "store";
@@ -281,7 +283,7 @@ function MasterTab({ status }: { status: "approved" | "pending" }) {
   });
   const save = useMutation({
     mutationFn: (m: Partial<Master>) => {
-      const body = { name: m.name, nameTa: m.name_ta ?? null, brand: m.brand ?? null, packSize: m.pack_size ?? null, unit: m.unit ?? "piece", mrp: m.mrp ?? null, description: m.description ?? null, descriptionTa: m.description_ta ?? null, barcode: m.barcode || null, categoryId: m.category_id ?? null };
+      const body = { name: m.name, nameTa: m.name_ta ?? null, brand: m.brand ?? null, packSize: m.pack_size ?? null, unit: m.unit ?? "piece", mrp: m.mrp ?? null, description: m.description ?? null, descriptionTa: m.description_ta ?? null, barcode: m.barcode || null, categoryId: m.category_id ?? null, cardBg: m.card_bg ?? "green" };
       return m.id ? api(`/admin/catalog/master/${m.id}`, { method: "PATCH", body }) : api("/admin/catalog/master", { method: "POST", body: { ...body, verticalType: VERTICAL } });
     },
     onSuccess: () => {
@@ -433,6 +435,7 @@ function MasterTab({ status }: { status: "approved" | "pending" }) {
             ) : (
               <div className="text-[11.5px] text-muted">Save the product first, then add its photo.</div>
             )}
+            <CardBgPicker value={editing.card_bg ?? "green"} photo={imageUrl(editing.image_path, true)} name={editing.name ?? ""} onChange={(v) => setEditing({ ...editing, card_bg: v })} />
             <Field label="Name (English)">
               <input className={inputCls} value={editing.name ?? ""} onChange={(e) => setEditing({ ...editing, name: e.target.value })} placeholder="Aachi Chilli Powder" />
             </Field>
@@ -787,6 +790,30 @@ function parsePack(v: string | null): { qty: string; unit: string } {
 }
 
 /** Pack size as a number plus a unit; saved as "500 g", which the app shows after the name and price. */
+/** Four near-white backdrops, each drawn as the customer card would look with this photo on it. */
+function CardBgPicker({ value, photo, name, onChange }: { value: CardBackground; photo: string | null; name: string; onChange: (v: CardBackground) => void }) {
+  return (
+    <div>
+      <div className="text-[11.5px] font-bold text-muted">Card background</div>
+      <div className="mt-1 grid grid-cols-4 gap-2">
+        {CARD_BACKGROUNDS.map((k) => {
+          const bg = CARD_BG[k];
+          const on = k === value;
+          return (
+            <button key={k} type="button" onClick={() => onChange(k)} aria-pressed={on} className={`rounded-xl p-1 text-center ${on ? "ring-2 ring-primary" : "ring-1 ring-line"}`}>
+              <div className="flex aspect-[4/5] items-center justify-center rounded-lg border p-2" style={{ background: `linear-gradient(180deg, ${bg.light[0]}, ${bg.light[1]})`, borderColor: bg.border }}>
+                {photo ? <img src={photo} alt="" className="h-full w-full object-contain" /> : <span className="text-[22px] font-bold text-muted">{name.charAt(0) || "A"}</span>}
+              </div>
+              <div className={`mt-1 text-[11px] font-bold ${on ? "text-ink" : "text-muted"}`}>{bg.label}</div>
+            </button>
+          );
+        })}
+      </div>
+      <div className="mt-1 text-[11.5px] text-muted">Pick the one the pack stands out on. Customers see it behind the photo.</div>
+    </div>
+  );
+}
+
 function PackSize({ value, onChange }: { value: string | null; onChange: (v: string | null) => void }) {
   const parsed = parsePack(value);
   const [unit, setUnit] = useState(parsed.unit);

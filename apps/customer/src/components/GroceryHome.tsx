@@ -11,7 +11,7 @@ import { useGroceryBasket } from "@/hooks/useGroceryBasket";
 import { useLocalName, useT } from "@/i18n";
 import { groceryThumb } from "@/lib/images";
 import { queryState } from "@/lib/network";
-import { radius, useTheme } from "@/theme";
+import { cardBackdrop, radius, useTheme } from "@/theme";
 import { Photo } from "@/components/Photo";
 
 /** Grocery accent — the green/yellow half of the brand (GroceryHome design). */
@@ -190,17 +190,18 @@ export function MiniCard({ item: r, width, qty, onAdd, onStep, onOpen }: { item:
 
 /** 2-up product card for sub-category pages: name, photo, "₹310 /5 kg · MRP", Add → stepper. */
 export function GroceryCard({ item: r, width, qty, onAdd, onStep, onOpen }: { item: GroceryItem; width: number; qty: number; onAdd: () => void; onStep: (d: 1 | -1) => void; onOpen: () => void }) {
-  const { c, tone } = useTheme();
+  const { c, dark } = useTheme();
   const t = useT();
   const localName = useLocalName();
   const img = groceryThumb(r.image_path);
+  const bg = cardBackdrop(r.card_bg, dark);
   const off = r.mrp && r.mrp > r.selling_price ? Math.round(((r.mrp - r.selling_price) / r.mrp) * 100) : 0;
   const per = r.pack_size ? `/${r.pack_size}` : r.unit === "kg" ? `/${t("unitKg")}` : "";
   const qtyLabel = r.unit === "kg" ? `${qty} ${t("unitKg")}` : `${qty}`;
   const height = Math.round(width * 1.22);
   return (
-    <Pressable onPress={onOpen} accessibilityRole="button" accessibilityLabel={r.name} style={{ width, height, borderRadius: radius.card, overflow: "hidden", borderWidth: 1, borderColor: tone.groceryBorder, opacity: r.in_stock ? 1 : 0.55 }}>
-      <LinearGradient colors={[...tone.groceryCard]} locations={[0, 0.4, 0.78, 1]} start={{ x: 0.2, y: 0 }} end={{ x: 0.8, y: 1 }} style={{ flex: 1, padding: 12 }}>
+    <Pressable onPress={onOpen} accessibilityRole="button" accessibilityLabel={r.name} style={{ width, height, borderRadius: radius.card, overflow: "hidden", borderWidth: 1, borderColor: bg.border, opacity: r.in_stock ? 1 : 0.55 }}>
+      <LinearGradient colors={[...bg.colors]} locations={[0.35, 1]} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={{ flex: 1, padding: 12 }}>
         <AppText variant="title" style={{ fontSize: 14, lineHeight: 18, height: 36, paddingRight: off ? 54 : 0 }} numberOfLines={2}>{localName(r)}</AppText>
         {off > 0 ? (
           <View style={{ position: "absolute", top: 10, right: 10, paddingHorizontal: 8, height: 20, borderRadius: 10, backgroundColor: GROCERY.accent, justifyContent: "center" }}>
