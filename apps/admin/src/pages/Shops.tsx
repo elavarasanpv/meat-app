@@ -5,6 +5,7 @@ import { PageHeader } from "../shell/Shell";
 import { IconEdit, IconPhone, IconPlus } from "../ui/icons";
 import { MapPin, parseLatLng } from "../ui/MapPin";
 import { ShopDetail } from "./ShopDetail";
+import { ShopProducts } from "./ShopProducts";
 import { TimePicker, formatTime } from "../ui/TimePicker";
 import { Btn, Chip, Drawer, Empty, ErrorBox, Field, Section, inputCls, inr, phone10 } from "../ui/kit";
 import { Select } from "../ui/pickers";
@@ -52,6 +53,7 @@ export function Shops() {
   const shops = useQuery<Shop[]>({ queryKey: ["admin", "shops"], queryFn: () => api("/admin/shops"), refetchInterval: 30_000 });
   const [editing, setEditing] = useState<string | "new" | null>(null);
   const [viewing, setViewing] = useState<string | null>(null);
+  const [stock, setStock] = useState<{ id: string; name: string } | null>(null);
 
   return (
     <div className="pb-6">
@@ -116,6 +118,9 @@ export function Shops() {
                   <IconPhone size={13} /> Call
                 </a>
               )}
+              {s.storeType === "grocery" && (
+                <Btn onClick={() => setStock({ id: s.id, name: s.name })}>Products</Btn>
+              )}
               <button onClick={() => setViewing(s.id)} className="ml-auto text-[12px] font-extrabold text-primary">
                 View details →
               </button>
@@ -129,6 +134,7 @@ export function Shops() {
         )}
       </div>
       {editing && <ShopForm id={editing === "new" ? null : editing} onClose={() => setEditing(null)} />}
+      {stock && <ShopProducts id={stock.id} name={stock.name} onClose={() => setStock(null)} />}
       {viewing && <ShopDetail id={viewing} onClose={() => setViewing(null)} onEdit={() => (setViewing(null), setEditing(viewing))} />}
     </div>
   );
