@@ -13,47 +13,42 @@ export class OrdersService {
   ) {}
 
   /**
-   * Place an order: generates the delivery OTP and calls the atomic
-   * create_order() SQL function (prices, totals, display id, items, history).
+   * Place an order: generates the delivery OTP and calls place_order_once(),
+   * which runs the atomic create_order() (prices, totals, display id, items,
+   * history). A repeat of the same checkout (same requestId) returns the order
+   * made the first time, with `replayed: true`.
    */
   async placeOrder(customerId: string, input: PlaceOrderInput) {
-    const otp = String(randomInt(1000, 10000)); // 4 digits, never leading zero
-    const otpHash = await bcrypt.hash(otp, 8);
-
-    const { data, error } = await this.supabase.admin.rpc("create_order", {
-      p_customer: customerId,
-      p_address: input.addressId,
-      p_slot_start: input.slot.startsAt,
-      p_slot_end: input.slot.endsAt,
-      p_payment: input.paymentMode,
-      p_items: input.items.map((i) => ({ product_id: i.productId, qty: i.qty, size: i.size ?? null, notes: i.notes ?? null })),
-      p_otp_hash: otpHash,
-      p_otp: otp,
-    });
-    if (error) {
-      if (error.code === "P0002") throw new NotFoundException(error.message);
-      throw new BadRequestException(error.message);
-    }
-    const row = (Array.isArray(data) ? data[0] : data) as { order_id: string; display_id: string; est_amount: number };
-    return { orderId: row.order_id, displayId: row.display_id, estAmount: Number(row.est_amount), otp };
+    const { rows, otp } = await this.placeOnce(customerId, "meat", input, input.items.map((i) => ({ product_id: i.productId, qty: i.qty, size: i.size ?? null, notes: i.notes ?? null })));
+    const row = rows[0];
+    return { orderId: row.order_id, displayId: row.display_id, estAmount: Number(row.est_amount), otp, replayed: row.replayed };
   }
 
   /**
    * Place a grocery basket. The customer never picks a shop: create_grocery_order()
    * splits the lines across the shops serving the pincode (fewest shops first)
    * and returns one row per order. Same OTP for the whole group, fee read from
-   * delivery_fee_rules. The meat create_order() is untouched.
+   * delivery_fee_rules. Repeats of the same checkout get the same orders back.
    */
   async placeGroceryOrder(customerId: string, input: PlaceGroceryOrderInput) {
-    const otp = String(randomInt(1000, 10000));
+    const { rows, otp } = await this.placeOnce(customerId, "grocery", input, input.items.map((i) => ({ master_product_id: i.masterProductId, qty: i.qty, notes: i.notes ?? null })));
+    const orders = rows.map((r) => ({ orderId: r.order_id, displayId: r.display_id, estAmount: Number(r.est_amount), dealerId: r.dealer_id as string }));
+    // The first order carries the fee and the most lines; the app opens that one.
+    return { ...orders[0], estAmount: orders.reduce((s, o) => s + o.estAmount, 0), otp, orders, replayed: rows[0].replayed };
+  }
+
+  private async placeOnce(customerId: string, vertical: "meat" | "grocery", input: Pick<PlaceOrderInput, "addressId" | "slot" | "paymentMode" | "requestId">, items: unknown[]) {
+    const otp = String(randomInt(1000, 10000)); // 4 digits, never leading zero
     const otpHash = await bcrypt.hash(otp, 8);
-    const { data, error } = await this.supabase.admin.rpc("create_grocery_order", {
+    const { data, error } = await this.supabase.admin.rpc("place_order_once", {
+      p_request: input.requestId ?? null,
+      p_vertical: vertical,
       p_customer: customerId,
       p_address: input.addressId,
       p_slot_start: input.slot.startsAt,
       p_slot_end: input.slot.endsAt,
       p_payment: input.paymentMode,
-      p_items: input.items.map((i) => ({ master_product_id: i.masterProductId, qty: i.qty, notes: i.notes ?? null })),
+      p_items: items,
       p_otp_hash: otpHash,
       p_otp: otp,
     });
@@ -62,10 +57,16 @@ export class OrdersService {
       if (error.code === "FC409") throw new ConflictException(error.message);
       throw new BadRequestException(error.message);
     }
-    const rows = (Array.isArray(data) ? data : [data]) as { order_id: string; display_id: string; est_amount: number; dealer_id: string }[];
-    const orders = rows.map((r) => ({ orderId: r.order_id, displayId: r.display_id, estAmount: Number(r.est_amount), dealerId: r.dealer_id }));
-    // The first order carries the fee and the most lines; the app opens that one.
-    return { ...orders[0], estAmount: orders.reduce((s, o) => s + o.estAmount, 0), otp, orders };
+    const rows = (Array.isArray(data) ? data : [data]) as { order_id: string; display_id: string; est_amount: number; dealer_id: string | null; otp: string | null; replayed: boolean }[];
+    // A repeat carries the OTP stored the first time, not the one generated just now.
+    return { rows, otp: rows[0].replayed ? (rows[0].otp ?? "") : otp };
+  }
+
+  /** The order a checkout id became, or null if that attempt never reached the database. */
+  async findByRequest(customerId: string, requestId: string) {
+    const { data } = await this.supabase.admin.from("orders").select("id, display_id, est_amount").eq("customer_id", customerId).eq("client_request_id", requestId).order("display_id").limit(1);
+    const o = data?.[0];
+    return { order: o ? { orderId: o.id as string, displayId: o.display_id as string, estAmount: Number(o.est_amount) } : null };
   }
 
   /**

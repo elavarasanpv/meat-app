@@ -16,18 +16,30 @@ export class ApiError extends Error {
 }
 
 /** Call the NestJS API with the current Supabase session token. */
-export async function api<T>(path: string, init: { method?: "GET" | "POST"; body?: unknown } = {}): Promise<T> {
+export async function api<T>(path: string, init: { method?: "GET" | "POST"; body?: unknown; /** Give up (throws a "timeout" error) after this long. */ timeoutMs?: number } = {}): Promise<T> {
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token;
-  const res = await fetch(baseUrl() + path, {
-    method: init.method ?? "GET",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    body: init.body === undefined ? undefined : JSON.stringify(init.body),
-  });
-  const text = await res.text();
+  const ctrl = init.timeoutMs ? new AbortController() : null;
+  const timer = ctrl ? setTimeout(() => ctrl.abort(), init.timeoutMs) : null;
+  let res: Response;
+  let text: string;
+  try {
+    res = await fetch(baseUrl() + path, {
+      method: init.method ?? "GET",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: init.body === undefined ? undefined : JSON.stringify(init.body),
+      signal: ctrl?.signal,
+    });
+    text = await res.text();
+  } catch (e) {
+    if (ctrl?.signal.aborted) throw new Error("timeout");
+    throw e;
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
   const json = text ? JSON.parse(text) : null;
   if (!res.ok) {
     const message = Array.isArray(json?.message) ? json.message.join(", ") : json?.message ?? `HTTP ${res.status}`;

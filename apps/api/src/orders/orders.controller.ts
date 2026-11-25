@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, ForbiddenException, Get, Headers, Param, Post } from "@nestjs/common";
+import { BadRequestException, Body, Controller, ForbiddenException, Get, Headers, Param, ParseUUIDPipe, Post } from "@nestjs/common";
 import { z } from "zod";
 import { addOrderItemsSchema, cancelOrderSchema, orderStatusSchema, placeGroceryOrderSchema, placeOrderSchema, upcomingSlots, rateOrderSchema } from "@thanjozmart/shared";
 import { OrdersService } from "./orders.service";
@@ -70,6 +70,13 @@ export class OrdersController {
     return this.suggest.forCustomer(user.id);
   }
 
+  /** GET /orders/request/:requestId — did this checkout already become an order? (asked after a lost reply) */
+  @Get("request/:requestId")
+  async byRequest(@Headers("authorization") auth: string | undefined, @Param("requestId", new ParseUUIDPipe()) requestId: string) {
+    const user = await requireUser(this.supabase, auth);
+    return this.orders.findByRequest(user.id, requestId);
+  }
+
   /** POST /orders — place an order from the cart. */
   @Post()
   async place(@Headers("authorization") auth: string | undefined, @Body() body: unknown) {
@@ -77,11 +84,12 @@ export class OrdersController {
     const input = parse(placeOrderSchema, body);
     const result = await this.orders.placeOrder(user.id, input);
     // Best single offer (automatic or the typed coupon) comes off the items total.
-    await this.offers.applyToOrder(user.id, result.orderId, input.couponCode).catch((e) => console.error("[offers] apply", e));
+    // A repeat of a checkout already placed: the offer and the shop were handled the first time.
+    if (!result.replayed) await this.offers.applyToOrder(user.id, result.orderId, input.couponCode).catch((e) => console.error("[offers] apply", e));
     const { data: placed } = await this.supabase.admin.from("orders").select("est_amount, discount_amount").eq("id", result.orderId).single();
     if (placed) Object.assign(result, { estAmount: Number(placed.est_amount), discount: Number(placed.discount_amount ?? 0) });
     // Offer the order to the nearest open shop; a failure here never blocks checkout.
-    await this.assignment.offer(result.orderId).catch((e) => console.error("[assign] offer", e));
+    if (!result.replayed) await this.assignment.offer(result.orderId).catch((e) => console.error("[assign] offer", e));
     return result;
   }
 
@@ -92,7 +100,7 @@ export class OrdersController {
     const input = parse(placeGroceryOrderSchema, body);
     const result = await this.orders.placeGroceryOrder(user.id, input);
     // Each order goes straight to the shop the server chose (same accept window + ring).
-    for (const o of result.orders) {
+    for (const o of result.replayed ? [] : result.orders) {
       await this.assignment.offerTo(o.orderId, o.dealerId).catch((e) => console.error("[assign] grocery offer", e));
     }
     return result;

@@ -27,6 +27,8 @@ export const placeOrderSchema = z.object({
   items: z.array(orderItemInputSchema).min(1).max(20),
   /** Coupon the customer typed in the cart; the server picks the best offer either way. */
   couponCode: z.string().trim().toUpperCase().regex(/^[A-Z0-9]{3,20}$/).optional(),
+  /** One id per checkout, sent with every attempt; the server never makes a second order for the same id. */
+  requestId: z.string().uuid().optional(),
 });
 
 /** Items the customer adds to an order they already placed (allowed until the shop accepts). */
@@ -46,6 +48,8 @@ export const placeGroceryOrderSchema = z.object({
   slot: deliverySlotSchema,
   paymentMode: z.enum(["cod", "upi_on_delivery"]),
   items: z.array(groceryOrderItemSchema).min(1).max(40),
+  /** One id per checkout, sent with every attempt; the server never makes a second order for the same id. */
+  requestId: z.string().uuid().optional(),
 });
 export type PlaceGroceryOrderInput = z.infer<typeof placeGroceryOrderSchema>;
 

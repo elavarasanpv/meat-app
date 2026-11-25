@@ -1,9 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { OrderStatus } from "@thanjozmart/shared";
-import { api } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/store/auth";
 import { useChosenAddress } from "@/store/address";
+import { newRequestId, useCheckout } from "@/store/checkout";
 
 export type Address = {
   id: string;
@@ -175,10 +176,55 @@ export function useSlots() {
 
 export type PlaceOrderResult = { orderId: string; displayId: string; estAmount: number; otp: string };
 
+const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/**
+ * Send a checkout so that it can never become two orders. Every attempt
+ * carries the same id; if the reply is lost (weak signal) it is sent again by
+ * itself, and the server answers a repeat with the order it already made.
+ * The id stays on the phone until the server gives a clear answer, so tapping
+ * again later, or after reopening the app, is still the same checkout.
+ */
+async function submitOrder(path: "/orders" | "/orders/grocery", body: object): Promise<PlaceOrderResult> {
+  const { pending, setPending } = useCheckout.getState();
+  const sig = path + JSON.stringify(body);
+  let id: string;
+  if (pending && pending.sig === sig) {
+    id = pending.id;
+  } else {
+    if (pending) {
+      // An earlier attempt got no reply and the basket has changed since: if
+      // that one went through, it is the order. Otherwise start afresh.
+      const prior = await api<{ order: PlaceOrderResult | null }>(`/orders/request/${pending.id}`, { timeoutMs: 20_000 });
+      if (prior.order) {
+        setPending(null);
+        return prior.order;
+      }
+    }
+    id = newRequestId();
+    setPending({ id, sig });
+  }
+  for (let attempt = 0; ; attempt++) {
+    try {
+      const result = await api<PlaceOrderResult>(path, { method: "POST", body: { ...body, requestId: id }, timeoutMs: 20_000 });
+      setPending(null);
+      return result;
+    } catch (e) {
+      // The server said no (4xx): nothing was ordered, the next try is a new checkout.
+      if (e instanceof ApiError && e.status < 500) {
+        setPending(null);
+        throw e;
+      }
+      if (attempt >= 2) throw e;
+      await wait(1500 * (attempt + 1));
+    }
+  }
+}
+
 export function usePlaceOrder() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (body: unknown) => api<PlaceOrderResult>("/orders", { method: "POST", body }),
+    mutationFn: (body: object) => submitOrder("/orders", body),
     onSuccess: () => {
       // The first-order offer may just have been used.
       void qc.invalidateQueries({ queryKey: ["delivery"] });
@@ -192,7 +238,7 @@ export function usePlaceGroceryOrder() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (body: { addressId: string; slot: { startsAt: string; endsAt: string }; paymentMode: "cod" | "upi_on_delivery"; items: { masterProductId: string; qty: number; notes?: string }[] }) =>
-      api<PlaceOrderResult>("/orders/grocery", { method: "POST", body }),
+      submitOrder("/orders/grocery", body),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["delivery"] });
       return qc.invalidateQueries({ queryKey: ["orders"] });
