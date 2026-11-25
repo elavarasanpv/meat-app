@@ -400,7 +400,7 @@ export class CatalogService {
     if (!m || !m.is_active || m.status === "rejected") throw new NotFoundException("Product not found");
     if (m.scope === "store" && m.owner_dealer_id !== dealerId) throw new NotFoundException("Product not found");
     const { data: existing } = await this.db.from("store_products").select(LISTING_COLS).eq("dealer_id", dealerId).eq("master_product_id", m.id).maybeSingle();
-    if (existing) throw new ConflictException("Already on your catalog");
+    if (existing) throw new ConflictException("This shop already sells it");
     const p = this.resolvePrices({ shop: input.shopPrice, selling: input.sellingPrice, mode: input.priceMode, mrp: m.mrp });
     const { data, error } = await this.db
       .from("store_products")

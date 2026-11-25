@@ -261,6 +261,7 @@ function MasterTab({ status }: { status: "approved" | "pending" }) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [editing, setEditing] = useState<Partial<Master> | null>(null);
   const [merging, setMerging] = useState<Master | null>(null);
+  const [selling, setSelling] = useState<Master | null>(null);
   const cats = useQuery({ queryKey: ["catalog", "categories"], queryFn: () => api<Category[]>(`/admin/catalog/categories?vertical=${VERTICAL}`) });
   const list = useQuery({
     queryKey: ["catalog", "master", status, q],
@@ -408,9 +409,14 @@ function MasterTab({ status }: { status: "approved" | "pending" }) {
                         </Btn>
                       </>
                     ) : (
-                      <Btn kind="ghost" onClick={() => setMerging(m)}>
-                        Merge into…
-                      </Btn>
+                      <>
+                        <Btn kind="ghost" onClick={() => setSelling(m)}>
+                          Sell in shop
+                        </Btn>
+                        <Btn kind="ghost" onClick={() => setMerging(m)}>
+                          Merge into…
+                        </Btn>
+                      </>
                     )}
                   </td>
                 </tr>
@@ -485,6 +491,7 @@ function MasterTab({ status }: { status: "approved" | "pending" }) {
           </div>
         </Modal>
       )}
+      {selling && <SellModal product={selling} onClose={() => setSelling(null)} onDone={() => { setSelling(null); refresh(); }} />}
       {merging && <MergeModal source={merging} onClose={() => setMerging(null)} onMerge={(targetId) => merge.mutate({ id: merging.id, targetId })} busy={merge.isPending} />}
     </section>
   );
@@ -514,6 +521,67 @@ function MergeModal({ source, onClose, onMerge, busy }: { source: Master; onClos
             </li>
           ))}
       </ul>
+    </Modal>
+  );
+}
+
+/** Put a master product on one shop's catalog, with the prices the owner gave you. */
+function SellModal({ product, onClose, onDone }: { product: Master; onClose: () => void; onDone: () => void }) {
+  const shops = useQuery({ queryKey: ["catalog", "grocery-shops"], queryFn: () => api<{ id: string; name: string; storeType: string }[]>("/admin/shops").then((s) => s.filter((x) => x.storeType === "grocery")) });
+  const [dealerId, setDealerId] = useState("");
+  const [shopPrice, setShopPrice] = useState("");
+  const [sellPrice, setSellPrice] = useState("");
+  const shop = Number(shopPrice);
+  const sell = sellPrice === "" ? shop : Number(sellPrice);
+  const mrp = product.mrp;
+  const problem =
+    !shopPrice ? null
+    : !(shop > 0) ? "Enter the shop price."
+    : mrp != null && shop > mrp ? `Shop price can't be above MRP ${inr(mrp)}.`
+    : !(sell > 0) ? "Enter the customer price."
+    : sell < shop ? "Customer price can't be below the shop price."
+    : mrp != null && sell > mrp ? `Customer price can't be above MRP ${inr(mrp)}.`
+    : null;
+  const add = useMutation({
+    mutationFn: () =>
+      api(`/admin/catalog/stores/${dealerId}/products`, {
+        method: "POST",
+        body: sell === shop ? { masterProductId: product.id, shopPrice: shop } : { masterProductId: product.id, shopPrice: shop, sellingPrice: sell, priceMode: "custom" },
+      }),
+    onSuccess: onDone,
+  });
+  return (
+    <Modal pad title="Sell in shop" sub={[product.name, product.pack_size, mrp != null ? `MRP ${inr(mrp)}` : null].filter(Boolean).join(" · ")} onClose={onClose}>
+      <div className="space-y-3">
+        <Field label="Shop">
+          <Select
+            label="Shop"
+            value={dealerId}
+            onChange={setDealerId}
+            placeholder={shops.data && shops.data.length === 0 ? "No grocery shops yet" : "Pick a shop…"}
+            options={(shops.data ?? []).map((s) => ({ value: s.id, label: s.name }))}
+          />
+        </Field>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Shop price" hint="What the shop gets paid.">
+            <input className={inputCls} inputMode="decimal" value={shopPrice} onChange={(e) => setShopPrice(e.target.value.replace(/[^\d.]/g, ""))} placeholder={mrp != null ? String(mrp) : "0"} />
+          </Field>
+          <Field label="Customer price" hint="Shown in the app. Blank = same as shop price.">
+            <input className={inputCls} inputMode="decimal" value={sellPrice} onChange={(e) => setSellPrice(e.target.value.replace(/[^\d.]/g, ""))} placeholder={shopPrice || "Same"} />
+          </Field>
+        </div>
+        {shopPrice && !problem && sell > shop ? <div className="text-[11.5px] text-muted">Platform margin {inr(Math.round((sell - shop) * 100) / 100)} per item.</div> : null}
+        {problem ? <div className="text-[11.5px] font-bold text-bad">{problem}</div> : null}
+        <ErrorBox error={add.error} />
+        <div className="flex justify-end gap-2 pt-1">
+          <Btn kind="ghost" onClick={onClose}>
+            Cancel
+          </Btn>
+          <Btn kind="primary" busy={add.isPending} disabled={!dealerId || !shopPrice || !!problem} onClick={() => add.mutate()}>
+            Add to shop
+          </Btn>
+        </div>
+      </div>
     </Modal>
   );
 }

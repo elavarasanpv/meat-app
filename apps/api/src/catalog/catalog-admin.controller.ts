@@ -11,6 +11,7 @@ import {
   masterProductSchema,
   masterReviewSchema,
   storeListingPatchSchema,
+  storeListingSchema,
   verticalToggleSchema,
 } from "@thanjozmart/shared";
 import { SupabaseService } from "../supabase.service";
@@ -158,6 +159,13 @@ export class CatalogAdminController {
   async storeProducts(@Headers("authorization") auth: string | undefined, @Param("dealerId") dealerId: string) {
     await this.guard(auth);
     return this.catalog.storeListings(dealerId);
+  }
+
+  /** List a master product for a shop, with prices the owner gave the admin. */
+  @Post("stores/:dealerId/products")
+  async addStoreProduct(@Headers("authorization") auth: string | undefined, @Param("dealerId") dealerId: string, @Body() body: unknown) {
+    const a = await this.guard(auth);
+    return this.catalog.listProduct(dealerId, parse(storeListingSchema, body), a);
   }
 
   @Patch("stores/:dealerId/products/:masterId")
