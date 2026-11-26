@@ -15,6 +15,12 @@ import { supabase } from "./supabase";
  */
 const BUCKET = "product-images";
 const PUBLIC = `/storage/v1/object/public/${BUCKET}/`;
+/**
+ * Photos are served through the Bunny CDN, which keeps copies close to the
+ * customer and fetches each file from Supabase only once. Set
+ * EXPO_PUBLIC_IMAGE_CDN to "" to load straight from Supabase again.
+ */
+const CDN = (process.env.EXPO_PUBLIC_IMAGE_CDN ?? "https://img.thanjozmart.com").replace(/\/$/, "");
 const NEW_NAME = /\/[0-9a-z]+_([A-Za-z0-9_-]+)\.webp$/;
 
 /** How fast the phone's connection is: "slow" is 3G, "slowest" 2G. */
@@ -46,6 +52,7 @@ export function photoPath(uri: string): string | null {
 }
 
 export function photoUrl(path: string): string {
+  if (CDN) return `${CDN}/${BUCKET}/${encodeURI(path)}`;
   return supabase.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
 }
 
