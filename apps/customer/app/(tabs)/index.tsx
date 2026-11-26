@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "expo-router";
-import { Image, Pressable, ScrollView, View, useWindowDimensions } from "react-native";
+import { Animated, Easing, Image, Pressable, StyleSheet, ScrollView, View, useWindowDimensions } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppText } from "@/components/AppText";
@@ -21,6 +21,7 @@ import { byPopularity, useCategories, useProductStats, useProducts, useSubcatego
 import { useSelectedAddress } from "@/hooks/useOrders";
 import { useGroceryLive } from "@/hooks/useGrocery";
 import { GroceryHome } from "@/components/GroceryHome";
+import { VerticalStrip } from "@/components/VerticalStrip";
 import { useVertical } from "@/store/vertical";
 import { useCart } from "@/store/cart";
 import { categoryImage, productImage, subcategoryImage } from "@/lib/images";
@@ -35,15 +36,33 @@ function greetingKey(): TKey {
 }
 
 const GAP = 12;
-/** Soft white bubbles and the faint ingredient line drawing behind the header content (a grocery basket for grocery). */
-function HeaderDecor({ grocery = false }: { grocery?: boolean }) {
+/** How long the header takes to turn from one section's colour to the other's. */
+const SECTION_FADE_MS = 320;
+
+/** Header backdrop: the meat wash with the grocery wash fading in over it, so a section switch never snaps. */
+function HeaderWash({ mix }: { mix: Animated.Value }) {
+  const { tone } = useTheme();
+  return (
+    <>
+      <LinearGradient pointerEvents="none" colors={[...tone.header]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
+      <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { opacity: mix }]}>
+        <LinearGradient colors={[...tone.groceryHeader]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
+      </Animated.View>
+    </>
+  );
+}
+
+/** Soft white bubbles and the faint line drawing behind the header content: ingredients for meat, a basket for grocery. */
+function HeaderDecor({ mix }: { mix: Animated.Value }) {
   const { glow } = useTheme();
+  const doodle = { width: 250, height: 160, transform: [{ rotate: "-6deg" }] };
   return (
     <>
       <View pointerEvents="none" style={{ position: "absolute", right: -70, top: -40, width: 230, height: 230, borderRadius: 115, backgroundColor: glow(0.45) }} />
       <View pointerEvents="none" style={{ position: "absolute", left: -50, bottom: -90, width: 170, height: 170, borderRadius: 85, backgroundColor: glow(0.35) }} />
       <View pointerEvents="none" style={{ position: "absolute", right: -24, top: 6 }}>
-        <Image source={grocery ? GROCERY_DOODLE : INGREDIENTS} resizeMode="contain" style={{ width: 250, height: 160, opacity: grocery ? 0.22 : 0.16, transform: [{ rotate: "-6deg" }] }} />
+        <Animated.Image source={INGREDIENTS} resizeMode="contain" style={[doodle, { opacity: mix.interpolate({ inputRange: [0, 1], outputRange: [0.16, 0] }) }]} />
+        <Animated.Image source={GROCERY_DOODLE} resizeMode="contain" style={[doodle, { position: "absolute", opacity: mix.interpolate({ inputRange: [0, 1], outputRange: [0, 0.22] }) }]} />
       </View>
     </>
   );
@@ -84,12 +103,27 @@ export default function HomeScreen() {
   const stats = useProductStats(); // stars + how many customers bought each; most-bought first
   const groceryLive = useGroceryLive(); // false until admin switches the vertical on
   const vertical = useVertical((s) => s.vertical);
-  const setVertical = useVertical((s) => s.set);
   const grocery = groceryLive && vertical === "grocery";
   // The header turns green for grocery; everything else keeps the brand orange.
   const header = grocery ? tone.groceryHeader : tone.header;
   const green = withAccent(c, "grocery", dark);
   const accent = grocery ? green.primary : c.primary;
+  // A section switch cross-fades: the header wash and doodle (mix), the accent fills (tint) and the page below (body).
+  const mix = useRef(new Animated.Value(grocery ? 1 : 0)).current;
+  const tint = useRef(new Animated.Value(grocery ? 1 : 0)).current;
+  const body = useRef(new Animated.Value(1)).current;
+  const first = useRef(true);
+  useEffect(() => {
+    if (first.current) { first.current = false; return; }
+    const to = { toValue: grocery ? 1 : 0, duration: SECTION_FADE_MS, easing: Easing.inOut(Easing.quad) };
+    body.setValue(0);
+    Animated.parallel([
+      Animated.timing(mix, { ...to, useNativeDriver: true }),
+      Animated.timing(tint, { ...to, useNativeDriver: false }),
+      Animated.timing(body, { toValue: 1, duration: SECTION_FADE_MS, easing: Easing.out(Easing.quad), useNativeDriver: true }),
+    ]).start();
+  }, [grocery]);
+  const accentFill = tint.interpolate({ inputRange: [0, 1], outputRange: [c.primary, green.primary] });
   const pst = queryState(products);
   const cst = queryState(categories);
   const [openSub, setOpenSub] = useState<Subcategory | null>(null);
@@ -126,13 +160,14 @@ export default function HomeScreen() {
         }}
       >
         {/* Header (scrolls away): brand-orange block with greeting, address and actions */}
-        <LinearGradient colors={[...header]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ paddingHorizontal: 20, paddingTop: insets.top + 10, paddingBottom: 6, marginBottom: -8, overflow: "hidden" }}>
-          <HeaderDecor grocery={grocery} />
+        <View style={{ paddingHorizontal: 20, paddingTop: insets.top + 10, paddingBottom: 6, marginBottom: -8, overflow: "hidden" }}>
+          <HeaderWash mix={mix} />
+          <HeaderDecor mix={mix} />
           <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 10, flex: 1 }}>
-              <View style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: accent, alignItems: "center", justifyContent: "center" }}>
+              <Animated.View style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: accentFill, alignItems: "center", justifyContent: "center" }}>
                 <Logo bag="#FFFFFF" mark={accent} size={28} />
-              </View>
+              </Animated.View>
               <View style={{ flex: 1, height: 44, justifyContent: "center" }}>
                 <AppText variant="subtitle" numberOfLines={1}>{t(greetingKey())}</AppText>
                 <Pressable onPress={openAddress} accessibilityRole="button" accessibilityLabel={t("editAddress")} hitSlop={8} style={{ flexDirection: "row", alignItems: "center", gap: 4, height: 18 }}>
@@ -155,12 +190,13 @@ export default function HomeScreen() {
               </Pressable>
             </View>
           </View>
-        </LinearGradient>
+        </View>
 
         {/* Search block — sticky (stickyHeaderIndices). Same orange as the header so it
             reads as part of it at rest, and as a compact header once pinned. */}
-        <View style={[{ backgroundColor: header[0], borderBottomLeftRadius: 26, borderBottomRightRadius: 26 }, scrolled && { shadowColor: "#000", shadowOpacity: 0.14, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 8 }]}>
-          <LinearGradient colors={[...header]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ paddingHorizontal: 20, paddingTop: scrolled ? insets.top + 8 : 10, paddingBottom: groceryLive ? 12 : 16, gap: 10, borderBottomLeftRadius: 26, borderBottomRightRadius: 26, overflow: "hidden" }}>
+        <View style={[{ backgroundColor: c.ground, borderBottomLeftRadius: 26, borderBottomRightRadius: 26 }, scrolled && { shadowColor: "#000", shadowOpacity: 0.14, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 8 }]}>
+          <View style={{ paddingHorizontal: 20, paddingTop: scrolled ? insets.top + 8 : 10, paddingBottom: groceryLive ? 12 : 16, gap: 10, borderBottomLeftRadius: 26, borderBottomRightRadius: 26, overflow: "hidden" }}>
+            <HeaderWash mix={mix} />
             <View pointerEvents="none" style={{ position: "absolute", right: -40, top: -120, width: 220, height: 220, borderRadius: 110, backgroundColor: glow(0.35) }} />
             <Pressable
               onPress={() => router.push("/search")}
@@ -175,35 +211,19 @@ export default function HomeScreen() {
                 hitSlop={6}
                 accessibilityRole="button"
                 accessibilityLabel={t("voiceSearch")}
-                style={({ pressed }) => ({ width: 40, height: 40, borderRadius: 20, backgroundColor: pressed ? (grocery ? green.primaryPressed : c.primaryPressed) : accent, alignItems: "center", justifyContent: "center" })}
+                style={({ pressed }) => ({ borderRadius: 20, opacity: pressed ? 0.85 : 1 })}
               >
-                <Icon name="mic" color="#FFFFFF" size={18} />
+                <Animated.View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: accentFill, alignItems: "center", justifyContent: "center" }}>
+                  <Icon name="mic" color="#FFFFFF" size={18} />
+                </Animated.View>
               </Pressable>
             </Pressable>
             {/* Meat & fish / Grocery — part of the pinned header, as in the design */}
-            {groceryLive && (
-              <View style={{ flexDirection: "row", gap: 6, padding: 4, borderRadius: radius.pill, backgroundColor: glow(0.7) }}>
-                {(["meat", "grocery"] as const).map((v) => {
-                  const on = v === vertical;
-                  const on_ = v === "grocery" ? green.primary : c.primary;
-                  return (
-                    <Pressable
-                      key={v}
-                      onPress={() => setVertical(v)}
-                      accessibilityRole="button"
-                      accessibilityState={{ selected: on }}
-                      style={{ flex: 1, height: 38, borderRadius: radius.pill, backgroundColor: on ? on_ : "transparent", flexDirection: "row", gap: 6, alignItems: "center", justifyContent: "center" }}
-                    >
-                      <Icon name={v === "meat" ? "cut" : "cart"} color={on ? "#FFFFFF" : c.ink} size={15} />
-                      <AppText variant="label" color={on ? "#FFFFFF" : c.ink} numberOfLines={1}>{t(v === "meat" ? "meatTab" : "groceryTab")}</AppText>
-                    </Pressable>
-                  );
-                })}
-              </View>
-            )}
-          </LinearGradient>
+            {groceryLive && <VerticalStrip />}
+          </View>
         </View>
 
+        <Animated.View style={{ opacity: body }}>
         {grocery ? <Accent value="grocery"><GroceryHome pincode={address?.pincode} /></Accent> : <>
         {/* Category bubbles */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, gap: 14 }}>
@@ -309,6 +329,7 @@ export default function HomeScreen() {
           ))
         )}
         </>}
+        </Animated.View>
       </ScrollView>
 
       <CartBar aboveTabBar />

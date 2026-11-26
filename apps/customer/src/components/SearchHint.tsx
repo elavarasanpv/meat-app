@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Animated, Easing, Text, View } from "react-native";
 import { useLang, useT } from "@/i18n";
+import { useVertical } from "@/store/vertical";
 import { fonts, useTheme } from "@/theme";
 
 const SHOW_MS = 2200;
@@ -9,13 +10,14 @@ const SLIDE_MS = 220;
 /**
  * Search placeholder like Zepto's: a fixed verb ("Search") plus a word that
  * slides up and fades to the next one — "chicken", "mutton", "eggs"…
- * Tamil puts the verb last ("கோழி தேடுங்கள்").
+ * Tamil puts the verb last ("கோழி தேடுங்கள்"). The words belong to the section the customer is in.
  */
 export function SearchHint() {
   const { c } = useTheme();
   const t = useT();
   const lang = useLang((s) => s.lang);
-  const words = t("searchWords").split(",").map((w) => w.trim()).filter(Boolean);
+  const vertical = useVertical((s) => s.vertical);
+  const words = t(vertical === "grocery" ? "searchWordsGrocery" : "searchWords").split(",").map((w) => w.trim()).filter(Boolean);
   const [i, setI] = useState(0);
   const anim = useRef(new Animated.Value(0)).current; // -1 below, 0 shown, 1 above
 
@@ -30,6 +32,7 @@ export function SearchHint() {
     }, SHOW_MS);
     return () => clearInterval(id);
   }, [words.length]);
+  useEffect(() => setI(0), [vertical]);
 
   const translateY = anim.interpolate({ inputRange: [-1, 0, 1], outputRange: [14, 0, -14] });
   const opacity = anim.interpolate({ inputRange: [-1, 0, 1], outputRange: [0, 1, 0] });
@@ -40,7 +43,7 @@ export function SearchHint() {
   const word = (
     <View style={{ height: 20, overflow: "hidden", justifyContent: "center" }}>
       <Animated.Text style={[base, { color: c.ink, transform: [{ translateY }], opacity }]} numberOfLines={1}>
-        “{words[i] ?? ""}”
+        “{words[i % words.length] ?? ""}”
       </Animated.Text>
     </View>
   );

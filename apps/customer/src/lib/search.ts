@@ -42,12 +42,12 @@ function normalize(s: string): string {
   return s.toLowerCase().replace(/[()–—/.,-]+/g, " ").replace(/\s+/g, " ").trim();
 }
 
-function tokens(s: string): string[] {
+export function tokens(s: string): string[] {
   return normalize(s).split(" ").filter(Boolean);
 }
 
 /** Levenshtein distance, early-exit when over max. */
-function editDistance(a: string, b: string, max: number): number {
+export function editDistance(a: string, b: string, max: number): number {
   if (Math.abs(a.length - b.length) > max) return max + 1;
   const prev = new Array(b.length + 1).fill(0).map((_, i) => i);
   for (let i = 1; i <= a.length; i++) {
@@ -77,13 +77,24 @@ function wordScore(q: string, w: string): number {
 
 type WeightedWord = { w: string; weight: number };
 
-export type SearchTarget = {
-  product: Product;
+export type SearchTarget<T = Product> = {
+  product: T;
   /** Pre-computed words to match against (own name = 1, category words = 0.85). */
   words: WeightedWord[];
 };
 
 type NamedRow = { id: string; name: string; name_ta: string | null };
+
+/** English + Tamil words of a name; with `aliases`, also the spoken synonyms that mean them. */
+function expand(row: { name: string; name_ta: string | null }, aliases = true): string[] {
+  const words = new Set<string>();
+  for (const w of tokens(row.name)) {
+    words.add(w);
+    if (aliases) for (const [alias, engs] of ALIAS) if (engs.some((e) => w.startsWith(e))) words.add(alias);
+  }
+  if (row.name_ta) for (const w of tokens(row.name_ta)) words.add(w);
+  return [...words];
+}
 
 /**
  * Build the word list once per product: English + Tamil names + expanded
@@ -93,16 +104,6 @@ type NamedRow = { id: string; name: string; name_ta: string | null };
 export function buildTargets(products: Product[], categories: NamedRow[] = [], subcategories: NamedRow[] = []): SearchTarget[] {
   const catWords = new Map(categories.map((c) => [c.id, expand(c)]));
   const subWords = new Map(subcategories.map((s) => [s.id, expand(s)]));
-
-  function expand(row: { name: string; name_ta: string | null }): string[] {
-    const words = new Set<string>();
-    for (const w of tokens(row.name)) {
-      words.add(w);
-      for (const [alias, engs] of ALIAS) if (engs.some((e) => w.startsWith(e))) words.add(alias);
-    }
-    if (row.name_ta) for (const w of tokens(row.name_ta)) words.add(w);
-    return [...words];
-  }
 
   return products.map((p) => {
     const map = new Map<string, number>();
@@ -114,23 +115,25 @@ export function buildTargets(products: Product[], categories: NamedRow[] = [], s
   });
 }
 
-export type SearchResult = { product: Product; score: number };
+export type SearchResult<T = Product> = { product: T; score: number };
 
 /** Rank products for a query. Strong results first; weak ones serve as "did you mean". */
-export function searchProducts(targets: SearchTarget[], query: string): { strong: SearchResult[]; close: SearchResult[] } {
+export function searchProducts<T = Product>(targets: SearchTarget<T>[], query: string, aliases = true): { strong: SearchResult<T>[]; close: SearchResult<T>[] } {
   const qTokens = tokens(query);
   if (qTokens.length === 0) return { strong: [], close: [] };
 
   // expand query tokens through the alias map ("kozhi" also tries "chicken")
   const expanded = qTokens.map((q) => {
     const alts = new Set<string>([q]);
-    for (const [alias, engs] of ALIAS) {
-      if (alias === q || wordScore(q, alias) >= 0.8) for (const e of engs) alts.add(e);
+    if (aliases) {
+      for (const [alias, engs] of ALIAS) {
+        if (alias === q || wordScore(q, alias) >= 0.8) for (const e of engs) alts.add(e);
+      }
     }
     return [...alts];
   });
 
-  const results: SearchResult[] = [];
+  const results: SearchResult<T>[] = [];
   for (const t of targets) {
     let total = 0;
     for (const alts of expanded) {
@@ -144,6 +147,6 @@ export function searchProducts(targets: SearchTarget[], query: string): { strong
   results.sort((a, b) => b.score - a.score);
   return {
     strong: results.filter((r) => r.score >= 0.75),
-    close: results.filter((r) => r.score < 0.75).slice(0, 5),
+    close: results.filter((r) => r.score < 0.75).slice(0, 6),
   };
 }

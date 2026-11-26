@@ -37,7 +37,15 @@ export type CartItem = {
 export const DELIVERY_FEE = 20;
 export const FREE_DELIVERY_ABOVE = 499;
 
+type Baskets = Record<Vertical, CartItem[]>;
+
 type CartState = {
+  /** One basket per section. A section's order is placed from its own basket only. */
+  baskets: Baskets;
+  /** The section the customer is in. Follows the Home section switch (store/vertical.ts). */
+  active: Vertical;
+  setActive: (v: Vertical) => void;
+  /** The basket of the section the customer is in: what the cart bar, badge, cart and checkout show. */
   items: CartItem[];
   /** Grocery delivery rule captured when the basket was started. */
   feeRule: FeeRule | null;
@@ -50,17 +58,24 @@ type CartState = {
   /** Coupon the customer typed; the server still picks the single best offer. */
   coupon: string | null;
   setCoupon: (code: string | null) => void;
-  /** Add or replace the line for a product. */
+  /** Add or replace the line for a product, in its own section's basket; the app moves to that section. */
   upsert: (item: CartItem) => void;
   /** Set quantity; 0 or less removes the line. */
   setQty: (productId: string, qty: number) => void;
   remove: (productId: string) => void;
+  /** Empty the basket of the section the customer is in; the other baskets stay. */
   clear: () => void;
 };
+
+/** The active basket changed: keep `items` and `baskets` saying the same thing. */
+const put = (s: CartState, items: CartItem[]) => ({ items, baskets: { ...s.baskets, [s.active]: items } });
 
 export const useCart = create<CartState>()(
   persist(
     (set) => ({
+      baskets: { meat: [], grocery: [] },
+      active: "meat",
+      setActive: (active) => set((s) => (active === s.active ? s : { active, items: s.baskets[active], lastAdded: null })),
       items: [],
       feeRule: null,
       setFeeRule: (feeRule) => set({ feeRule }),
@@ -70,22 +85,44 @@ export const useCart = create<CartState>()(
       coupon: null,
       setCoupon: (code) => set({ coupon: code }),
       upsert: (item) =>
-        set((s) => ({
-          items: [...s.items.filter((i) => i.productId !== item.productId), item],
-          lastAdded: { name: item.name, nameTa: item.nameTa, at: Date.now() },
-        })),
+        set((s) => {
+          const active = item.vertical ?? "meat";
+          const items = [...s.baskets[active].filter((i) => i.productId !== item.productId), item];
+          return { active, items, baskets: { ...s.baskets, [active]: items }, lastAdded: { name: item.name, nameTa: item.nameTa, at: Date.now() } };
+        }),
       setQty: (productId, qty) =>
-        set((s) => ({
-          items:
-            qty <= 0
-              ? s.items.filter((i) => i.productId !== productId)
-              : s.items.map((i) => (i.productId === productId ? { ...i, qty } : i)),
-        })),
-      remove: (productId) => set((s) => ({ items: s.items.filter((i) => i.productId !== productId) })),
+        set((s) => put(s, qty <= 0 ? s.items.filter((i) => i.productId !== productId) : s.items.map((i) => (i.productId === productId ? { ...i, qty } : i)))),
+      remove: (productId) => set((s) => put(s, s.items.filter((i) => i.productId !== productId))),
       // The first-order offer is asked afresh for the next basket: an order may just have used it.
-      clear: () => set((s) => ({ items: [], lastAdded: null, coupon: null, feeRule: null, meatRule: s.meatRule ? { ...s.meatRule, firstOrderFree: false } : null })),
+      clear: () =>
+        set((s) => ({
+          ...put(s, []),
+          lastAdded: null,
+          coupon: null,
+          feeRule: s.active === "grocery" ? null : s.feeRule,
+          meatRule: s.meatRule ? { ...s.meatRule, firstOrderFree: false } : null,
+        })),
     }),
-    { name: "thanjozmart.cart", storage: createJSONStorage(() => AsyncStorage), partialize: (s) => ({ items: s.items, coupon: s.coupon, feeRule: s.feeRule, meatRule: s.meatRule }) },
+    {
+      name: "thanjozmart.cart",
+      storage: createJSONStorage(() => AsyncStorage),
+      version: 1,
+      partialize: (s) => ({ baskets: s.baskets, coupon: s.coupon, feeRule: s.feeRule, meatRule: s.meatRule }),
+      // Builds before per-section baskets saved one `items` list, all of one section.
+      migrate: (saved) => {
+        const old = (saved ?? {}) as { items?: CartItem[]; baskets?: Baskets };
+        if (old.baskets) return old;
+        const items = old.items ?? [];
+        const { items: _, ...rest } = old;
+        return { ...rest, baskets: { meat: [], grocery: [], [cartVertical(items)]: items } };
+      },
+      // The app opens on Meat & fish, so that basket is the one showing.
+      merge: (saved, current) => {
+        const s = { ...current, ...(saved as Partial<CartState>) };
+        const baskets = { meat: s.baskets?.meat ?? [], grocery: s.baskets?.grocery ?? [] };
+        return { ...s, baskets, active: "meat", items: baskets.meat };
+      },
+    },
   ),
 );
 
@@ -93,15 +130,14 @@ export function lineTotal(i: CartItem): number {
   return Math.round(i.price * i.qty);
 }
 
-/** What the basket is for: meat (default) or grocery. Baskets never mix. */
+/** Which section a basket's lines belong to: meat (default) or grocery. */
 export function cartVertical(items: CartItem[]): Vertical {
   return items[0]?.vertical ?? "meat";
 }
 
-/** Why this line can't join the basket: meat and grocery never share one. */
-export function basketConflict(items: CartItem[], item: CartItem): "vertical" | null {
-  if (!items.length) return null;
-  return (item.vertical ?? "meat") !== cartVertical(items) ? "vertical" : null;
+/** Nothing stops a line joining now: each section has its own basket, and upsert() files it there. */
+export function basketConflict(_items: CartItem[], _item: CartItem): "vertical" | null {
+  return null;
 }
 
 export function cartTotals(items: CartItem[], feeRule?: FeeRule | null) {

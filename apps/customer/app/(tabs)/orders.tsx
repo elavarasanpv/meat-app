@@ -12,7 +12,7 @@ import { useOrders, type OrderSummary } from "@/hooks/useOrders";
 import { usePullRefresh } from "@/hooks/usePullRefresh";
 import { dateTime } from "@/lib/format";
 import { productImage } from "@/lib/images";
-import { cartVertical, useCart } from "@/store/cart";
+import { useCart } from "@/store/cart";
 import { useT } from "@/i18n";
 import { useTheme } from "@/theme";
 import { queryState } from "@/lib/network";
@@ -28,8 +28,6 @@ function OrderCard({ o }: { o: OrderSummary }) {
   const t = useT();
   const router = useRouter();
   const upsert = useCart((s) => s.upsert);
-  const clearCart = useCart((s) => s.clear);
-  const cartItems = useCart((s) => s.items);
   const [added, setAdded] = useState(false);
   const items = o.order_items.filter((i) => i.products);
   const closed = CLOSED.includes(o.status);
@@ -40,8 +38,6 @@ function OrderCard({ o }: { o: OrderSummary }) {
     const sellable = items.filter((i) => i.products!.is_active);
     if (!sellable.length) return;
     const grocery = o.vertical_type === "grocery";
-    // Baskets never mix verticals: ordering again replaces a basket from the other half.
-    if (cartItems.length && cartVertical(cartItems) !== (grocery ? "grocery" : "meat")) clearCart();
     for (const i of sellable) {
       const p = i.products!;
       upsert({

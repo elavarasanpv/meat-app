@@ -8,7 +8,7 @@ import { AppText } from "./AppText";
 import { Icon } from "./Icon";
 import { useLang, useT } from "@/i18n";
 import { cartImage } from "@/lib/images";
-import { cartTotals, cartVertical, useCart } from "@/store/cart";
+import { cartTotals, useCart } from "@/store/cart";
 import { useExpand } from "@/store/expand";
 import { EXPAND_MS } from "./ExpandSheet";
 import { radius, useTheme, withAccent } from "@/theme";
@@ -39,7 +39,7 @@ export function CartBar({ aboveTabBar = false }: Props) {
   const insets = useSafeAreaInsets();
   const items = useCart((s) => s.items);
   const lastAdded = useCart((s) => s.lastAdded);
-  const grocery = cartVertical(items) === "grocery";
+  const grocery = useCart((s) => s.active) === "grocery";
   const feeRule = useCart((s) => (grocery ? s.feeRule : s.meatRule));
   const { itemTotal, freeAbove, delivery } = cartTotals(items, feeRule);
   const g = withAccent(c, grocery ? "grocery" : "meat", dark);

@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, ScrollView, View, useWindowDimensions } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -16,6 +16,8 @@ import { queryState } from "@/lib/network";
 import { Accent, radius, useTheme, withAccent } from "@/theme";
 
 const GAP = 12;
+/** Where the chip strip was left, so the next sub-category opens from there and glides to its own chip. */
+let stripX = 0;
 
 /**
  * One sub-category: its sibling tiles as chips across the top (hop between
@@ -44,6 +46,21 @@ export default function GroceryCategoryScreen() {
   const siblings = useMemo(() => (cats.data ?? []).filter((x) => x.parent_id === (me?.parent_id ?? null) && !!x.parent_id), [cats.data, me?.parent_id]);
   const rows = useMemo(() => (catalog.data ?? []).filter((r) => r.category_id === id), [catalog.data, id]);
 
+  // Bring the selected chip to the middle of the strip, with a glide.
+  const strip = useRef<ScrollView>(null);
+  const spots = useRef(new Map<string, { x: number; w: number }>()).current;
+  const [laid, setLaid] = useState(0);
+  const centre = useCallback(() => {
+    const spot = id ? spots.get(id) : undefined;
+    if (!spot) return;
+    strip.current?.scrollTo({ x: Math.max(0, spot.x + spot.w / 2 - width / 2), animated: true });
+  }, [id, spots, width]);
+  useEffect(() => {
+    if (laid < siblings.length || siblings.length < 2) return;
+    const h = setTimeout(centre, 80); // after the strip has taken its starting offset
+    return () => clearTimeout(h);
+  }, [laid, siblings.length, centre]);
+
   return (
     <Accent value="grocery">
       <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: c.ground }}>
@@ -58,11 +75,11 @@ export default function GroceryCategoryScreen() {
         </View>
 
         {siblings.length > 1 && (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 8, paddingBottom: 10 }} style={{ flexGrow: 0 }}>
+          <ScrollView ref={strip} horizontal showsHorizontalScrollIndicator={false} contentOffset={{ x: stripX, y: 0 }} scrollEventThrottle={32} onScroll={(e) => { stripX = e.nativeEvent.contentOffset.x; }} contentContainerStyle={{ paddingHorizontal: 16, gap: 8, paddingBottom: 10 }} style={{ flexGrow: 0 }}>
             {siblings.map((s) => {
               const on = s.id === id;
               return (
-                <Pressable key={s.id} onPress={() => !on && router.replace(`/grocery/category/${s.id}`)} accessibilityRole="button" accessibilityState={{ selected: on }} style={{ height: 34, paddingHorizontal: 14, borderRadius: radius.pill, backgroundColor: on ? c.tint : c.surface, borderWidth: 1.5, borderColor: on ? c.primary : c.border, justifyContent: "center" }}>
+                <Pressable key={s.id} onPress={() => !on && router.replace(`/grocery/category/${s.id}`)} accessibilityRole="button" accessibilityState={{ selected: on }} onLayout={(e) => { const had = spots.has(s.id); spots.set(s.id, { x: e.nativeEvent.layout.x, w: e.nativeEvent.layout.width }); if (!had) setLaid(spots.size); }} style={{ height: 34, paddingHorizontal: 14, borderRadius: radius.pill, backgroundColor: on ? c.tint : c.surface, borderWidth: 1.5, borderColor: on ? c.primary : c.border, justifyContent: "center" }}>
                   <AppText variant="label" color={on ? c.primary : c.ink} numberOfLines={1}>{localName(s)}</AppText>
                 </Pressable>
               );
