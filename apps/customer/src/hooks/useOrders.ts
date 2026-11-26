@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { OrderStatus } from "@thanjozmart/shared";
 import { api, ApiError } from "@/lib/api";
 import { supabase } from "@/lib/supabase";
@@ -32,6 +32,8 @@ export type OrderSummary = {
   payment_mode: "cod" | "upi_on_delivery" | "prepaid_upi";
   created_at: string;
   delivery_slots: { starts_at: string; ends_at: string } | null;
+  /** Present once the customer has rated this order. */
+  order_ratings?: { order_id: string } | null;
   order_items: { id: string; product_id: string | null; master_product_id: string | null; requested_kg: number; unit_price_per_kg: number; size: string | null; unavailable: boolean; products: { name: string; name_ta: string | null; unit: "kg" | "piece"; image_path: string | null; base_price_per_kg: number; is_active: boolean; min_qty?: number; qty_step?: number } | null }[];
 };
 
@@ -265,19 +267,34 @@ export function useCancelOrder() {
   });
 }
 
-const SUMMARY = "id,display_id,status,vertical_type,dealer_id,est_amount,final_amount,payment_mode,created_at,delivery_slots(starts_at,ends_at),order_items(id,product_id,master_product_id,requested_kg,unit_price_per_kg,size,unavailable,products(name,name_ta,unit,image_path,base_price_per_kg,is_active),master_products(name,name_ta,unit,image_path,is_active,status,min_qty,qty_step))";
+const SUMMARY = "id,display_id,status,vertical_type,dealer_id,est_amount,final_amount,payment_mode,created_at,delivery_slots(starts_at,ends_at),order_ratings(order_id),order_items(id,product_id,master_product_id,requested_kg,unit_price_per_kg,size,unavailable,products(name,name_ta,unit,image_path,base_price_per_kg,is_active),master_products(name,name_ta,unit,image_path,is_active,status,min_qty,qty_step))";
 
+/** Orders fetched per step of "My orders": about one screenful. */
+const ORDERS_PAGE = 5;
+
+/**
+ * The customer's orders, newest first, a screenful at a time. Each step asks
+ * for one row more than it shows, which tells us whether "Load more" has
+ * anything left to bring.
+ */
 export function useOrders() {
   const userId = useAuth((s) => s.session?.user.id);
-  return useQuery({
-    // "v3": grocery lines embed master_products; copies saved by older builds are skipped
-    queryKey: ["orders", userId, "v3"],
+  return useInfiniteQuery({
+    // "v5": pages, each order says if it was rated; copies saved by older builds are skipped
+    queryKey: ["orders", userId, "v5"],
     enabled: !!userId,
-    queryFn: async () => {
-      const { data, error } = await supabase.from("orders").select(SUMMARY).order("created_at", { ascending: false });
+    initialPageParam: 0,
+    queryFn: async ({ pageParam }) => {
+      const { data, error } = await supabase
+        .from("orders")
+        .select(SUMMARY)
+        .order("created_at", { ascending: false })
+        .range(pageParam, pageParam + ORDERS_PAGE);
       if (error) throw error;
-      return (data as unknown as OrderSummary[]).map(normaliseItems);
+      const rows = (data as unknown as OrderSummary[]).map(normaliseItems);
+      return { rows: rows.slice(0, ORDERS_PAGE), next: rows.length > ORDERS_PAGE ? pageParam + ORDERS_PAGE : null };
     },
+    getNextPageParam: (last) => last.next,
   });
 }
 
@@ -362,7 +379,7 @@ export function useRateOrder(orderId: string) {
     mutationFn: (body: { rider?: { stars: number; note?: string | null; tags?: string[] } | null; app?: { stars: number; note?: string | null } | null; items: { orderItemId: string; stars: number; note?: string | null }[] }) =>
       api<{ ok: true }>(`/orders/${orderId}/rating`, { method: "POST", body }),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ["orders", "rating", orderId] });
+      void qc.invalidateQueries({ queryKey: ["orders"] }); // the rating itself and "Rate order" on My orders
       void qc.invalidateQueries({ queryKey: ["product_stats"] }); // prefix match covers "v2"
     },
   });
