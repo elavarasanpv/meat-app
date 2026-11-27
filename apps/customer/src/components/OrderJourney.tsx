@@ -36,8 +36,9 @@ const PAD = 28; // road inset from the card edge
 const STOP = 52; // stop artwork size
 const MARK = 30; // marker size
 
+/** forLater: not accepted yet, and the slot is hours away (a night order for the morning): no "few minutes" promise. */
 /** waitingShop: placed, but no shop is taking orders yet (closed); it goes out when one opens. */
-type Props = { status: OrderStatus; vertical?: "meat" | "grocery"; waitingShop?: boolean };
+type Props = { status: OrderStatus; vertical?: "meat" | "grocery"; waitingShop?: boolean; forLater?: boolean };
 
 /**
  * Horizontal order journey: a road with five stops (placed → shop → cutting
@@ -46,7 +47,7 @@ type Props = { status: OrderStatus; vertical?: "meat" | "grocery"; waitingShop?:
  * two-frame chop/ride when PNG frames are provided). All vector/tiny PNG,
  * nothing fetched — works the same on 2G.
  */
-export function OrderJourney({ status, vertical = "meat", waitingShop = false }: Props) {
+export function OrderJourney({ status, vertical = "meat", waitingShop = false, forLater = false }: Props) {
   const { c, dark } = useTheme();
   const t = useT();
   const grocery = vertical === "grocery";
@@ -55,6 +56,7 @@ export function OrderJourney({ status, vertical = "meat", waitingShop = false }:
   const idx = (grocery ? GROCERY_STOP_OF : STOP_OF)[status] ?? 0;
   // Grocery copy differs at the shop stop (packing, not cutting) and uses the green accent.
   const key = (s: string) => (grocery && s === "shop" ? "jrg_shop" : `jr_${s}`);
+  const later = forLater && (status === "PLACED" || status === "DEALER_ASSIGNED");
   const primary = g.primary;
   const price = g.price;
   const tint = g.tint;
@@ -153,8 +155,8 @@ export function OrderJourney({ status, vertical = "meat", waitingShop = false }:
 
         {/* What is happening now */}
         <View style={{ paddingHorizontal: 18, marginTop: 8 }}>
-          <AppText variant="title" style={{ fontSize: 18, lineHeight: 24 }}>{t(waitingShop ? "jr_closed_title" : (`${key(cur)}_title` as TKey))}</AppText>
-          <AppText variant="caption" muted style={{ marginTop: 2 }}>{t(waitingShop ? "jr_closed_body" : (`${key(cur)}_body` as TKey))}</AppText>
+          <AppText variant="title" style={{ fontSize: 18, lineHeight: 24 }}>{t(waitingShop ? "jr_closed_title" : later ? "jr_later_title" : (`${key(cur)}_title` as TKey))}</AppText>
+          <AppText variant="caption" muted style={{ marginTop: 2 }}>{t(waitingShop ? "jr_closed_body" : later ? "jr_later_body" : (`${key(cur)}_body` as TKey))}</AppText>
         </View>
       </View>
     </View>

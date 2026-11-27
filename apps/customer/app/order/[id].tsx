@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Pressable, ScrollView, View, useWindowDimensions } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
-import { ARRIVING_KM, CUSTOMER_CANCELLABLE, ORDER_STATUSES, etaMinutesRange, haversineKm, roadKmLeft, supportClosesAt, type OrderStatus } from "@thanjozmart/shared";
+import { ARRIVING_KM, CUSTOMER_CANCELLABLE, SCHEDULED_AFTER_MIN, ORDER_STATUSES, etaMinutesRange, haversineKm, roadKmLeft, supportClosesAt, type OrderStatus } from "@thanjozmart/shared";
 import { AppText } from "@/components/AppText";
 import { Button } from "@/components/Button";
 import { Icon } from "@/components/Icon";
@@ -245,7 +245,11 @@ export default function OrderDetailScreen() {
             o.vertical_type === "grocery" ? (
               isCancelled ? null : <GroceryTracker status={o.status} window={o.delivery_slots ? `${dayLabel(o.delivery_slots.starts_at, { today: t("today"), tomorrow: t("tomorrow") })} · ${slotWindow(o.delivery_slots.starts_at, o.delivery_slots.ends_at)}` : null} />
             ) : (
-              <OrderJourney status={o.status} waitingShop={o.status === "PLACED" && !o.dealer_id} />
+              <OrderJourney
+                status={o.status}
+                waitingShop={o.status === "PLACED" && !o.dealer_id}
+                forLater={!!o.delivery_slots && new Date(o.delivery_slots.starts_at).getTime() - Date.now() > SCHEDULED_AFTER_MIN * 60_000}
+              />
             )
           ) : null}
 

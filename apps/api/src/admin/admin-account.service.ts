@@ -1,5 +1,5 @@
 import { BadRequestException, ConflictException, Injectable } from "@nestjs/common";
-import { DEALER_ACCEPT_TIMEOUT_MIN, ON_THE_WAY_DETOUR_KM, RIDER_MAX_ACTIVE_ORDERS, RIDER_OFFER_RADIUS_KM, WEIGHT_TOLERANCE } from "@thanjozmart/shared";
+import { DEALER_ACCEPT_TIMEOUT_MIN, PREP_LEAD_MIN, SCHEDULED_AFTER_MIN, ON_THE_WAY_DETOUR_KM, RIDER_MAX_ACTIVE_ORDERS, RIDER_OFFER_RADIUS_KM, WEIGHT_TOLERANCE } from "@thanjozmart/shared";
 import { SupabaseService } from "../supabase.service";
 import { AdminService } from "./admin.service";
 import type { AdminUser } from "./admin.guard";
@@ -9,10 +9,14 @@ const dur = (mins: number) => (mins < 90 ? `${mins} min` : mins < 48 * 60 ? `${M
 
 /** Packed orders waiting longer than this for a rider raise an alert. */
 const RIDER_WAIT_ALERT_MIN = 10;
+/** An order for now that no shop has accepted after this long needs a call. */
+const NOT_ACCEPTED_ALERT_MIN = 30;
+/** Even with the slot close, give the shop its first few minutes. */
+const ACCEPT_GRACE_MS = 10 * 60_000;
 
 export type Alert = {
   id: string;
-  kind: "no_shop" | "late" | "waiting_rider" | "cash_count" | "failed" | "cancelled" | "shop_declined" | "ticket";
+  kind: "no_shop" | "not_accepted" | "late" | "waiting_rider" | "cash_count" | "failed" | "cancelled" | "shop_declined" | "ticket";
   severity: "urgent" | "warn" | "info";
   open: boolean; // still needs someone to act
   title: string;
@@ -42,7 +46,7 @@ export class AdminAccountService {
     const [{ data: live }, { data: subs }, { data: attempts }, { data: cancelled }, { data: declined }, { data: tickets }] = await Promise.all([
       db
         .from("orders")
-        .select("id, display_id, status, dealer_id, ready_by, created_at, updated_at, dealers(shop_name)")
+        .select("id, display_id, status, dealer_id, ready_by, created_at, updated_at, dealers(shop_name), delivery_slots(starts_at)")
         .in("status", ["PLACED", "DEALER_ASSIGNED", "ACCEPTED", "PACKING", "PACKED"]),
       db.from("cash_submissions").select("id, submitted, created_at, delivery_partners(profiles(full_name))").is("verified_by", null),
       db.from("delivery_attempts").select("id, reason, created_at, orders(id, display_id)").gte("created_at", dayAgo),
@@ -56,6 +60,9 @@ export class AdminAccountService {
       const shop = (o.dealers as unknown as { shop_name: string } | null)?.shop_name;
       if (!o.dealer_id && ["PLACED", "DEALER_ASSIGNED"].includes(o.status)) {
         out.push({ id: `no_shop:${o.id}`, kind: "no_shop", severity: "urgent", open: true, title: `${o.display_id} has no shop`, body: "No open shop stocks these items for this pincode. Move it to a shop or cancel it.", at: o.created_at, link: `/orders?id=${o.id}` });
+      } else if (o.status === "DEALER_ASSIGNED" && this.unanswered(o, now)) {
+        const mins = Math.round((now - new Date(o.created_at).getTime()) / 60000);
+        out.push({ id: `not_accepted:${o.id}`, kind: "not_accepted", severity: "urgent", open: true, title: `${o.display_id} not accepted for ${dur(mins)}`, body: "No shop has answered. Call the shop, or move the order to another one.", at: o.created_at, link: `/orders?id=${o.id}` });
       } else if (o.ready_by && ["ACCEPTED", "PACKING"].includes(o.status) && new Date(o.ready_by).getTime() < now) {
         const mins = Math.round((now - new Date(o.ready_by).getTime()) / 60000);
         out.push({ id: `late:${o.id}`, kind: "late", severity: "warn", open: true, title: `${o.display_id} is ${dur(mins)} late`, body: `${shop ?? "The shop"} promised it packed by now.`, at: o.ready_by, link: `/orders?id=${o.id}` });
@@ -81,7 +88,7 @@ export class AdminAccountService {
       const o = d.orders as unknown as { id: string; display_id: string } | null;
       if (!o) continue;
       const shop = (d.dealers as unknown as { shop_name: string } | null)?.shop_name ?? "A shop";
-      out.push({ id: `shop_declined:${d.id}`, kind: "shop_declined", severity: "info", open: false, title: `${shop} ${d.outcome === "timeout" ? "missed" : "declined"} ${o.display_id}`, body: d.outcome === "timeout" ? "No answer in 5 minutes; offered to the next shop." : `Reason: ${(d.reason ?? "not given").replace(/_/g, " ")}.`, at: d.responded_at ?? new Date().toISOString(), link: `/orders?id=${o.id}` });
+      out.push({ id: `shop_declined:${d.id}`, kind: "shop_declined", severity: "info", open: false, title: `${shop} ${d.outcome === "timeout" ? "missed" : "declined"} ${o.display_id}`, body: d.outcome === "timeout" ? "No answer in 5 minutes." : `Reason: ${(d.reason ?? "not given").replace(/_/g, " ")}.`, at: d.responded_at ?? new Date().toISOString(), link: `/orders?id=${o.id}` });
     }
     for (const t of tickets ?? []) {
       const who = (t.profiles as unknown as { full_name: string | null } | null)?.full_name ?? "A customer";
@@ -89,6 +96,18 @@ export class AdminAccountService {
     }
     const rank = { urgent: 0, warn: 1, info: 2 };
     return out.sort((a, b) => Number(b.open) - Number(a.open) || rank[a.severity] - rank[b.severity] || b.at.localeCompare(a.at));
+  }
+
+  /**
+   * Offered and nobody answered: an order for now after half an hour, an order
+   * for a later slot (placed at night, say) once its preparing time is near.
+   */
+  private unanswered(o: { created_at: string; delivery_slots: unknown }, now: number) {
+    const s = o.delivery_slots as { starts_at: string } | { starts_at: string }[] | null;
+    const startsAt = (Array.isArray(s) ? s[0] : s)?.starts_at;
+    const toSlot = startsAt ? new Date(startsAt).getTime() - now : 0;
+    if (toSlot <= PREP_LEAD_MIN * 60_000) return now - new Date(o.created_at).getTime() > ACCEPT_GRACE_MS;
+    return toSlot <= SCHEDULED_AFTER_MIN * 60_000 && now - new Date(o.created_at).getTime() > NOT_ACCEPTED_ALERT_MIN * 60_000;
   }
 
   // ───────────────────────────── own profile ─────────────────────────────

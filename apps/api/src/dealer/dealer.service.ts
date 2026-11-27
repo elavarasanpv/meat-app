@@ -1,7 +1,7 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import { RIDER_MAX_ACTIVE_ORDERS, RIDER_OFFER_RADIUS_KM, haversineKm } from "@thanjozmart/shared";
 import type { DealerAcceptInput, DealerRejectInput, ItemPhotoInput, ItemUnavailableInput, ShopStateInput, StockInput, WeighItemInput } from "@thanjozmart/shared";
-import { DELIVERY_FEE, FREE_DELIVERY_ABOVE } from "@thanjozmart/shared";
+import { DELIVERY_FEE, FREE_DELIVERY_ABOVE, PREP_LEAD_MIN, SCHEDULED_AFTER_MIN } from "@thanjozmart/shared";
 import { SupabaseService } from "../supabase.service";
 import { withProductShapes } from "../orders/item-shape";
 import { PushService } from "../push/push.service";
@@ -38,27 +38,26 @@ export class DealerService {
   /** The dealer's open orders with items, priced at the SHOP price. */
   async listOrders(dealerId: string) {
     const db = this.supabase.admin;
+    // Offers still waiting on this dealer, with the time each was made (the 5-minute mark counts from there).
+    const { data: pending } = await db
+      .from("order_assignments")
+      .select("order_id, deadline_at")
+      .eq("dealer_id", dealerId)
+      .eq("outcome", "pending");
+    const deadlines = new Map((pending ?? []).map((p) => [p.order_id as string, p.deadline_at as string]));
+    const offered = [...deadlines.keys()];
     const { data: orders, error } = await db
       .from("orders")
       .select(
         "id, display_id, status, vertical_type, ready_by, est_amount, created_at, items_added_at, rider_id, delivery_slots(starts_at, ends_at), order_items(id, product_id, master_product_id, requested_kg, actual_kg, size, notes, unavailable, unit_price_per_kg, shop_unit_price, products(name, name_ta, unit, image_path), master_products(name, name_ta, unit, image_path, brand, pack_size, mrp))",
       )
-      .eq("dealer_id", dealerId)
-      .in("status", SHOP_ACTIVE)
+      .or(this.visibleTo(dealerId, offered))
       .order("created_at", { ascending: false });
     if (error) throw new BadRequestException(error.message);
 
     // Shop (cost) prices for this dealer; fall back to the selling price.
     const { data: prices } = await db.from("dealer_products").select("product_id, price_per_kg").eq("dealer_id", dealerId);
     const shopPrice = new Map((prices ?? []).map((p) => [p.product_id, p.price_per_kg == null ? null : Number(p.price_per_kg)]));
-
-    // The 5-minute countdown for offers still waiting on this dealer.
-    const { data: pending } = await db
-      .from("order_assignments")
-      .select("order_id, deadline_at")
-      .eq("dealer_id", dealerId)
-      .eq("outcome", "pending");
-    const deadlines = new Map((pending ?? []).map((p) => [p.order_id, p.deadline_at]));
 
     // Scale photo already taken for each item (latest per item).
     const ids = (orders ?? []).map((o) => o.id);
@@ -97,8 +96,9 @@ export class DealerService {
     const db = this.supabase.admin;
     const dayStart = new Date();
     dayStart.setHours(0, 0, 0, 0);
+    const { data: pending } = await db.from("order_assignments").select("order_id").eq("dealer_id", dealerId).eq("outcome", "pending");
     const [{ data: active }, { data: today }] = await Promise.all([
-      db.from("orders").select("status").eq("dealer_id", dealerId).in("status", SHOP_ACTIVE),
+      db.from("orders").select("status").or(this.visibleTo(dealerId, (pending ?? []).map((p) => p.order_id as string))),
       db
         .from("orders")
         .select("status, order_items(product_id, requested_kg, actual_kg, unavailable)")
@@ -147,6 +147,15 @@ export class DealerService {
     });
   }
 
+  /**
+   * What a shop sees: orders offered to it and not answered yet (it may be one
+   * of several shops shown the same order), and orders it accepted.
+   */
+  private visibleTo(dealerId: string, offeredIds: string[]) {
+    const mine = `and(dealer_id.eq.${dealerId},status.in.(${SHOP_ACTIVE.filter((s) => s !== "DEALER_ASSIGNED").join(",")}))`;
+    return offeredIds.length ? `${mine},and(id.in.(${offeredIds.join(",")}),status.eq.DEALER_ASSIGNED)` : mine;
+  }
+
   private async shopPrices(dealerId: string) {
     const { data } = await this.supabase.admin.from("dealer_products").select("product_id, price_per_kg").eq("dealer_id", dealerId);
     return new Map((data ?? []).map((p) => [p.product_id as string, Number(p.price_per_kg ?? 0)]));
@@ -158,22 +167,39 @@ export class DealerService {
     const db = this.supabase.admin;
     const assignment = await this.pendingAssignment(input.orderId, dealer.id);
 
-    const readyBy = new Date(Date.now() + input.readyMinutes * 60_000).toISOString();
-    await this.orders.transition({ orderId: input.orderId, to: "ACCEPTED", actorId: profileId, note: `ready in ${input.readyMinutes} min` });
-    await db.from("orders").update({ ready_by: readyBy }).eq("id", input.orderId);
+    const { data: o } = await db.from("orders").select("vertical_type, est_amount, delivery_slots(starts_at)").eq("id", input.orderId).single();
+    // A meat order for a later slot is accepted for that slot: ready when the
+    // slot starts, and the shop is reminded an hour before. No minutes asked.
+    const slot = (Array.isArray(o?.delivery_slots) ? o?.delivery_slots[0] : o?.delivery_slots) as { starts_at: string } | null | undefined;
+    const slotStart = slot ? new Date(slot.starts_at).getTime() : null;
+    const scheduled = o?.vertical_type === "meat" && slotStart != null && slotStart - Date.now() > SCHEDULED_AFTER_MIN * 60_000;
+    if (!scheduled && !input.readyMinutes) throw new BadRequestException("Choose when the order will be ready");
+    const readyBy = new Date(scheduled ? slotStart! : Date.now() + input.readyMinutes! * 60_000).toISOString();
+    await this.orders.transition({ orderId: input.orderId, to: "ACCEPTED", actorId: profileId, note: scheduled ? "accepted for the slot" : `ready in ${input.readyMinutes} min` });
+    // The order may have been shown to several shops: it is this shop's now, and the others lose it.
+    await db.from("orders").update({ ready_by: readyBy, dealer_id: dealer.id }).eq("id", input.orderId);
+    await db
+      .from("order_assignments")
+      .update({ outcome: "cancelled", responded_at: new Date().toISOString(), reason: "accepted by another shop" })
+      .eq("order_id", input.orderId)
+      .eq("outcome", "pending")
+      .neq("id", assignment.id);
+    if (scheduled) {
+      const { error } = await db.from("orders").update({ prep_remind_at: new Date(slotStart! - PREP_LEAD_MIN * 60_000).toISOString() }).eq("id", input.orderId);
+      if (error) console.warn("[dealer] prep reminder not saved", error.message);
+    }
     await db.from("order_assignments").update({ outcome: "accepted", responded_at: new Date().toISOString() }).eq("id", assignment.id);
 
     // Grocery: nothing to cut or weigh, so accepting is the shop's whole job
     // before pickup. The bill is the estimate, and riders are rung at once so
     // one is on the way while the shop packs.
-    const { data: o } = await db.from("orders").select("vertical_type, est_amount").eq("id", input.orderId).single();
     if (o?.vertical_type === "grocery") {
       const amount = Number(o.est_amount);
       await db.from("orders").update({ final_amount: amount }).eq("id", input.orderId);
       await this.orders.transition({ orderId: input.orderId, to: "PACKED", actorId: profileId, note: "grocery: ready for a rider" });
       void this.ringRiders(input.orderId, dealer.id, amount);
     }
-    return { orderId: input.orderId, readyBy };
+    return { orderId: input.orderId, readyBy, scheduled };
   }
 
   /** Turn the order down; it is immediately offered to the next shop. */

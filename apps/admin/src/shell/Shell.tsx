@@ -251,6 +251,7 @@ function TopBar({ me }: { me: AdminMe }) {
 /** One look per alert type: its own icon, colour and short label. */
 export const KIND: Record<Alert["kind"], { Icon: typeof IconShop; icon: string; chip: string; dot: string; label: string }> = {
   no_shop: { Icon: IconShop, icon: "bg-[#FDE2E2] text-[#C62828]", chip: "bg-[#FDE2E2] text-[#C62828]", dot: "bg-[#C62828]", label: "No shop" },
+  not_accepted: { Icon: IconClock, icon: "bg-[#FDE2E2] text-[#C62828]", chip: "bg-[#FDE2E2] text-[#C62828]", dot: "bg-[#C62828]", label: "Not accepted" },
   late: { Icon: IconClock, icon: "bg-[#FBEBD6] text-[#B4620A]", chip: "bg-[#FBEBD6] text-[#B4620A]", dot: "bg-[#B4620A]", label: "Running late" },
   waiting_rider: { Icon: IconRider, icon: "bg-[#E8E5FA] text-[#5B4BC9]", chip: "bg-[#E8E5FA] text-[#5B4BC9]", dot: "bg-[#5B4BC9]", label: "Needs a rider" },
   cash_count: { Icon: IconCash, icon: "bg-[#DDF3E6] text-[#1E8A4F]", chip: "bg-[#DDF3E6] text-[#1E8A4F]", dot: "bg-[#1E8A4F]", label: "Cash to count" },

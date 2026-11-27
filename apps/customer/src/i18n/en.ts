@@ -359,6 +359,8 @@ export const en = {
   retry: "Try again",
   noProducts: "No products available right now",
   shopClosedNote: "The shop is not taking orders right now. You can still place your order. It goes to the shop when it opens, and we will notify you when it is accepted.",
+  jr_later_title: "Order placed for your slot",
+  jr_later_body: "The shop will confirm before your delivery slot. We will notify you when it is accepted.",
   jr_closed_title: "Waiting for the shop to open",
   jr_closed_body: "Your order is saved. It goes to the shop when it opens, and we will notify you when it is accepted.",
   meatNotHere: "No meat shop near you yet. We are adding shops area by area.",

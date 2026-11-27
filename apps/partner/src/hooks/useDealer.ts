@@ -44,13 +44,13 @@ const ms = (s: string | null | undefined) => (s ? new Date(s).getTime() : Infini
 
 /**
  * Most urgent first: new offers before work in hand before ready; among new
- * ones the answer window that closes soonest, among the rest the earliest
- * promised ready time, then the oldest order.
+ * ones the order waiting longest, among the rest the earliest promised ready
+ * time, then the oldest order.
  */
 export function byUrgency(a: DealerOrder, b: DealerOrder) {
   return (
     STAGE[a.status] - STAGE[b.status] ||
-    (a.status === "DEALER_ASSIGNED" ? ms(a.accept_deadline) - ms(b.accept_deadline) : ms(a.ready_by) - ms(b.ready_by)) ||
+    (a.status === "DEALER_ASSIGNED" ? 0 : ms(a.ready_by) - ms(b.ready_by)) ||
     ms(a.created_at) - ms(b.created_at)
   );
 }
@@ -101,7 +101,7 @@ function invalidate(qc: ReturnType<typeof useQueryClient>) {
 export function useAccept() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (p: { orderId: string; readyMinutes: number }) => api("/dealer/orders/accept", { method: "POST", body: p }),
+    mutationFn: (p: { orderId: string; readyMinutes?: number }) => api("/dealer/orders/accept", { method: "POST", body: p }),
     onSettled: () => invalidate(qc),
   });
 }

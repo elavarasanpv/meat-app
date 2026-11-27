@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Linking, Pressable, View } from "react-native";
 import { useRouter, type Href } from "expo-router";
 import * as Haptics from "expo-haptics";
-import { DEALER_REJECT_REASONS } from "@thanjozmart/shared";
+import { DEALER_REJECT_REASONS, PREP_LEAD_MIN, SCHEDULED_AFTER_MIN } from "@thanjozmart/shared";
 import { useAccept, usePacked, useReject, useStartCutting, type DealerOrder, type DealerOrderItem } from "@/hooks/useDealer";
 import { useLang, useT, type TKey } from "@/i18n";
 import { Btn, Chip, Txt, useC } from "@/ui";
@@ -16,7 +16,45 @@ export function clock(iso: string) {
   return new Date(iso).toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit", hour12: true });
 }
 
+/** The slot with its day: "Tomorrow 7:00 am–9:00 am". The shop must see at a glance that an order is not for now. */
+function useSlotLabel() {
+  const t = useT();
+  return (slot: { starts_at: string; ends_at: string }) => {
+    const start = new Date(slot.starts_at);
+    const midnight = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+    const days = Math.round((midnight(start) - midnight(new Date())) / 86_400_000);
+    const day = days === 0 ? t("today") : days === 1 ? t("tomorrow") : start.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+    return `${day} · ${clock(slot.starts_at)} – ${clock(slot.ends_at)}`;
+  };
+}
+
+/**
+ * The slot the customer chose, with one line on what the shop should do about
+ * it now. Blue while there is nothing to do yet, amber once it must be packed.
+ */
+function SlotBox({ slot, calm, note, children }: { slot: string; calm: boolean; note: string; children?: React.ReactNode }) {
+  const c = useC();
+  const t = useT();
+  const fg = calm ? c.info : c.warning;
+  return (
+    <View style={{ flexDirection: "row", gap: 10, padding: 12, borderRadius: 16, backgroundColor: calm ? c.infoBg : c.warningBg }}>
+      <View style={{ marginTop: 2 }}>
+        <Icon name="clock" color={fg} size={20} />
+      </View>
+      <View style={{ flex: 1, gap: 2 }}>
+        <Txt size={12} color={fg}>{t("customerSlot")}</Txt>
+        <Txt bold size={16} color={fg}>{slot}</Txt>
+        {children}
+        <Txt size={13} color={fg} style={{ marginTop: 2 }}>{note}</Txt>
+      </View>
+    </View>
+  );
+}
+
 /** Live countdown to the accept deadline ("4:32"); turns red under a minute. */
+/** The shop is expected to answer within this many minutes of the offer. */
+const ACCEPT_MARK_MIN = 5;
+
 export function Countdown({ deadline }: { deadline: string }) {
   const c = useC();
   const t = useT();
@@ -28,6 +66,15 @@ export function Countdown({ deadline }: { deadline: string }) {
   const left = Math.max(0, Math.floor((new Date(deadline).getTime() - now) / 1000));
   const mm = Math.floor(left / 60);
   const ss = String(left % 60).padStart(2, "0");
+  // Past the mark the order stays here; show how long the customer has waited.
+  if (left === 0) {
+    const waited = Math.max(ACCEPT_MARK_MIN, Math.floor((now - new Date(deadline).getTime()) / 60_000) + ACCEPT_MARK_MIN);
+    return (
+      <View style={{ paddingHorizontal: 12, minHeight: 32, paddingVertical: 4, borderRadius: 16, backgroundColor: c.danger, alignItems: "center", justifyContent: "center" }}>
+        <Txt bold size={14} color="#FFFFFF">{t("waitingFor")} {waited < 60 ? `${waited} ${t("min")}` : `${Math.floor(waited / 60)} ${t("hr")} ${waited % 60} ${t("min")}`}</Txt>
+      </View>
+    );
+  }
   return (
     <View style={{ paddingHorizontal: 12, height: 32, borderRadius: 16, backgroundColor: left < 60 ? c.danger : c.warning, alignItems: "center", justifyContent: "center" }}>
       <Txt bold size={14} color="#FFFFFF">{t("acceptIn")} {mm}:{ss}</Txt>
@@ -58,9 +105,16 @@ function ItemRow({ it }: { it: DealerOrderItem }) {
 }
 
 /** Status pill: colour says what stage the order is in at a glance. */
-function StagePill({ status }: { status: DealerOrder["status"] }) {
+function StagePill({ status, waiting }: { status: DealerOrder["status"]; waiting?: boolean }) {
   const c = useC();
   const t = useT();
+  if (waiting) {
+    return (
+      <View style={{ paddingHorizontal: 10, minHeight: 26, borderRadius: 13, backgroundColor: c.surface2, justifyContent: "center" }}>
+        <Txt bold size={12} color={c.ink}>{t("scheduled")}</Txt>
+      </View>
+    );
+  }
   const map: Record<DealerOrder["status"], { key: TKey; bg: string; fg: string }> = {
     DEALER_ASSIGNED: { key: "newOrder", bg: c.tint, fg: c.primary },
     ACCEPTED: { key: "preparing", bg: c.infoBg, fg: c.info },
@@ -85,7 +139,21 @@ export function OrderCard({ o, compact, noDetails }: { o: DealerOrder; compact?:
   const reject = useReject();
   const cutting = useStartCutting();
   const packed = usePacked();
+  const slotLabel = useSlotLabel();
   const [mode, setMode] = useState<"none" | "ready" | "reject">("none");
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    const h = setInterval(() => setNow(Date.now()), 30_000);
+    return () => clearInterval(h);
+  }, []);
+
+  // A meat order for a later slot (tomorrow morning, this evening): accepted
+  // for the slot with no ready-in minutes, and prepared when the slot is near.
+  const slotStart = o.delivery_slots ? new Date(o.delivery_slots.starts_at).getTime() : null;
+  const meat = o.vertical_type !== "grocery";
+  const forLater = meat && slotStart != null && slotStart - now > SCHEDULED_AFTER_MIN * 60_000;
+  const remindAt = slotStart != null ? slotStart - PREP_LEAD_MIN * 60_000 : null;
+  const waiting = o.status === "ACCEPTED" && meat && remindAt != null && now < remindAt && !!o.ready_by && new Date(o.ready_by).getTime() >= slotStart!;
 
   const items = o.order_items.filter((i) => !i.unavailable);
   const shopTotal = items.reduce((s, i) => s + Math.round(i.shop_price_per_kg * i.requested_kg), 0);
@@ -98,9 +166,9 @@ export function OrderCard({ o, compact, noDetails }: { o: DealerOrder; compact?:
       <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
         <View style={{ flex: 1 }}>
           <Txt bold size={17}>{o.display_id}</Txt>
-          {o.delivery_slots ? <Txt size={13} muted>{clock(o.delivery_slots.starts_at)}–{clock(o.delivery_slots.ends_at)}</Txt> : null}
+          {o.delivery_slots && !meat ? <Txt size={13} muted>{slotLabel(o.delivery_slots)}</Txt> : null}
         </View>
-        {isNew && o.accept_deadline ? <Countdown deadline={o.accept_deadline} /> : <StagePill status={o.status} />}
+        {isNew && o.accept_deadline ? <Countdown deadline={o.accept_deadline} /> : <StagePill status={o.status} waiting={waiting} />}
       </View>
 
       {o.items_added_at ? (
@@ -148,15 +216,35 @@ export function OrderCard({ o, compact, noDetails }: { o: DealerOrder; compact?:
             </View>
           </View>
         ) : (
-          <View style={{ flexDirection: "row", gap: 10 }}>
-            <Btn label={t("reject")} icon="x" kind="outlineDanger" big onPress={() => setMode("reject")} style={{ flex: 1 }} />
-            <Btn label={t("accept")} icon="check" kind="success" big onPress={() => setMode("ready")} style={{ flex: 1 }} loading={accept.isPending} />
+          <View style={{ gap: 10 }}>
+            {meat && o.delivery_slots ? <SlotBox slot={slotLabel(o.delivery_slots)} calm={forLater} note={t(forLater ? "forLaterNew" : "slotNew")} /> : null}
+            <View style={{ flexDirection: "row", gap: 10 }}>
+              <Btn label={t("reject")} icon="x" kind="outlineDanger" big onPress={() => setMode("reject")} style={{ flex: 1 }} />
+              <Btn
+                label={t("accept")}
+                icon="check"
+                kind="success"
+                big
+                onPress={() => {
+                  if (!forLater) return setMode("ready");
+                  tap();
+                  accept.mutate({ orderId: o.id });
+                }}
+                style={{ flex: 1 }}
+                loading={accept.isPending}
+              />
+            </View>
           </View>
         )
       ) : null}
 
-      {o.status === "ACCEPTED" ? (
+      {waiting && o.delivery_slots ? (
+        <SlotBox slot={slotLabel(o.delivery_slots)} calm note={t("forLaterWait")}>
+          <Txt bold size={13} color={c.info}>{t("remindAt")} {clock(new Date(remindAt!).toISOString())}</Txt>
+        </SlotBox>
+      ) : o.status === "ACCEPTED" ? (
         <View style={{ gap: 8 }}>
+          {meat && o.delivery_slots ? <SlotBox slot={slotLabel(o.delivery_slots)} calm={false} note={t("slotPack")} /> : null}
           {o.ready_by ? <ReadyBy readyBy={o.ready_by} /> : null}
           <Btn label={t("startCutting")} big onPress={() => { tap(); cutting.mutate(o.id); }} loading={cutting.isPending} />
         </View>
@@ -164,6 +252,7 @@ export function OrderCard({ o, compact, noDetails }: { o: DealerOrder; compact?:
 
       {o.status === "PACKING" ? (
         <View style={{ gap: 10 }}>
+          {meat && o.delivery_slots ? <SlotBox slot={slotLabel(o.delivery_slots)} calm={false} note={t("slotPack")} /> : null}
           {o.ready_by ? <ReadyBy readyBy={o.ready_by} /> : null}
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
             <Icon name="camera" color={c.muted} size={16} />

@@ -25,6 +25,7 @@ export function usePush(role: "dealer" | "rider") {
     const go = (data: Record<string, unknown> | undefined) => {
       if (!data) return;
       if (data.kind === "new_order" && role === "dealer") router.push({ pathname: "/(tabs)/orders", params: { seg: "new", at: String(Date.now()) } });
+      if (data.kind === "prep_reminder" && role === "dealer") router.push({ pathname: "/(tabs)/orders", params: { seg: "progress", at: String(Date.now()) } });
       if (data.kind === "offer" && role === "rider") router.push("/rider/tasks");
     };
     const received = Notifications.addNotificationReceivedListener(() => {

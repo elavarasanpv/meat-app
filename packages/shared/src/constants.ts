@@ -15,6 +15,10 @@ export const SLOT_WINDOWS: ReadonlyArray<readonly [number, number]> = [
 ];
 /** A slot must start at least this long after "now" to be offered. */
 export const SLOT_LEAD_MINUTES = 60;
+/** A meat order whose slot starts later than this is "for later": the shop accepts it for the slot, with no ready-in minutes. */
+export const SCHEDULED_AFTER_MIN = 120;
+/** A for-later order is prepared this long before its slot starts; the shop is reminded then. */
+export const PREP_LEAD_MIN = 60;
 
 /**
  * A shop serves an address when the pincode is on its service list or its pin

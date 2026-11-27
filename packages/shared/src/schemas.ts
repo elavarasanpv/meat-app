@@ -132,8 +132,8 @@ export const DEALER_REJECT_REASONS = ["out_of_stock", "closing", "too_busy", "ot
 
 export const dealerAcceptSchema = z.object({
   orderId: z.string().uuid(),
-  /** Minutes until the order will be packed and ready for pickup. */
-  readyMinutes: z.number().int().min(5).max(120),
+  /** Minutes until the order will be packed and ready for pickup. Not needed for a for-later order: that is ready by its slot. */
+  readyMinutes: z.number().int().min(5).max(120).optional(),
 });
 
 export const dealerRejectSchema = z.object({
