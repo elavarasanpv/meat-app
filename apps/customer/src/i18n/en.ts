@@ -1,7 +1,7 @@
 export const en = {
   // login
-  loginTitle: "Fresh meat,\ncut your way.",
-  loginSubtitle: "From shops near you, at your door in under an hour.",
+  loginTitle: "Meat and groceries,\nat your door.",
+  loginSubtitle: "Fresh cuts and daily needs from shops near you, in one app.",
   mobileNumber: "Mobile number",
   sendOtp: "Get OTP",
   invalidPhone: "Enter a valid 10-digit mobile number",
@@ -455,6 +455,7 @@ export const en = {
   youSave: "You save \u20B9{amt} on this order",
   helpTagline: "We\u2019re here 7 am \u2013 8 pm, every day",
   noOrdersSub: "Fresh meat from the shop next door, handed to you at the gate.",
+  noOrdersSubGrocery: "Rice, dal, oil and daily needs from the shop next door, handed to you at the gate.",
   fy_0: "Sunday special, machi!",
   fy_1: "Fresh week, fresh cuts",
   fy_2: "Picked just for you",

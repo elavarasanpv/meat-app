@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
-import { Alert, Keyboard, Pressable, ScrollView, TextInput, View } from "react-native";
+import { Keyboard, Pressable, ScrollView, TextInput, View } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import Constants from "expo-constants";
 import { AppText } from "@/components/AppText";
 import { Button } from "@/components/Button";
+import { ConfirmSheet } from "@/components/ConfirmSheet";
 import { Icon, type IconName } from "@/components/Icon";
 import { LangToggle } from "@/components/LangToggle";
 import { useSelectedAddress } from "@/hooks/useOrders";
@@ -42,11 +43,8 @@ export default function ProfileScreen() {
   const name = profile.data?.full_name?.trim() ?? "";
   const phone = prettyPhone(profile.data?.phone ?? session?.user.phone);
   const openAddress = () => router.push(address ? { pathname: "/address/new", params: { id: address.id } } : "/address/location");
-  const confirmSignOut = () =>
-    Alert.alert(t("signOut"), t("profileSignOutAsk"), [
-      { text: t("profileCancel"), style: "cancel" },
-      { text: t("signOut"), style: "destructive", onPress: () => void signOut() },
-    ]);
+  const [asking, setAsking] = useState(false);
+  const confirmSignOut = () => setAsking(true);
 
   const card = { backgroundColor: c.surface, borderRadius: radius.input, borderWidth: 1, borderColor: c.border } as const;
   const tiles: { icon: IconName; label: string; onPress: () => void }[] = [
@@ -151,6 +149,7 @@ export default function ProfileScreen() {
           <AppText variant="caption" muted>{t("profileVersion", { v: Constants.expoConfig?.version ?? "" })}</AppText>
         </View>
       </ScrollView>
+      <ConfirmSheet visible={asking} title={t("signOut")} message={t("profileSignOutAsk")} confirmLabel={t("signOut")} cancelLabel={t("profileCancel")} icon="logout" onConfirm={() => { setAsking(false); void signOut(); }} onClose={() => setAsking(false)} />
     </SafeAreaView>
   );
 }

@@ -14,12 +14,14 @@ import { dateTime } from "@/lib/format";
 import { productImage } from "@/lib/images";
 import { useCart } from "@/store/cart";
 import { useT } from "@/i18n";
-import { useTheme } from "@/theme";
+import { Accent, useTheme } from "@/theme";
+import { useVertical } from "@/store/vertical";
 import { queryState } from "@/lib/network";
 import { Photo } from "@/components/Photo";
 import { Star } from "@/components/Stars";
 
 const HANDOFF = require("@thanjozmart/assets/images/doodle-handoff.webp");
+const HANDOFF_GROCERY = require("@thanjozmart/assets/images/doodle-handoff-grocery.webp");
 const CLOSED = ["DELIVERED", "CANCELLED", "DELIVERY_FAILED", "RETURNED", "REFUNDED"];
 const THUMBS = 4;
 const STATUS_ICON = { done: "check", problem: "close", moving: "scooter", waiting: "clock" } as const;
@@ -134,29 +136,36 @@ function OrderCard({ o }: { o: OrderSummary }) {
   );
 }
 
+/** "No orders yet", in the colours, picture and words of the section the customer is in. */
+function NoOrders({ grocery }: { grocery: boolean }) {
+  const { c } = useTheme();
+  const t = useT();
+  const router = useRouter();
+  return (
+    <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: c.ground }}>
+      <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 12, padding: 24 }}>
+        <Photo source={grocery ? HANDOFF_GROCERY : HANDOFF} style={grocery ? { width: 240, height: 260 } : { width: 260, height: 240 }} />
+        <AppText variant="title" style={{ textAlign: "center" }}>{t("noOrders")}</AppText>
+        <AppText muted style={{ textAlign: "center", maxWidth: 280 }}>{t(grocery ? "noOrdersSubGrocery" : "noOrdersSub")}</AppText>
+        <View style={{ width: 220, marginTop: 4 }}>
+          <Button label={t("browseProducts")} size="sm" onPress={() => router.push("/(tabs)")} />
+        </View>
+      </View>
+    </SafeAreaView>
+  );
+}
+
 export default function OrdersScreen() {
   const { c } = useTheme();
   const refresh = usePullRefresh([["orders"]]);
   const t = useT();
   const router = useRouter();
   const orders = useOrders();
+  const vertical = useVertical((v) => v.vertical);
   const st = queryState(orders);
   const list = orders.data?.pages.flatMap((p) => p.rows) ?? [];
 
-  if (orders.data && list.length === 0) {
-    return (
-      <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: c.ground }}>
-        <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 12, padding: 24 }}>
-          <Photo source={HANDOFF} style={{ width: 260, height: 240 }} />
-          <AppText variant="title" numberOfLines={1}>{t("noOrders")}</AppText>
-          <AppText muted numberOfLines={2} style={{ textAlign: "center", maxWidth: 280 }}>{t("noOrdersSub")}</AppText>
-          <View style={{ width: 220, marginTop: 4 }}>
-            <Button label={t("browseProducts")} size="sm" onPress={() => router.push("/(tabs)")} />
-          </View>
-        </View>
-      </SafeAreaView>
-    );
-  }
+  if (orders.data && list.length === 0) return <Accent value={vertical}><NoOrders grocery={vertical === "grocery"} /></Accent>;
 
   return (
     <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: c.ground }}>

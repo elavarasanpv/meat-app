@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { Animated, Image, KeyboardAvoidingView, Platform, Pressable, TextInput, View } from "react-native";
+import { Animated, Easing, Image, KeyboardAvoidingView, Platform, Pressable, TextInput, View, useWindowDimensions } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
+import Svg, { Path } from "react-native-svg";
 import { AppText } from "@/components/AppText";
 import { Button } from "@/components/Button";
 import { Icon } from "@/components/Icon";
@@ -11,10 +12,15 @@ import { LangToggle } from "@/components/LangToggle";
 import { openLegal } from "@/lib/legal";
 import { supabase } from "@/lib/supabase";
 import { toE164India } from "@/store/auth";
+import { useSplashDone } from "@/store/splash";
 import { useT } from "@/i18n";
-import { fonts, radius, useTheme } from "@/theme";
+import { fonts, radius, useTheme, withAccent } from "@/theme";
 
-const HERO = require("@thanjozmart/assets/images/doodle-handoff.webp");
+const MEAT = require("@thanjozmart/assets/images/section-meat.webp");
+const EGGS = require("@thanjozmart/assets/images/farm-eggs.webp");
+const LEG = require("@thanjozmart/assets/images/leg-piece.webp");
+const BONELESS = require("@thanjozmart/assets/images/chicken-boneless.webp");
+const GROCERY = require("@thanjozmart/assets/images/section-grocery.webp");
 const PATTERN = require("@thanjozmart/assets/images/pattern-doodles.webp");
 
 /** Step 1 of login: enter mobile number → Supabase sends SMS OTP. */
@@ -59,8 +65,8 @@ export default function LoginScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: c.ground }}>
-      {/* hero: peach gradient, faint doodles, the goat hand-off */}
-      <LinearGradient colors={[...tone.header]} start={{ x: 0, y: 0 }} end={{ x: 0.8, y: 1 }} style={{ paddingTop: insets.top + 8, paddingHorizontal: 20, paddingBottom: 28, borderBottomLeftRadius: 34, borderBottomRightRadius: 34, overflow: "hidden" }}>
+      {/* hero: peach gradient, faint doodles, a winding road with what we deliver along it */}
+      <LinearGradient colors={[...tone.header]} start={{ x: 0, y: 0 }} end={{ x: 0.8, y: 1 }} style={{ paddingTop: insets.top + 8, paddingHorizontal: 20, paddingBottom: 6, borderBottomLeftRadius: 34, borderBottomRightRadius: 34, overflow: "hidden" }}>
         <View pointerEvents="none" style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0 }}>
           <Image source={PATTERN} resizeMode="cover" style={{ width: "100%", height: "100%", opacity: 0.18 }} />
         </View>
@@ -74,16 +80,14 @@ export default function LoginScreen() {
           </View>
           <LangToggle />
         </View>
-                  <View style={{ alignItems: "center", marginTop: 10 }}>
-            <Image source={HERO} resizeMode="contain" style={{ width: 250, height: 200 }} />
-          </View>
+        <PathHero />
       </LinearGradient>
 
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
         <SafeAreaView edges={["bottom"]} style={{ flex: 1, paddingHorizontal: 22, paddingTop: 22 }}>
           <AppText variant="label" color={c.price} numberOfLines={1}>{t("loginKicker")}</AppText>
-          <AppText variant="display" numberOfLines={2} style={{ marginTop: 4 }}>{t("loginTitle")}</AppText>
-          <AppText muted numberOfLines={2} style={{ marginTop: 6 }}>{t("loginSubtitle")}</AppText>
+          <AppText variant="display" style={{ marginTop: 4 }}>{t("loginTitle")}</AppText>
+          <AppText muted style={{ marginTop: 6 }}>{t("loginSubtitle")}</AppText>
 
           <AppText variant="label" muted style={{ marginTop: 22, marginBottom: 8 }}>{t("loginPhoneLabel")}</AppText>
           <Animated.View style={{ transform: [{ translateX: shake }] }}>
@@ -152,6 +156,83 @@ export default function LoginScreen() {
           </View>
         </SafeAreaView>
       </KeyboardAvoidingView>
+    </View>
+  );
+}
+
+const HERO_H = 250;
+const AnimatedPath = Animated.createAnimatedComponent(Path);
+
+/** Where each picture sits on the hero, as a share of its width and height, and how big its circle is. */
+const SPOTS = [
+  { key: "meat", image: MEAT, x: 0.42, y: 0.5, size: 132, accent: "meat" },
+  { key: "grocery", image: GROCERY, x: 0.84, y: 0.7, size: 100, accent: "grocery" },
+  { key: "eggs", image: EGGS, x: 0.13, y: 0.17, size: 72, accent: "plain" },
+  { key: "leg", image: LEG, x: 0.9, y: 0.13, size: 68, accent: "plain" },
+  { key: "boneless", image: BONELESS, x: 0.14, y: 0.83, size: 76, accent: "plain" },
+] as const;
+
+/**
+ * The login picture: one winding road drawn across the hero, with what we deliver sitting along
+ * it. Meat in the middle, the grocery basket further down the road, smaller cuts and eggs around
+ * them. The road draws itself, the pictures pop in one by one, then everything floats very gently.
+ */
+function PathHero() {
+  const { c, dark, glow } = useTheme();
+  const g = withAccent(c, "grocery", dark);
+  const { width: w } = useWindowDimensions();
+  const h = HERO_H;
+  const draw = useRef(new Animated.Value(0)).current;
+  const pops = useRef(SPOTS.map(() => new Animated.Value(0))).current;
+  const bob = useRef(new Animated.Value(0)).current;
+
+  // Wait for the opening brand animation to clear, or the entrance would play unseen behind it.
+  const seen = useSplashDone((s) => s.done);
+  useEffect(() => {
+    if (!seen) return;
+    const float = Animated.loop(
+      Animated.sequence([
+        Animated.timing(bob, { toValue: 1, duration: 2200, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+        Animated.timing(bob, { toValue: 0, duration: 2200, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+      ]),
+    );
+    const run = Animated.parallel([
+      Animated.timing(draw, { toValue: 1, duration: 900, easing: Easing.out(Easing.cubic), useNativeDriver: false }),
+      Animated.stagger(110, pops.map((v) => Animated.spring(v, { toValue: 1, friction: 6, tension: 80, useNativeDriver: true }))),
+    ]);
+    run.start(({ finished }) => { if (finished) float.start(); });
+    return () => { run.stop(); float.stop(); };
+  }, [seen]);
+
+  const ROAD_LEN = w * 2.2;
+  const road = `M -10 ${h * 0.56} C ${w * 0.16} ${h * 0.34}, ${w * 0.26} ${h * 0.06}, ${w * 0.5} ${h * 0.06} S ${w * 0.76} ${h * 0.3}, ${w * 0.8} ${h * 0.56} S ${w * 0.9} ${h * 0.96}, ${w + 10} ${h * 1.02}`;
+
+  return (
+    <View style={{ height: h, marginHorizontal: -20, marginTop: 10 }}>
+      <Svg width={w} height={h} style={{ position: "absolute", left: 0, top: 0 }}>
+        <AnimatedPath d={road} stroke={c.primary} strokeOpacity={0.4} strokeWidth={4} strokeLinecap="round" fill="none" strokeDasharray={ROAD_LEN} strokeDashoffset={draw.interpolate({ inputRange: [0, 1], outputRange: [ROAD_LEN, 0] })} />
+      </Svg>
+      {/* two beads on the road */}
+      <Animated.View style={{ position: "absolute", left: w * 0.62 - 8, top: h * 0.12 - 8, width: 16, height: 16, borderRadius: 8, backgroundColor: c.primary, opacity: draw }} />
+      <Animated.View style={{ position: "absolute", left: w * 0.25 - 7, top: h * 0.72 - 7, width: 14, height: 14, borderRadius: 7, backgroundColor: g.primary, opacity: draw }} />
+      {SPOTS.map((s, i) => {
+        const up = i % 2 ? 1 : -1; // neighbours drift opposite ways, so it never looks like one block moving
+        const main = s.size > 90;
+        return (
+          <Animated.View
+            key={s.key}
+            style={{
+              position: "absolute", left: w * s.x - s.size / 2, top: h * s.y - s.size / 2, width: s.size, height: s.size, alignItems: "center", justifyContent: "center",
+              opacity: pops[i].interpolate({ inputRange: [0, 0.3, 1], outputRange: [0, 1, 1] }),
+              transform: [{ scale: pops[i] }, { translateY: bob.interpolate({ inputRange: [0, 1], outputRange: [0, 4 * up] }) }],
+            }}
+          >
+            {/* no plate behind the picture: only a faint pool of light under the two main ones, so they melt into the backdrop */}
+            {main ? <View style={{ position: "absolute", width: s.size, height: s.size, borderRadius: s.size / 2, backgroundColor: glow(0.3) }} /> : null}
+            <Image source={s.image} resizeMode="contain" style={{ width: s.size * (main ? 0.86 : 1), height: s.size * (main ? 0.86 : 1) }} />
+          </Animated.View>
+        );
+      })}
     </View>
   );
 }
