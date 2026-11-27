@@ -2,16 +2,19 @@ import { Tabs } from "expo-router";
 import { TabBar } from "@/components/TabBar";
 import { useT } from "@/i18n";
 import { useCart } from "@/store/cart";
-import { useTheme } from "@/theme";
+import { useVertical } from "@/store/vertical";
+import { Accent, useTheme } from "@/theme";
 
 export default function TabsLayout() {
   const { c } = useTheme();
   const t = useT();
   const cartCount = useCart((s) => s.items.length);
+  const vertical = useVertical((s) => s.vertical);
 
   return (
     <Tabs
-      tabBar={(props) => <TabBar {...props} />}
+      // the bar takes the section's colour: ember for meat, green for grocery
+      tabBar={(props) => <Accent value={vertical}><TabBar {...props} /></Accent>}
       screenOptions={{
         headerShown: false,
         sceneStyle: { backgroundColor: c.ground },

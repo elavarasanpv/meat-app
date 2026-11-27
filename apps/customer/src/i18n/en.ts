@@ -66,6 +66,7 @@ export const en = {
   // cart
   cartEmpty: "Your cart is empty",
   cartEmptySub: "Fresh chicken, mutton and eggs from shops near you are a tap away.",
+  cartEmptySubGrocery: "Rice, dal, oil and daily needs from shops near you are a tap away.",
   browseProducts: "Browse products",
   itemTotal: "Items",
   deliveryFee: "Delivery",

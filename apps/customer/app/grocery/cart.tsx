@@ -67,7 +67,7 @@ export default function GroceryCartScreen() {
       if (items.length === 0) back();
     }, [items.length]),
   );
-  if (items.length === 0) return <EmptyCart onBrowse={back} />;
+  if (items.length === 0) return <Accent value="grocery"><EmptyCart onBrowse={back} /></Accent>;
 
   return (
     <Accent value="grocery">
