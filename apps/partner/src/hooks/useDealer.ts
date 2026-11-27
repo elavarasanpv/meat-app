@@ -17,7 +17,7 @@ export type DealerOrderItem = {
   /** Scale photo already uploaded for this item (storage path), if any. */
   photo_path: string | null;
   /** Picture, brand and pack size come with newer servers; grocery lines carry brand and pack size. */
-  products: { name: string; name_ta: string | null; unit: "kg" | "piece"; image_path?: string | null; brand?: string | null; pack_size?: string | null };
+  products: { name: string; name_ta: string | null; unit: "kg" | "piece"; image_path?: string | null; brand?: string | null; pack_size?: string | null; mrp?: number | null };
 };
 
 export type RiderInfo = { name: string | null; phone: string | null; vehicle: string | null };

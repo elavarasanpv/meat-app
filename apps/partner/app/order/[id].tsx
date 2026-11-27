@@ -28,6 +28,8 @@ function Line({ it }: { it: DealerOrderItem }) {
         {p.brand ? <Txt size={13} muted>{p.brand}</Txt> : null}
         {/* The pack is what tells a 5 kg bag from a 10 kg bag of the same brand. */}
         {p.pack_size ? <Txt bold size={15}>{t("pack")}: {p.pack_size}</Txt> : null}
+        {/* The printed MRP helps the shop confirm it picked the right product. */}
+        {p.mrp != null ? <Txt bold size={15}>{t("mrp")}: ₹{Number(p.mrp)}</Txt> : null}
         {it.size ? <Txt size={13} muted>{t(`size_${it.size}` as TKey)}</Txt> : null}
         {it.notes ? <Txt size={13} color={c.info}>{t("customerNote")}: {it.notes}</Txt> : null}
         {it.unavailable ? <Txt bold size={13} color={c.danger}>{t("notAvailableItem")}</Txt> : null}

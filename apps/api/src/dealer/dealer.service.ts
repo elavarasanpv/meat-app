@@ -41,7 +41,7 @@ export class DealerService {
     const { data: orders, error } = await db
       .from("orders")
       .select(
-        "id, display_id, status, vertical_type, ready_by, est_amount, created_at, items_added_at, rider_id, delivery_slots(starts_at, ends_at), order_items(id, product_id, master_product_id, requested_kg, actual_kg, size, notes, unavailable, unit_price_per_kg, shop_unit_price, products(name, name_ta, unit, image_path), master_products(name, name_ta, unit, image_path, brand, pack_size))",
+        "id, display_id, status, vertical_type, ready_by, est_amount, created_at, items_added_at, rider_id, delivery_slots(starts_at, ends_at), order_items(id, product_id, master_product_id, requested_kg, actual_kg, size, notes, unavailable, unit_price_per_kg, shop_unit_price, products(name, name_ta, unit, image_path), master_products(name, name_ta, unit, image_path, brand, pack_size, mrp))",
       )
       .eq("dealer_id", dealerId)
       .in("status", SHOP_ACTIVE)
