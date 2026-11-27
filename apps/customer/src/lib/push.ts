@@ -50,7 +50,11 @@ export async function registerForPush(channelName: string): Promise<{ token: str
     const { data: token } = await Notifications.getExpoPushTokenAsync({ projectId });
     const { data: session } = await supabase.auth.getSession();
     const uid = session.session?.user.id;
-    if (uid) await supabase.from("push_tokens").upsert({ profile_id: uid, token, platform: Platform.OS, updated_at: new Date().toISOString() });
+    if (uid) {
+      // This phone alerts only the account signed in on it; plain save if the database function isn't there yet.
+      const { error } = await supabase.rpc("claim_push_token", { p_token: token, p_platform: Platform.OS });
+      if (error) await supabase.from("push_tokens").upsert({ profile_id: uid, token, platform: Platform.OS, updated_at: new Date().toISOString() });
+    }
     return { token };
   } catch (e) {
     return { token: null, reason: (e as Error).message };

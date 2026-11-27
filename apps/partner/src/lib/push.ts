@@ -68,12 +68,22 @@ export async function registerForPush(channelName: string): Promise<{ token: str
     const { data: session } = await supabase.auth.getSession();
     const uid = session.session?.user.id;
     if (!uid) return { token, reason: "no-session" };
-    await supabase.from("push_tokens").upsert({ profile_id: uid, token, platform: Platform.OS, updated_at: new Date().toISOString() });
+    await savePushToken(uid, token);
     return { token };
   } catch (e) {
     // Expo Go on Android, no Firebase config yet, or offline: alerts just stay off.
     return { token: null, reason: (e as Error).message };
   }
+}
+
+/**
+ * This phone now alerts only the account signed in on it (claim_push_token
+ * drops it from any account that left without signing out). Falls back to a
+ * plain save if the database function isn't there yet.
+ */
+async function savePushToken(uid: string, token: string) {
+  const { error } = await supabase.rpc("claim_push_token", { p_token: token, p_platform: Platform.OS });
+  if (error) await supabase.from("push_tokens").upsert({ profile_id: uid, token, platform: Platform.OS, updated_at: new Date().toISOString() });
 }
 
 /** Forget this phone for the user (on logout) so alerts stop coming here. */
