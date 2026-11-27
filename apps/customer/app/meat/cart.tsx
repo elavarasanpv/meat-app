@@ -14,11 +14,12 @@ import { usePlaceOrder, useSelectedAddress, useSlots } from "@/hooks/useOrders";
 import { useLocalName, useT } from "@/i18n";
 import { dayLabel, slotWindow } from "@/lib/format";
 import { cartImage } from "@/lib/images";
-import { errorMessage } from "@/lib/network";
+import { orderErrorMessage } from "@/lib/network";
 import { formatQty, lineTotal, qtyStep, useCart } from "@/store/cart";
 import { useVertical } from "@/store/vertical";
 import { radius, useTheme } from "@/theme";
 import { Photo } from "@/components/Photo";
+import { ShopClosedNote } from "@/components/ShopClosedNote";
 
 /**
  * Full-screen meat cart (no tab bar), laid out like the grocery one: back
@@ -71,7 +72,7 @@ export default function MeatCartScreen() {
       clear();
       router.replace({ pathname: "/order/[id]", params: { id: result.orderId, placed: "1" } });
     } catch (e) {
-      setError(`${t("orderFailed")} — ${errorMessage(e, t)}`);
+      setError(orderErrorMessage(e, t));
     }
   }
 
@@ -174,7 +175,8 @@ export default function MeatCartScreen() {
       <GlassDock onHeight={setDockH}>
         <DeliverTo address={single} onChange={() => router.push("/checkout")} />
         <View style={{ gap: 6 }}>
-          {error ? <AppText variant="caption" color={c.danger} numberOfLines={2} style={{ textAlign: "center", fontSize: 11.5 }}>{error}</AppText> : null}
+          <ShopClosedNote productIds={items.map((i) => i.productId)} />
+          {error ? <AppText variant="caption" color={c.danger} style={{ textAlign: "center", fontSize: 11.5 }}>{error}</AppText> : null}
           {single ? (
             <Button label={`${t("placeOrder")} · ₹ ${bill.toPay}`} onPress={placeNow} loading={place.isPending} disabled={bill.belowMin || !slot} />
           ) : (

@@ -1,5 +1,5 @@
 import { Injectable, OnModuleDestroy, OnModuleInit } from "@nestjs/common";
-import { haversineKm } from "@thanjozmart/shared";
+import { SHOP_REGION_KM, haversineKm, shopServes } from "@thanjozmart/shared";
 import { SupabaseService } from "../supabase.service";
 import { PushService } from "../push/push.service";
 import { OrdersService } from "../orders/orders.service";
@@ -7,12 +7,15 @@ import { OrdersService } from "../orders/orders.service";
 /** How long a shop has to answer before the order moves to the next one. */
 export const ACCEPT_WINDOW_MIN = 5;
 const SWEEP_MS = 30_000;
+/** How long an order that no shop could take keeps being retried. */
+const RETRY_FOR_H = 12;
 
 /**
  * Offers each new order to one shop at a time:
- * serves the pincode → open right now → has every item in stock → nearest.
+ * serves the address (pincode on its list, or within 5 km) → open right now → has every item in stock → nearest.
  * A shop that rejects or lets the 5-minute window lapse is skipped and the
- * next one is offered. The sweeper enforces the window even if the app died.
+ * next one is offered. The sweeper enforces the window even if the app died,
+ * and keeps trying orders no shop could take when they were placed.
  */
 @Injectable()
 export class AssignmentService implements OnModuleInit, OnModuleDestroy {
@@ -33,7 +36,7 @@ export class AssignmentService implements OnModuleInit, OnModuleDestroy {
   }
 
   /** Offer the order to the best shop that has not been tried yet. */
-  async offer(orderId: string): Promise<{ assigned: boolean; dealerId?: string }> {
+  async offer(orderId: string, opts: { retry?: boolean } = {}): Promise<{ assigned: boolean; dealerId?: string }> {
     const db = this.supabase.admin;
     const { data: order } = await db
       .from("orders")
@@ -59,15 +62,16 @@ export class AssignmentService implements OnModuleInit, OnModuleDestroy {
       .filter((i) => !i.unavailable)
       .map((i) => i.product_id);
 
-    // Shops serving this pincode and open right now
+    // Meat shops serving this address (the region rule) and open right now
     const now = new Date().toISOString();
     const { data: rows } = await db
-      .from("dealer_pincodes")
-      .select("dealer_id, dealers!inner(id, profile_id, lat, lng, is_active, is_open, closed_until)")
-      .eq("pincode", addr.pincode);
-    const open = (rows ?? [])
-      .map((r) => r.dealers as unknown as { id: string; profile_id: string; lat: number | null; lng: number | null; is_active: boolean; is_open: boolean; closed_until: string | null })
-      .filter((d) => d.is_active && d.is_open && (!d.closed_until || d.closed_until <= now));
+      .from("dealers")
+      .select("id, profile_id, lat, lng, is_open, closed_until, dealer_pincodes(pincode)")
+      .eq("is_active", true)
+      .eq("store_type", "meat");
+    const open = ((rows ?? []) as unknown as { id: string; profile_id: string; lat: number | null; lng: number | null; is_open: boolean; closed_until: string | null; dealer_pincodes: { pincode: string }[] }[])
+      .filter((d) => shopServes({ lat: d.lat, lng: d.lng, pincodes: d.dealer_pincodes.map((x) => x.pincode) }, addr, SHOP_REGION_KM))
+      .filter((d) => d.is_open && (!d.closed_until || d.closed_until <= now));
 
     // Already-tried shops are out
     const { data: tried } = await db.from("order_assignments").select("dealer_id").eq("order_id", orderId);
@@ -93,7 +97,8 @@ export class AssignmentService implements OnModuleInit, OnModuleDestroy {
     if (!candidates.length) {
       // Nobody left to try: flag for admin, leave the order where it is.
       if (order.dealer_id) await db.from("orders").update({ dealer_id: null }).eq("id", orderId);
-      console.warn(`[assign] no shop available for order ${orderId} (pincode ${addr.pincode})`);
+      // The sweeper retries waiting orders every 30 s; log once, not on every retry.
+      if (!opts.retry) console.warn(`[assign] no shop available for order ${orderId} (pincode ${addr.pincode})`);
       return { assigned: false };
     }
 
@@ -151,6 +156,24 @@ export class AssignmentService implements OnModuleInit, OnModuleDestroy {
         const outcome = status === "DEALER_ASSIGNED" ? "timeout" : "cancelled";
         await db.from("order_assignments").update({ outcome, responded_at: now }).eq("id", a.id).eq("outcome", "pending");
         if (outcome === "timeout") await this.offer(a.order_id);
+      }
+
+      // Orders no shop could take when placed (all closed, or none had the
+      // items) wait with no shop. Try them again, so a shop that opens or
+      // restocks later gets them without an admin stepping in.
+      const since = new Date(Date.now() - RETRY_FOR_H * 3600_000).toISOString();
+      const { data: waiting } = await db
+        .from("orders")
+        .select("id")
+        .eq("status", "PLACED")
+        .eq("vertical_type", "meat")
+        .is("dealer_id", null)
+        .gte("created_at", since)
+        .order("created_at")
+        .limit(20);
+      for (const o of waiting ?? []) {
+        const r = await this.offer(o.id, { retry: true });
+        if (r.assigned) console.log(`[assign] order ${o.id} offered on retry`);
       }
     } finally {
       this.sweeping = false;

@@ -16,6 +16,11 @@ export const SLOT_WINDOWS: ReadonlyArray<readonly [number, number]> = [
 /** A slot must start at least this long after "now" to be offered. */
 export const SLOT_LEAD_MINUTES = 60;
 
+/**
+ * A shop serves an address when the pincode is on its service list or its pin
+ * is within this many km. Same number as shop_region_km() in the database.
+ */
+export const SHOP_REGION_KM = 5;
 /** Riders within this many km of the shop see a packed order's offer. */
 export const RIDER_OFFER_RADIUS_KM = 5;
 /** A rider may carry at most this many undelivered orders at once. */

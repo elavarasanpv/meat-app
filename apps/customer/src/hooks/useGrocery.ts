@@ -5,13 +5,14 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/store/auth";
 import type { FeeRule } from "@/store/cart";
 import { useDeliveryTerms } from "@/hooks/useDelivery";
+import { useSelectedAddress } from "@/hooks/useOrders";
 
 /**
  * Grocery vertical (G2). Everything here is empty/false until the admin
  * switches `verticals.grocery` on — RLS and the definer-rights lookups
  * (grocery_catalog, grocery_fee) both key on that flag, so the app needs no
  * build to go live. The customer never sees a shop: the catalog is whatever
- * the shops serving their pincode list, and checkout picks the shop(s).
+ * the shops serving their address list, and checkout picks the shop(s).
  */
 
 /** True once customers may see grocery. Re-checked each minute and on foreground. */
@@ -75,14 +76,19 @@ export type GroceryItem = {
   card_bg?: string | null;
 };
 
-/** Everything a customer at this pincode can buy (empty while the vertical is off). */
+/**
+ * Everything a customer at this address can buy (empty while the vertical is
+ * off): what the shops with the pincode on their list, or within 5 km, sell.
+ */
 export function useGroceryCatalog(pincode?: string) {
+  const a = useSelectedAddress();
+  const pin = a && a.pincode === pincode ? { lat: a.lat, lng: a.lng } : { lat: null, lng: null };
   return useQuery({
-    queryKey: ["grocery", "catalog", pincode ?? "none"],
+    queryKey: ["grocery", "catalog", pincode ?? "none", pin.lat, pin.lng],
     enabled: !!pincode,
     staleTime: 60_000,
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("grocery_catalog", { p_pincode: pincode });
+      const { data, error } = await supabase.rpc("grocery_catalog", { p_pincode: pincode, p_lat: pin.lat, p_lng: pin.lng });
       if (error) throw error;
       return (data as GroceryItem[]).map((r) => ({
         ...r,

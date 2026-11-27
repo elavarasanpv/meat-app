@@ -19,6 +19,10 @@ import { fonts, radius, useTheme } from "@/theme";
 const ZOOM: Pick<Region, "latitudeDelta" | "longitudeDelta"> = { latitudeDelta: 0.012, longitudeDelta: 0.012 };
 /** Worse than this, we ask the user to drag the map to their gate. */
 const WEAK_GPS_M = 60;
+/** A fix this tight is the real GPS: stop listening. */
+const GOOD_GPS_M = 20;
+/** How long we keep listening for a tighter fix after tapping the GPS button. */
+const FIX_WAIT_MS = 10_000;
 /** The map settling within this of the last checked spot is the same spot: no new lookup. */
 const SAME_SPOT_KM = 0.008;
 /** Height of the bottom sheet in its normal state; the map ends here and never resizes. */
@@ -60,6 +64,9 @@ export default function SelectLocationScreen() {
   const [accuracy, setAccuracy] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const nameReq = useRef(0);
+  // True once the pin was put somewhere on purpose (GPS, search, drag); until then it sits on the town centre.
+  const [placed, setPlaced] = useState(false);
+  const stopLocating = useRef<(() => void) | null>(null);
   const lastCenter = useRef<LatLng | null>(null);
 
   // The map reports "settled" for every tiny shift too; only a real move is a new spot to check.
@@ -82,10 +89,10 @@ export default function SelectLocationScreen() {
     mapRef.current?.animateCamera({ ...cam, zoom: Math.min(21, Math.max(13, cam.zoom + step)) }, { duration: 250 });
   }
 
-  // First open: a saved/draft pin wins; otherwise quietly try GPS, else the town centre.
+  // First open: a saved/draft pin wins; otherwise go to the phone's GPS spot.
   useEffect(() => {
-    if (start) return;
-    useMyLocation(true);
+    if (!start) useMyLocation();
+    return () => stopLocating.current?.();
   }, []);
 
   // Name whatever is under the pin once the map settles (debounced; stale replies dropped).
@@ -106,26 +113,78 @@ export default function SelectLocationScreen() {
     return () => clearTimeout(h);
   }, [center?.lat, center?.lng]);
 
-  async function useMyLocation(silent = false) {
+  async function useMyLocation() {
+    stopLocating.current?.();
+    let live = true;
+    let sub: Location.LocationSubscription | null = null;
+    let done: () => void = () => {};
+    stopLocating.current = () => {
+      live = false;
+      done();
+    };
     setLocating(true);
     setError(null);
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
-        if (!silent) setError(t("locationDenied"));
+        setError(t("locationDenied"));
         return;
       }
-      // Real GPS first; if Google's accuracy prompt is declined this throws, so fall back to plain GPS.
-      const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Highest, mayShowUserSettingsDialog: !silent }).catch(() =>
-        Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High, mayShowUserSettingsDialog: false }),
-      );
-      setAccuracy(pos.coords.accuracy != null ? Math.round(pos.coords.accuracy) : null);
-      goTo({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+      // Phone location switched off: Android offers to turn it on; if they say no, tell them why the pin did not move.
+      if (!(await Location.hasServicesEnabledAsync())) {
+        if (Platform.OS === "android") await Location.enableNetworkProviderAsync().catch(() => {});
+        if (!(await Location.hasServicesEnabledAsync())) {
+          setError(t("locationOff"));
+          return;
+        }
+      }
+      if (!live) return;
+      let best: number | null = null;
+      const take = (pos: Location.LocationObject) => {
+        if (!live) return;
+        const acc = pos.coords.accuracy ?? 9999;
+        // Only a clearly tighter fix moves the map again, so it does not jitter.
+        if (best != null && acc > best * 0.7) return;
+        best = acc;
+        setAccuracy(Math.round(acc));
+        setPlaced(true);
+        goTo({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+      };
+      // A recent fix shows at once; the first live one is often a rough tower guess, so keep listening for the real GPS.
+      const last = await Location.getLastKnownPositionAsync({ maxAge: 120_000, requiredAccuracy: 200 }).catch(() => null);
+      if (last) take(last);
+      await new Promise<void>((resolve, reject) => {
+        const timer = setTimeout(resolve, FIX_WAIT_MS);
+        done = () => {
+          clearTimeout(timer);
+          resolve();
+        };
+        Location.watchPositionAsync({ accuracy: Location.Accuracy.Highest, timeInterval: 1000, distanceInterval: 0 }, (pos) => {
+          take(pos);
+          if ((pos.coords.accuracy ?? 9999) <= GOOD_GPS_M) done();
+        }).then((x) => {
+          sub = x;
+        }, reject);
+      });
+      if (live && best == null) setError(t("locationFailed"));
     } catch {
-      if (!silent) setError(t("locationFailed"));
+      if (live) setError(t("locationFailed"));
     } finally {
-      setLocating(false);
+      (sub as Location.LocationSubscription | null)?.remove();
+      if (live) {
+        setLocating(false);
+        stopLocating.current = null;
+      }
     }
+  }
+
+  // The user took over (drag, search, area chip): stop following the GPS.
+  function takeOver() {
+    stopLocating.current?.();
+    stopLocating.current = null;
+    setLocating(false);
+    setAccuracy(null);
+    setPlaced(true);
   }
 
   async function search() {
@@ -136,7 +195,7 @@ export default function SelectLocationScreen() {
     try {
       const p = await findPlace(query);
       if (p) {
-        setAccuracy(null);
+        takeOver();
         goTo(p);
       } else setError(t("placeNotFound"));
     } catch {
@@ -168,8 +227,10 @@ export default function SelectLocationScreen() {
   const busy = moving || naming || (!!center && !place);
   const notServed = !!place && !!served.data && !zone;
   const areas = (served.data ?? []).filter((z, i, all) => z.lat != null && z.lng != null && all.findIndex((o) => (o.area ?? o.pincode) === (z.area ?? z.pincode)) === i);
+  // A failed GPS on first open leaves the pin on the town centre: say so, or it reads as "your location".
+  const lost = !start && !placed && !locating;
   const status = error
-    ? { text: error, color: c.danger }
+    ? { text: lost ? `${error} ${t("pinIsCentre")}` : error, color: c.danger }
     : served.isError
       ? { text: t("areaCheckFailed"), color: c.danger }
       : accuracy != null && accuracy > WEAK_GPS_M
@@ -226,7 +287,7 @@ export default function SelectLocationScreen() {
           mapType={kind}
           customMapStyle={kind === "standard" ? RURAL_MAP_STYLE : []}
           initialRegion={{ latitude: initial.lat, longitude: initial.lng, ...ZOOM }}
-          onPanDrag={() => setAccuracy(null)}
+          onPanDrag={() => (locating || accuracy != null || !placed ? takeOver() : undefined)}
           onRegionChange={() => setMoving(true)}
           onRegionChangeComplete={(r) => onSettled({ lat: r.latitude, lng: r.longitude })}
           showsUserLocation
@@ -275,7 +336,7 @@ export default function SelectLocationScreen() {
               ))}
             </View>
             <Pressable
-              onPress={() => useMyLocation(false)}
+              onPress={() => useMyLocation()}
               accessibilityRole="button"
               accessibilityLabel={t("useMyLocation")}
               style={({ pressed }) => ({ width: 48, height: 48, borderRadius: 24, backgroundColor: pressed ? c.tint : c.surface, alignItems: "center", justifyContent: "center", elevation: 4, shadowColor: "#000", shadowOpacity: 0.15, shadowRadius: 4, shadowOffset: { width: 0, height: 2 } })}
@@ -298,6 +359,7 @@ export default function SelectLocationScreen() {
               </View>
             </View>
 
+            {notServed && error ? <AppText variant="caption" color={c.danger}>{error}</AppText> : null}
             {notServed ? (
               <View style={{ borderRadius: 16, backgroundColor: c.warningBg, padding: 12, gap: 8 }}>
                 <AppText variant="bodyBold" color={c.warningText}>{t("notServedTitle", { place: shown.title || t("thisPlace") })}</AppText>
@@ -309,7 +371,7 @@ export default function SelectLocationScreen() {
                         <Pressable
                           key={z.pincode}
                           onPress={() => {
-                            setAccuracy(null);
+                            takeOver();
                             goTo({ lat: z.lat!, lng: z.lng! });
                           }}
                           accessibilityRole="button"

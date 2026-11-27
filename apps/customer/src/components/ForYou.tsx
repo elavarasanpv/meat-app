@@ -8,6 +8,7 @@ import { Doodle, type DoodleName } from "./Doodles";
 const FOR_YOU_ICON = require("@thanjozmart/assets/images/icon-for-you.webp");
 import { useSuggestions, type Suggestion } from "@/hooks/useSuggestions";
 import { useHeadline, useLiveOffers, type LiveOffer } from "@/hooks/useOffers";
+import { useMeatRegion } from "@/hooks/useCatalog";
 import { useRouter } from "expo-router";
 import { suggestionImage } from "@/lib/images";
 import { formatQty, useCart } from "@/store/cart";
@@ -34,7 +35,13 @@ export function ForYou() {
   const headSub = headline ? (lang === "ta" && headline.subtitleTa) || headline.subtitle : null;
   const { width } = useWindowDimensions();
   const [page, setPage] = useState(0);
-  const list = q.data ?? [];
+  const region = useMeatRegion().data;
+  // Only what a shop near the chosen address sells; the server looks at all saved addresses.
+  const here = region ? new Set(region) : null;
+  const list = (q.data ?? [])
+    .map((s) => (here ? { ...s, items: s.items.filter((i) => here.has(i.productId)) } : s))
+    .filter((s) => s.items.length > 0)
+    .map((s) => ({ ...s, total: Math.round(s.items.reduce((sum, i) => sum + i.price * i.qty, 0)) }));
   const live = offers.data ?? [];
   const count = live.length + list.length;
   if (!count) return null;

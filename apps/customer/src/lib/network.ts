@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import NetInfo from "@react-native-community/netinfo";
 import { onlineManager, type QueryClient } from "@tanstack/react-query";
+import { ApiError } from "./api";
 
 /**
  * Offline only when the phone has no connection at all. NetInfo's extra
@@ -57,4 +58,16 @@ export function errorMessage(e: unknown, t: (k: "offlineError" | "serverError") 
   const msg = (e as Error)?.message ?? "";
   if (/network request failed|fetch failed|timeout|abort/i.test(msg)) return t("offlineError");
   return msg ? `${t("serverError")} (${msg})` : t("serverError");
+}
+
+type OrderKey = "offlineError" | "serverError" | "orderFailed" | "notDeliveredHere" | "orderRefused";
+
+/** Why an order didn't go through. A refusal (wrong area, out of stock) says so plainly instead of reading like a network fault. */
+export function orderErrorMessage(e: unknown, t: (k: OrderKey, vars?: Record<string, string>) => string): string {
+  if (e instanceof ApiError && e.status === 409) {
+    const name = /^(.+) is not delivered to this address$/.exec(e.message)?.[1];
+    if (name) return t("notDeliveredHere", { name });
+    return t("orderRefused", { reason: e.message });
+  }
+  return `${t("orderFailed")} ${errorMessage(e, t)}`;
 }

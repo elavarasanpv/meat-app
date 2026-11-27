@@ -75,8 +75,51 @@ export function useSellPrices() {
   });
 }
 
+/**
+ * Meat products the shops serving the chosen address list. A shop serves an
+ * address when the pincode is on its list or it is within 5 km (meat_catalog()).
+ */
+export function useMeatRegion() {
+  return useMeatArea((d) => d.ids);
+}
+
+/**
+ * True when shops serve the chosen address but cannot take the order right
+ * now (closed, or out of stock): for a basket, when any of its items is not
+ * available now; with no basket, when nothing is. The order can still be
+ * placed; it goes to the shop when it opens.
+ */
+export function useShopsClosed(productIds?: string[]): boolean {
+  const d = useMeatArea((x) => x).data;
+  if (!d || !d.ids.length) return false;
+  if (!productIds?.length) return d.live.length === 0;
+  const here = productIds.filter((id) => d.ids.includes(id));
+  return here.some((id) => !d.live.includes(id));
+}
+
+/** ids: what shops near the address list. live: the ones an open shop has in stock now. */
+type MeatArea = { ids: string[]; live: string[] };
+function useMeatArea<T>(select: (d: MeatArea) => T) {
+  const a = useSelectedAddress();
+  return useQuery({
+    queryKey: ["meat", "area2", a?.pincode ?? "none", a?.lat ?? null, a?.lng ?? null],
+    enabled: !!a,
+    staleTime: 60_000,
+    queryFn: async (): Promise<MeatArea> => {
+      const { data, error } = await supabase.rpc("meat_catalog", { p_pincode: a!.pincode, p_lat: a!.lat, p_lng: a!.lng });
+      if (error) throw error;
+      const rows = data as { product_id: string; in_stock: boolean }[];
+      return { ids: rows.map((r) => r.product_id), live: rows.filter((r) => r.in_stock).map((r) => r.product_id) };
+    },
+    select,
+  });
+}
+
+/** Active meat products, narrowed to what the customer's area sells once an address is chosen. */
 export function useProducts(categoryId?: string | null) {
   const prices = useSellPrices().data;
+  const hasAddress = !!useSelectedAddress();
+  const region = useMeatRegion();
   const q = useQuery({
     queryKey: ["products", categoryId ?? "all"],
     queryFn: async () => {
@@ -92,11 +135,20 @@ export function useProducts(categoryId?: string | null) {
     },
   });
   // overlay the pincode's prices so every screen shows what this customer pays
-  const data = useMemo(
+  const priced = useMemo(
     () => (q.data && prices && Object.keys(prices).length ? q.data.map((p) => (prices[p.id] != null ? { ...p, base_price_per_kg: prices[p.id] } : p)) : q.data),
     [q.data, prices],
   );
-  return { ...q, data };
+  // Only what shops in this customer's area list. No address yet (or the
+  // area lookup failed): the whole list; checkout still checks the address.
+  const waiting = hasAddress && region.data === undefined && !region.isError;
+  const data = useMemo(() => {
+    if (waiting) return undefined;
+    if (!priced || !hasAddress || !region.data) return priced;
+    const here = new Set(region.data);
+    return priced.filter((p) => here.has(p.id));
+  }, [priced, hasAddress, region.data, waiting]);
+  return { ...q, data, isLoading: q.isLoading || (waiting && region.isLoading), refetch: () => { void region.refetch(); return q.refetch(); } };
 }
 
 export type ProductStat = { product_id: string; avg_stars: number | null; rating_count: number; customers: number };

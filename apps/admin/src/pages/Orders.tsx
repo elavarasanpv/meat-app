@@ -6,6 +6,7 @@ import { PageHeader } from "../shell/Shell";
 import { IconPhone, IconSearch } from "../ui/icons";
 import { Btn, Chip, Drawer, Empty, ErrorBox, Field, Section, Segments, StatusChip, STATUS, inputCls, inr, when, clock, phone10 } from "../ui/kit";
 import { Select } from "../ui/pickers";
+import { SHOP_REGION_KM, shopServes } from "@thanjozmart/shared";
 
 type Row = {
   id: string;
@@ -132,7 +133,7 @@ export function Orders() {
 function OrderDrawer({ id, onClose }: { id: string; onClose: () => void }) {
   const qc = useQueryClient();
   const d = useQuery<Detail>({ queryKey: ["admin", "order", id], queryFn: () => api(`/admin/orders/${id}`), refetchInterval: 15_000 });
-  const shops = useQuery<{ id: string; name: string; isOpen: boolean; isActive: boolean; pincodes: string[] }[]>({
+  const shops = useQuery<{ id: string; name: string; storeType?: string; isOpen: boolean; isActive: boolean; lat?: number | null; lng?: number | null; pincodes: string[] }[]>({
     queryKey: ["admin", "shops"],
     queryFn: () => api("/admin/shops"),
     enabled: !!d.data?.can.reassignShop,
@@ -228,12 +229,15 @@ function OrderDrawer({ id, onClose }: { id: string; onClose: () => void }) {
                     onChange={(v) => setPickShop(v === "auto" ? "" : v)}
                     options={[
                       { value: "auto", label: "Next best shop", note: "Automatic" },
+                      // Shops serving the address (pincode on their list, or within 5 km) come first.
                       ...(shops.data ?? [])
                         .filter((s) => s.isActive && s.id !== o.shop?.id)
-                        .map((s) => ({
+                        .map((s) => ({ s, inArea: !o.address || shopServes({ lat: s.lat ?? null, lng: s.lng ?? null, pincodes: s.pincodes }, o.address, SHOP_REGION_KM) }))
+                        .sort((a, b) => Number(b.inArea) - Number(a.inArea))
+                        .map(({ s, inArea }) => ({
                           value: s.id,
                           label: s.name,
-                          note: [s.isOpen ? "Open" : "Closed", o.address && !s.pincodes.includes(o.address.pincode) ? "outside area" : ""].filter(Boolean).join(" · "),
+                          note: [s.isOpen ? "Open" : "Closed", inArea ? "" : "outside area"].filter(Boolean).join(" · "),
                         })),
                     ]}
                   />

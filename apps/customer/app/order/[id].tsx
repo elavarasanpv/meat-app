@@ -245,7 +245,7 @@ export default function OrderDetailScreen() {
             o.vertical_type === "grocery" ? (
               isCancelled ? null : <GroceryTracker status={o.status} window={o.delivery_slots ? `${dayLabel(o.delivery_slots.starts_at, { today: t("today"), tomorrow: t("tomorrow") })} · ${slotWindow(o.delivery_slots.starts_at, o.delivery_slots.ends_at)}` : null} />
             ) : (
-              <OrderJourney status={o.status} />
+              <OrderJourney status={o.status} waitingShop={o.status === "PLACED" && !o.dealer_id} />
             )
           ) : null}
 

@@ -1,4 +1,5 @@
 import { Injectable } from "@nestjs/common";
+import { SHOP_REGION_KM, shopServes } from "@thanjozmart/shared";
 import { SupabaseService } from "../supabase.service";
 
 const IST = 5.5 * 3600_000;
@@ -23,6 +24,7 @@ export type Suggestion = {
 };
 
 type Product = { id: string; name: string; name_ta: string | null; unit: "kg" | "piece"; base_price_per_kg: number; image_path: string | null; is_active: boolean };
+type Addr = { pincode: string; lat: number | null; lng: number | null };
 type Row = { id: string; created_at: string; order_items: { product_id: string; requested_kg: number; size: string | null; unavailable: boolean }[] };
 
 /**
@@ -47,12 +49,12 @@ export class SuggestionsService {
         .gte("created_at", since)
         .order("created_at", { ascending: false })
         .limit(12),
-      db.from("addresses").select("pincode").eq("user_id", userId).is("archived_at", null),
+      db.from("addresses").select("pincode, lat, lng").eq("user_id", userId).is("archived_at", null),
       db.from("products").select("id, name, name_ta, unit, base_price_per_kg, image_path, is_active"),
     ]);
     const catalog = new Map<string, Product>((products ?? []).map((p) => [p.id, p as Product]));
     const pincodes = [...new Set((addrs ?? []).map((a) => a.pincode))];
-    const stocked = await this.stockedProducts(pincodes);
+    const stocked = await this.stockedProducts((addrs ?? []) as Addr[]);
     const orders = (mine ?? []) as Row[];
 
     const nowIst = new Date(Date.now() + IST);
@@ -144,19 +146,22 @@ export class SuggestionsService {
     return out.slice(0, 3);
   }
 
-  /** Products at least one active shop serving these pincodes has in stock now. */
-  private async stockedProducts(pincodes: string[]): Promise<Set<string>> {
-    const db = this.supabase.admin;
-    let dealerIds: string[] | null = null;
-    if (pincodes.length) {
-      const { data } = await db.from("dealer_pincodes").select("dealer_id").in("pincode", pincodes);
-      dealerIds = [...new Set((data ?? []).map((d) => d.dealer_id))];
-      if (!dealerIds.length) return new Set();
-    }
-    let q = db.from("dealer_products").select("product_id, out_of_stock_until, dealers!inner(is_active)").eq("dealers.is_active", true);
-    if (dealerIds) q = q.in("dealer_id", dealerIds);
-    const { data } = await q;
+  /** Products an active meat shop serving one of these addresses (the region rule) has in stock now. */
+  private async stockedProducts(addrs: Addr[]): Promise<Set<string>> {
+    const { data } = await this.supabase.admin
+      .from("dealer_products")
+      .select("product_id, out_of_stock_until, dealers!inner(is_active, store_type, lat, lng, dealer_pincodes(pincode))")
+      .eq("dealers.is_active", true)
+      .eq("dealers.store_type", "meat");
     const now = new Date().toISOString();
-    return new Set((data ?? []).filter((r) => !r.out_of_stock_until || r.out_of_stock_until <= now).map((r) => r.product_id));
+    const out = new Set<string>();
+    for (const r of data ?? []) {
+      if (r.out_of_stock_until && r.out_of_stock_until > now) continue;
+      const d = r.dealers as unknown as { lat: number | null; lng: number | null; dealer_pincodes: { pincode: string }[] };
+      const shop = { lat: d.lat, lng: d.lng, pincodes: d.dealer_pincodes.map((x) => x.pincode) };
+      // No saved address yet: nothing to narrow by.
+      if (!addrs.length || addrs.some((a) => shopServes(shop, a, SHOP_REGION_KM))) out.add(r.product_id);
+    }
+    return out;
   }
 }

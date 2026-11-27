@@ -369,7 +369,7 @@ export class AdminOpsService {
       result = await this.assignment.offer(id);
     }
     await this.audit.log(admin.id, "order.reassign_shop", id, { from: o.dealer_id, to: result.dealerId ?? null });
-    if (!result.assigned) throw new BadRequestException("No other open shop stocks these items for this pincode");
+    if (!result.assigned) throw new BadRequestException("No other open shop in this area stocks these items");
     return result;
   }
 
@@ -497,6 +497,8 @@ export class AdminOpsService {
         hours: s.open_windows as [string, string][],
         weeklyOff: s.weekly_off,
         hasPin: s.lat != null && s.lng != null,
+        lat: s.lat,
+        lng: s.lng,
         pincodes: (s.dealer_pincodes as { pincode: string }[]).map((x) => x.pincode),
         products: (s.dealer_products as unknown[]).length,
         todayOrders: mine.length,

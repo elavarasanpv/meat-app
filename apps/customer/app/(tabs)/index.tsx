@@ -13,6 +13,7 @@ import { SearchHint } from "@/components/SearchHint";
 import { SubcategoryCard } from "@/components/SubcategoryCard";
 import { CartBar, CART_BAR_SPACE } from "@/components/CartBar";
 import { ForYou } from "@/components/ForYou";
+import { ShopClosedNote } from "@/components/ShopClosedNote";
 const INGREDIENTS = require("@thanjozmart/assets/images/doodle-ingredients.webp");
 const GROCERY_DOODLE = require("@thanjozmart/assets/images/doodle-grocery.webp");
 import { offerTag, useOfferForProduct } from "@/hooks/useOffers";
@@ -137,7 +138,8 @@ export default function HomeScreen() {
     .map((cat) => ({
       id: cat.id,
       name: localName(cat),
-      subs: (subcategories.data ?? []).filter((su) => su.category_id === cat.id),
+      // A sub-category card shows only when a shop near the customer lists something in it.
+      subs: (subcategories.data ?? []).filter((su) => su.category_id === cat.id && (products.data ?? []).some((p) => p.subcategory_id === su.id)),
       items: byPopularity((products.data ?? []).filter((p) => p.category_id === cat.id), stats.data),
     }))
     .filter((s) => s.subs.length > 0 || s.items.length > 0);
@@ -269,6 +271,8 @@ export default function HomeScreen() {
           })}
         </ScrollView>
 
+        <ShopClosedNote style={{ marginHorizontal: 20, marginBottom: 14 }} />
+
         <ForYou />
 
         {/* Product sections: one row per category ("All") or just the chosen category */}
@@ -283,7 +287,7 @@ export default function HomeScreen() {
           </View>
         ) : sections.length === 0 ? (
           <View style={{ paddingHorizontal: 20 }}>
-            <ErrorState icon="cart" title={t("noProducts")} message={categoryId ? t("noItems") : undefined} onRetry={() => products.refetch()} />
+            <ErrorState icon="cart" title={t("noProducts")} message={categoryId ? t("noItems") : address ? t("meatNotHere") : undefined} onRetry={() => products.refetch()} />
           </View>
         ) : (
           sections.map((section) => (

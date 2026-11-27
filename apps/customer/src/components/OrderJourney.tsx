@@ -36,7 +36,8 @@ const PAD = 28; // road inset from the card edge
 const STOP = 52; // stop artwork size
 const MARK = 30; // marker size
 
-type Props = { status: OrderStatus; vertical?: "meat" | "grocery" };
+/** waitingShop: placed, but no shop is taking orders yet (closed); it goes out when one opens. */
+type Props = { status: OrderStatus; vertical?: "meat" | "grocery"; waitingShop?: boolean };
 
 /**
  * Horizontal order journey: a road with five stops (placed → shop → cutting
@@ -45,7 +46,7 @@ type Props = { status: OrderStatus; vertical?: "meat" | "grocery" };
  * two-frame chop/ride when PNG frames are provided). All vector/tiny PNG,
  * nothing fetched — works the same on 2G.
  */
-export function OrderJourney({ status, vertical = "meat" }: Props) {
+export function OrderJourney({ status, vertical = "meat", waitingShop = false }: Props) {
   const { c, dark } = useTheme();
   const t = useT();
   const grocery = vertical === "grocery";
@@ -152,8 +153,8 @@ export function OrderJourney({ status, vertical = "meat" }: Props) {
 
         {/* What is happening now */}
         <View style={{ paddingHorizontal: 18, marginTop: 8 }}>
-          <AppText variant="title" numberOfLines={1} style={{ fontSize: 18, lineHeight: 24 }}>{t(`${key(cur)}_title` as TKey)}</AppText>
-          <AppText variant="caption" muted numberOfLines={2} style={{ marginTop: 2 }}>{t(`${key(cur)}_body` as TKey)}</AppText>
+          <AppText variant="title" style={{ fontSize: 18, lineHeight: 24 }}>{t(waitingShop ? "jr_closed_title" : (`${key(cur)}_title` as TKey))}</AppText>
+          <AppText variant="caption" muted style={{ marginTop: 2 }}>{t(waitingShop ? "jr_closed_body" : (`${key(cur)}_body` as TKey))}</AppText>
         </View>
       </View>
     </View>

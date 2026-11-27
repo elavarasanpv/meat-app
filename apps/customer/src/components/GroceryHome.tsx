@@ -43,6 +43,8 @@ export function GroceryHome({ pincode }: { pincode?: string }) {
   const bought = useGroceryBought();
   const basket = useGroceryBasket(pincode);
   const cs = queryState(catalog);
+  // Loaded and empty: no open grocery shop serves this address.
+  const none = !!pincode && !cs.loading && !cs.failed && (catalog.data ?? []).length === 0;
 
   // Groups (top level) with their tiles (children); empty groups are skipped.
   const groups = useMemo(() => {
@@ -62,6 +64,8 @@ export function GroceryHome({ pincode }: { pincode?: string }) {
         <View style={{ paddingHorizontal: 20 }}><ErrorState icon="pin" title={t("setAddress")} compact /></View>
       ) : cs.failed ? (
         <View style={{ paddingHorizontal: 20 }}><ErrorState onRetry={() => catalog.refetch()} /></View>
+      ) : none ? (
+        <View style={{ paddingHorizontal: 20 }}><ErrorState icon="cart" title={t("noProducts")} message={t("groceryNotHere")} onRetry={() => catalog.refetch()} /></View>
       ) : null}
 
       {/* Bought before: 3 × 2, then "view all" */}
@@ -84,7 +88,7 @@ export function GroceryHome({ pincode }: { pincode?: string }) {
       )}
 
       {/* Groups → sub-category tiles */}
-      {cats.isLoading ? (
+      {none ? null : cats.isLoading ? (
         <View style={{ paddingHorizontal: 20 }}><ListSkeleton rows={2} height={120} /></View>
       ) : groups.length === 0 && !cs.loading ? (
         <View style={{ paddingHorizontal: 20 }}><ErrorState icon="cart" title={t("groceryNoItems")} compact onRetry={() => cats.refetch()} /></View>

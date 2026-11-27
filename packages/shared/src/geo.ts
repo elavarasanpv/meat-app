@@ -45,3 +45,16 @@ export function roadKmLeft(from: { lat: number; lng: number }, route: { lat: num
   for (let i = nearest + 1; i < route.length; i++) km += haversineKm(route[i - 1], route[i]);
   return km;
 }
+
+type Pin = { lat: number | null; lng: number | null };
+
+/**
+ * The region rule: a shop serves an address when the address pincode is on the
+ * shop's service list, or the shop's pin is within SHOP_REGION_KM of the
+ * address pin. Mirrors dealer_serves() in the database.
+ */
+export function shopServes(shop: Pin & { pincodes: readonly string[] }, addr: Pin & { pincode: string }, radiusKm = 5): boolean {
+  if (shop.pincodes.includes(addr.pincode)) return true;
+  if (shop.lat == null || shop.lng == null || addr.lat == null || addr.lng == null) return false;
+  return haversineKm({ lat: shop.lat, lng: shop.lng }, { lat: addr.lat, lng: addr.lng }) <= radiusKm;
+}

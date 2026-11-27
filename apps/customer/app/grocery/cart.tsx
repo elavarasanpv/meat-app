@@ -9,7 +9,7 @@ import { GroceryCart } from "@/components/GroceryCart";
 import { useHomePincode } from "@/hooks/useOffers";
 import { usePlaceGroceryOrder, useSelectedAddress, useSlots } from "@/hooks/useOrders";
 import { useT } from "@/i18n";
-import { errorMessage } from "@/lib/network";
+import { orderErrorMessage } from "@/lib/network";
 import { useCart } from "@/store/cart";
 import { useVertical } from "@/store/vertical";
 import { Accent, useTheme, withAccent } from "@/theme";
@@ -56,7 +56,7 @@ export default function GroceryCartScreen() {
       clearCart();
       router.replace({ pathname: "/order/[id]", params: { id: result.orderId, placed: "1" } });
     } catch (e) {
-      setError(`${t("orderFailed")} — ${errorMessage(e, t)}`);
+      setError(orderErrorMessage(e, t));
     }
   }
 

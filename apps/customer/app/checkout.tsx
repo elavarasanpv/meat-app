@@ -10,7 +10,8 @@ import { ErrorState, Skeleton } from "@/components/States";
 import { useAddresses, useDeleteAddress, usePlaceGroceryOrder, usePlaceOrder, useSelectedAddress, useSlots, type Slot } from "@/hooks/useOrders";
 import { useChosenAddress } from "@/store/address";
 import { useT } from "@/i18n";
-import { errorMessage, queryState } from "@/lib/network";
+import { ShopClosedNote } from "@/components/ShopClosedNote";
+import { orderErrorMessage, queryState } from "@/lib/network";
 import { cartVertical, useCart } from "@/store/cart";
 import { BillSummary, useBill } from "@/components/BillSummary";
 import { radius, useTheme } from "@/theme";
@@ -80,7 +81,7 @@ export default function CheckoutScreen() {
       clearCart();
       router.replace({ pathname: "/order/[id]", params: { id: result.orderId, placed: "1" } });
     } catch (e) {
-      setError(`${t("orderFailed")} — ${errorMessage(e, t)}`);
+      setError(orderErrorMessage(e, t));
     }
   }
 
@@ -243,10 +244,12 @@ export default function CheckoutScreen() {
         {/* Bill with offers and coupon */}
         <BillSummary bill={bill} />
 
-        <AppText variant="caption" color={c.danger} numberOfLines={3} style={{ minHeight: 18 }}>{error ?? ""}</AppText>
       </ScrollView>
 
       <View style={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 12 + insets.bottom, backgroundColor: c.surface, borderTopWidth: 1, borderTopColor: c.border }}>
+        {/* Next to the button, so a refused order is seen without scrolling. */}
+        {vertical === "meat" ? <ShopClosedNote productIds={items.map((i) => i.productId)} style={{ marginBottom: 10 }} /> : null}
+        {error ? <AppText variant="caption" color={c.danger} style={{ marginBottom: 10 }}>{error}</AppText> : null}
         <Button label={`${t("placeOrder")} · ₹ ${toPay}`} onPress={placeOrder} disabled={!canPlace} loading={place.isPending || placeGrocery.isPending} />
       </View>
 
