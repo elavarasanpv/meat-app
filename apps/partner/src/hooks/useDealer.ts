@@ -16,7 +16,8 @@ export type DealerOrderItem = {
   shop_price_per_kg: number;
   /** Scale photo already uploaded for this item (storage path), if any. */
   photo_path: string | null;
-  products: { name: string; name_ta: string | null; unit: "kg" | "piece" };
+  /** Picture, brand and pack size come with newer servers; grocery lines carry brand and pack size. */
+  products: { name: string; name_ta: string | null; unit: "kg" | "piece"; image_path?: string | null; brand?: string | null; pack_size?: string | null };
 };
 
 export type RiderInfo = { name: string | null; phone: string | null; vehicle: string | null };
@@ -166,34 +167,66 @@ export function useHistory(dealerId: string | undefined) {
 }
 
 type Group = { name: string; name_ta: string | null; sort: number; image_path?: string | null };
-export type StockRow = { product_id: string; name: string; name_ta: string | null; unit: string; image_path: string | null; out_of_stock_until: string | null; category: Group; subcategory: Group | null };
+/** `product_id` is the meat product, or the master product for a grocery shop. `detail` is the brand and pack size of a grocery item. */
+export type StockRow = { product_id: string; name: string; name_ta: string | null; unit: string; image_path: string | null; out_of_stock_until: string | null; category: Group; subcategory: Group | null; detail?: string };
 
-/** The shop's product list with stock state (read straight from Supabase). */
+const OTHER: Group = { name: "Other", name_ta: null, sort: 99 };
+const byGroup = (a: StockRow, b: StockRow) => a.category.sort - b.category.sort || (a.subcategory?.sort ?? 0) - (b.subcategory?.sort ?? 0) || a.name.localeCompare(b.name);
+
+/**
+ * The shop's product list with stock state (read straight from Supabase).
+ * A meat shop lists in dealer_products, a grocery shop in store_products;
+ * a shop only has rows in its own table, so both are read and joined.
+ */
 export function useStock(dealerId: string | undefined) {
   return useQuery<StockRow[]>({
     queryKey: ["dealer", "stock"],
     enabled: !!dealerId,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("dealer_products")
-        .select("product_id, out_of_stock_until, products(name, name_ta, unit, image_path, categories(name, name_ta, sort), subcategories(name, name_ta, sort, image_path))")
-        .eq("dealer_id", dealerId!);
-      if (error) throw error;
-      return (data ?? [])
-        .map((r) => {
-          const p = r.products as unknown as { name: string; name_ta: string | null; unit: string; image_path: string | null; categories: Group | null; subcategories: Group | null };
-          return {
-            product_id: r.product_id,
-            out_of_stock_until: r.out_of_stock_until,
-            name: p.name,
-            name_ta: p.name_ta,
-            unit: p.unit,
-            image_path: p.image_path,
-            category: p.categories ?? { name: "Other", name_ta: null, sort: 99 },
-            subcategory: p.subcategories,
-          };
-        })
-        .sort((a, b) => a.category.sort - b.category.sort || (a.subcategory?.sort ?? 0) - (b.subcategory?.sort ?? 0) || a.name.localeCompare(b.name));
+      const [meat, grocery] = await Promise.all([
+        supabase
+          .from("dealer_products")
+          .select("product_id, out_of_stock_until, products(name, name_ta, unit, image_path, categories(name, name_ta, sort), subcategories(name, name_ta, sort, image_path))")
+          .eq("dealer_id", dealerId!),
+        supabase
+          .from("store_products")
+          .select("master_product_id, out_of_stock_until, master_products(name, name_ta, unit, brand, pack_size, image_path, catalog_categories(name, name_ta, sort, image_path, parent:parent_id(name, name_ta, sort, image_path)))")
+          .eq("dealer_id", dealerId!)
+          .eq("is_active", true),
+      ]);
+      if (meat.error) throw meat.error;
+      if (grocery.error) throw grocery.error;
+      const meatRows: StockRow[] = (meat.data ?? []).map((r) => {
+        const p = r.products as unknown as { name: string; name_ta: string | null; unit: string; image_path: string | null; categories: Group | null; subcategories: Group | null };
+        return {
+          product_id: r.product_id,
+          out_of_stock_until: r.out_of_stock_until,
+          name: p.name,
+          name_ta: p.name_ta,
+          unit: p.unit,
+          image_path: p.image_path,
+          category: p.categories ?? OTHER,
+          subcategory: p.subcategories,
+        };
+      });
+      const groceryRows: StockRow[] = (grocery.data ?? []).flatMap((r) => {
+        const p = r.master_products as unknown as { name: string; name_ta: string | null; unit: string; brand: string | null; pack_size: string | null; image_path: string | null; catalog_categories: (Group & { parent: Group | null }) | null } | null;
+        if (!p) return [];
+        // Two-level tree: the top level heads the section, the second level is the sub-heading.
+        const cat = p.catalog_categories;
+        return [{
+          product_id: r.master_product_id,
+          out_of_stock_until: r.out_of_stock_until,
+          name: p.name,
+          name_ta: p.name_ta,
+          unit: p.unit,
+          image_path: p.image_path,
+          category: cat?.parent ?? cat ?? OTHER,
+          subcategory: cat?.parent ? cat : null,
+          detail: [p.brand, p.pack_size].filter(Boolean).join(" · ") || undefined,
+        }];
+      });
+      return [...meatRows, ...groceryRows].sort(byGroup);
     },
   });
 }

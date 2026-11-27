@@ -7,7 +7,7 @@ const CUTTING = require("@thanjozmart/assets/images/icon-cutting.webp");
 const RIDER = require("@thanjozmart/assets/images/icon-rider.webp");
 
 export type IconName =
-  | "home" | "inbox" | "clock" | "history" | "stock" | "shop" | "check" | "logout" | "scooter" | "phone" | "chevronRight" | "bell" | "cut" | "x" | "camera" | "wallet" | "navigate" | "user" | "box" | "rider";
+  | "home" | "inbox" | "clock" | "history" | "stock" | "shop" | "check" | "logout" | "scooter" | "phone" | "chevronRight" | "chevronLeft" | "bell" | "cut" | "x" | "camera" | "wallet" | "navigate" | "user" | "box" | "rider" | "search";
 
 type Props = { name: IconName; size?: number; color: string; strokeWidth?: number; filled?: boolean };
 
@@ -27,6 +27,7 @@ export function Icon({ name, size = 22, color, strokeWidth = 2.2, filled }: Prop
       {name === "history" && (<><Path d="M5.5 3.5h13v17l-2.6-1.8-2.6 1.8-1.3-1-1.3 1-2.6-1.8-2.6 1.8z" {...p} /><Path d="M9 8.5h6M9 12h6" {...line} stroke={filled ? "#FFFFFF" : color} /></>)}
       {name === "stock" && (<><Path d="M3.5 10h17l-1.8 9a1.5 1.5 0 0 1-1.5 1.2H6.8A1.5 1.5 0 0 1 5.3 19z" {...p} /><Path d="M8 10l3-5.5M16 10l-3-5.5" {...line} /><Path d="M9.5 14v3M14.5 14v3" {...line} stroke={filled ? "#FFFFFF" : color} /></>)}
       {name === "shop" && (<><Path d="M3 9.5 4.5 5h15L21 9.5" {...line} /><Path d="M3 9.5a2.25 2.25 0 0 0 4.5 0 2.25 2.25 0 0 0 4.5 0 2.25 2.25 0 0 0 4.5 0 2.25 2.25 0 0 0 4.5 0" {...line} /><Path d="M4.5 12v8h15v-8" {...p} /><Rect x={7} y={13.5} width={4.5} height={3.5} rx={0.8} {...line} stroke={filled ? "#FFFFFF" : color} /><Path d="M14 20v-6h3.5v6" {...line} stroke={filled ? "#FFFFFF" : color} /></>)}
+      {name === "search" && (<><Circle cx={11} cy={11} r={6.5} {...line} /><Path d="M16 16l4.5 4.5" {...line} /></>)}
       {name === "check" && <Path d="M5 12.5l4.5 4.5L19 7.5" {...line} />}
       {name === "x" && <Path d="M6 6l12 12M18 6L6 18" {...line} />}
       {name === "wallet" && (<><Path d="M3.5 7.5A2.5 2.5 0 0 1 6 5h12.5v3" {...line} /><Path d="M3.5 7.5v10A2.5 2.5 0 0 0 6 20h14v-9H6a2.5 2.5 0 0 1-2.5-2.5z" {...p} /><Circle cx={16} cy={15.5} r={1.3} {...line} stroke={filled ? "#FFFFFF" : color} /></>)}
@@ -37,6 +38,7 @@ export function Icon({ name, size = 22, color, strokeWidth = 2.2, filled }: Prop
       {name === "logout" && (<><Path d="M15 4h4v16h-4" {...line} /><Path d="M10 8l-4 4 4 4" {...line} /><Path d="M6 12h10" {...line} /></>)}
       {name === "phone" && <Path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2" {...line} />}
       {name === "chevronRight" && <Path d="M9 6l6 6-6 6" {...line} />}
+      {name === "chevronLeft" && <Path d="M15 6l-6 6 6 6" {...line} />}
       {name === "bell" && (<><Path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z" {...line} /><Path d="M10 21h4" {...line} /></>)}
     </Svg>
   );

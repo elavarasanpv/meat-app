@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Linking, View } from "react-native";
+import { Linking, Pressable, View } from "react-native";
+import { useRouter, type Href } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { DEALER_REJECT_REASONS } from "@thanjozmart/shared";
 import { useAccept, usePacked, useReject, useStartCutting, type DealerOrder, type DealerOrderItem } from "@/hooks/useDealer";
@@ -50,6 +51,7 @@ function ItemRow({ it }: { it: DealerOrderItem }) {
         <Txt bold size={15} style={{ flex: 1 }} numberOfLines={2}>{name}</Txt>
         <Txt bold size={15}>{qty}{it.size ? ` · ${t(`size_${it.size}` as TKey)}` : ""}</Txt>
       </View>
+      {it.products.pack_size ? <Txt size={13} muted>{[it.products.brand, it.products.pack_size].filter(Boolean).join(" · ")}</Txt> : null}
       {it.notes ? <Txt size={13} muted numberOfLines={2}>{t("customerNote")}: {it.notes}</Txt> : null}
     </View>
   );
@@ -74,8 +76,9 @@ function StagePill({ status }: { status: DealerOrder["status"] }) {
   );
 }
 
-/** One order with the right actions for its stage. `compact` hides the item list (home screen). */
-export function OrderCard({ o, compact }: { o: DealerOrder; compact?: boolean }) {
+/** One order with the right actions for its stage. `compact` hides the item list; `noDetails` hides the "View details" row (the details screen itself). */
+export function OrderCard({ o, compact, noDetails }: { o: DealerOrder; compact?: boolean; noDetails?: boolean }) {
+  const router = useRouter();
   const c = useC();
   const t = useT();
   const accept = useAccept();
@@ -112,6 +115,16 @@ export function OrderCard({ o, compact }: { o: DealerOrder; compact?: boolean })
           <Txt size={13} muted>{items.length} {t(items.length === 1 ? "item" : "items")}</Txt>
           <Txt bold size={16} color={c.primary}>{t("yourAmount")} ₹{shopTotal}</Txt>
         </View>
+        {noDetails ? null : (
+          <Pressable
+            onPress={() => router.push(`/order/${o.id}` as Href)}
+            accessibilityRole="button"
+            style={({ pressed }) => ({ minHeight: 46, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 16, backgroundColor: c.surface2, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 4, opacity: pressed ? 0.8 : 1 })}
+          >
+            <Txt bold size={15} style={{ flexShrink: 1, textAlign: "center" }}>{t("viewDetails")}</Txt>
+            <Icon name="chevronRight" color={c.ink} size={18} />
+          </Pressable>
+        )}
       </View>
 
       {isNew ? (

@@ -41,7 +41,7 @@ export class DealerService {
     const { data: orders, error } = await db
       .from("orders")
       .select(
-        "id, display_id, status, vertical_type, ready_by, est_amount, created_at, items_added_at, rider_id, delivery_slots(starts_at, ends_at), order_items(id, product_id, master_product_id, requested_kg, actual_kg, size, notes, unavailable, unit_price_per_kg, shop_unit_price, products(name, name_ta, unit), master_products(name, name_ta, unit))",
+        "id, display_id, status, vertical_type, ready_by, est_amount, created_at, items_added_at, rider_id, delivery_slots(starts_at, ends_at), order_items(id, product_id, master_product_id, requested_kg, actual_kg, size, notes, unavailable, unit_price_per_kg, shop_unit_price, products(name, name_ta, unit, image_path), master_products(name, name_ta, unit, image_path, brand, pack_size))",
       )
       .eq("dealer_id", dealerId)
       .in("status", SHOP_ACTIVE)
@@ -198,7 +198,7 @@ export class DealerService {
     const db = this.supabase.admin;
     const order = await this.ownedOrder(input.orderId, dealer.id, ["DEALER_ASSIGNED", "ACCEPTED", "PACKING"]);
 
-    const items = order.order_items as { id: string; unavailable: boolean; requested_kg: number; unit_price_per_kg: number; product_id: string }[];
+    const items = order.order_items as { id: string; unavailable: boolean; requested_kg: number; unit_price_per_kg: number; product_id: string | null; master_product_id: string | null }[];
     const item = items.find((i) => i.id === input.orderItemId);
     if (!item) throw new NotFoundException("Item not found on this order");
     if (item.unavailable) throw new ConflictException("Already marked unavailable");
@@ -222,11 +222,8 @@ export class DealerService {
     });
 
     // Out of stock for the rest of the day (12 h), so new orders skip this shop.
-    await db.from("dealer_products").upsert({
-      dealer_id: dealer.id,
-      product_id: item.product_id,
-      out_of_stock_until: new Date(Date.now() + 12 * 3600_000).toISOString(),
-    });
+    const productId = item.product_id ?? item.master_product_id;
+    if (productId) await this.writeStock(dealer.id, productId, new Date(Date.now() + 12 * 3600_000).toISOString());
     return { orderId: input.orderId, estAmount };
   }
 
@@ -364,16 +361,29 @@ export class DealerService {
     return { ...patch };
   }
 
-  /** Stock switch for one product: in stock, out today, or out until turned on. */
+  /**
+   * Stock switch for one product: in stock, out today, or out until turned on.
+   * A grocery shop's items live in store_products (productId is then the
+   * master product), a meat shop's in dealer_products.
+   */
   async setStock(profileId: string, input: StockInput) {
     const dealer = await this.resolveDealer(profileId);
-    const { error } = await this.supabase.admin.from("dealer_products").upsert({
-      dealer_id: dealer.id,
-      product_id: input.productId,
-      out_of_stock_until: input.outOfStockUntil,
-    });
-    if (error) throw new BadRequestException(error.message);
+    await this.writeStock(dealer.id, input.productId, input.outOfStockUntil);
     return { productId: input.productId, outOfStockUntil: input.outOfStockUntil };
+  }
+
+  private async writeStock(dealerId: string, productId: string, outOfStockUntil: string | null) {
+    const db = this.supabase.admin;
+    const { data: listing } = await db
+      .from("store_products")
+      .select("master_product_id")
+      .eq("dealer_id", dealerId)
+      .eq("master_product_id", productId)
+      .maybeSingle();
+    const { error } = listing
+      ? await db.from("store_products").update({ out_of_stock_until: outOfStockUntil }).eq("dealer_id", dealerId).eq("master_product_id", productId)
+      : await db.from("dealer_products").upsert({ dealer_id: dealerId, product_id: productId, out_of_stock_until: outOfStockUntil });
+    if (error) throw new BadRequestException(error.message);
   }
 
   // ───────────────────────── helpers ─────────────────────────
@@ -393,7 +403,7 @@ export class DealerService {
   private async ownedOrder(orderId: string, dealerId: string, statuses: string[]) {
     const { data: order } = await this.supabase.admin
       .from("orders")
-      .select("id, status, dealer_id, delivery_fee, order_items(id, product_id, requested_kg, actual_kg, unit_price_per_kg, unavailable)")
+      .select("id, status, dealer_id, delivery_fee, order_items(id, product_id, master_product_id, requested_kg, actual_kg, unit_price_per_kg, unavailable)")
       .eq("id", orderId)
       .maybeSingle();
     if (!order || order.dealer_id !== dealerId) throw new NotFoundException("Order not found");

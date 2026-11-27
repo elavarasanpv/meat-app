@@ -1,4 +1,6 @@
-import { Image, Pressable, ScrollView, View } from "react-native";
+import { useState } from "react";
+import { Image, Pressable, ScrollView, TextInput, View } from "react-native";
+import { Icon } from "@/components/Icon";
 import { useSetStock, useStock, type StockRow } from "@/hooks/useDealer";
 import { usePullRefresh } from "@/hooks/usePullRefresh";
 import { useLang, useT, type TKey } from "@/i18n";
@@ -51,7 +53,8 @@ function Row({ row, onChange }: { row: StockRow; onChange: (s: State) => void })
           {img ? <Image source={img} resizeMode="contain" style={{ width: 46, height: 46, opacity: state === "in" ? 1 : 0.5 }} /> : null}
         </View>
         <View style={{ flex: 1 }}>
-          <Txt bold size={15} numberOfLines={2}>{name}</Txt>
+          <Txt bold size={15}>{name}</Txt>
+          {row.detail ? <Txt size={12} muted>{row.detail}</Txt> : null}
           {state !== "in" ? <Txt size={12} color={state === "today" ? c.warning : c.danger}>{state === "today" ? "⏸" : "⛔"}</Txt> : null}
         </View>
       </View>
@@ -63,17 +66,26 @@ function Row({ row, onChange }: { row: StockRow; onChange: (s: State) => void })
 /** Products grouped by category, then sub-category (Chicken → Broiler / Country), each with its picture and stock switch. */
 export function StockScreen({ dealerId }: { dealerId: string }) {
   const c = useC();
+  const t = useT();
   const refresh = usePullRefresh();
   const lang = useLang((s) => s.lang);
   const stock = useStock(dealerId);
+  const [query, setQuery] = useState("");
+  // Search by product name, brand or pack size in either language; a word that
+  // matches no product (say "snacks") shows that whole group instead.
+  const q = query.trim().toLowerCase();
+  const all = stock.data ?? [];
+  const has = (...vals: (string | null | undefined)[]) => vals.some((v) => v?.toLowerCase().includes(q));
+  const byProduct = all.filter((r) => has(r.name, r.name_ta, r.detail));
+  const shown = !q ? all : byProduct.length ? byProduct : all.filter((r) => has(r.category.name, r.category.name_ta, r.subcategory?.name, r.subcategory?.name_ta));
   const set = useSetStock();
   const local = (g: { name: string; name_ta: string | null }) => (lang === "ta" && g.name_ta ? g.name_ta : g.name);
 
   // category → sub-category (or "" for none) → rows, in catalogue order
-  const groups = new Map<string, { title: string; subs: Map<string, { title: string; image?: ReturnType<typeof subcategoryImage>; rows: StockRow[] }> }>();
-  for (const row of stock.data ?? []) {
+  const groups = new Map<string, { title: string; image_path?: string | null; subs: Map<string, { title: string; image?: ReturnType<typeof subcategoryImage>; rows: StockRow[] }> }>();
+  for (const row of shown) {
     const ck = row.category.name;
-    if (!groups.has(ck)) groups.set(ck, { title: local(row.category), subs: new Map() });
+    if (!groups.has(ck)) groups.set(ck, { title: local(row.category), image_path: row.category.image_path, subs: new Map() });
     const sk = row.subcategory?.name ?? "";
     const subs = groups.get(ck)!.subs;
     if (!subs.has(sk)) subs.set(sk, { title: row.subcategory ? local(row.subcategory) : "", image: row.subcategory ? subcategoryImage(row.subcategory.name, row.subcategory.image_path) : undefined, rows: [] });
@@ -98,20 +110,46 @@ export function StockScreen({ dealerId }: { dealerId: string }) {
   );
 
   return (
-    <ScrollView contentContainerStyle={{ padding: 16, gap: 22, paddingBottom: 40 }} refreshControl={refresh}>
+    <View style={{ flex: 1 }}>
+      {/* A short list (a meat shop) is quicker to scroll than to search. */}
+      {all.length > 8 ? (
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginHorizontal: 16, marginTop: 4, marginBottom: 8, paddingHorizontal: 14, height: 50, borderRadius: 16, borderWidth: 1.5, borderColor: c.border, backgroundColor: c.surface }}>
+          <Icon name="search" color={c.muted} size={20} />
+          <TextInput
+            value={query}
+            onChangeText={setQuery}
+            placeholder={t("stockSearch")}
+            placeholderTextColor={c.muted}
+            autoCorrect={false}
+            autoCapitalize="none"
+            returnKeyType="search"
+            allowFontScaling={false}
+            style={{ flex: 1, height: 50, padding: 0, fontFamily: "Manrope_500Medium", fontSize: 15, color: c.ink }}
+          />
+          {query ? (
+            <Pressable onPress={() => setQuery("")} hitSlop={12} accessibilityRole="button" accessibilityLabel="Clear">
+              <Icon name="x" color={c.muted} size={18} />
+            </Pressable>
+          ) : null}
+        </View>
+      ) : null}
+    <ScrollView contentContainerStyle={{ padding: 16, gap: 22, paddingBottom: 40 }} refreshControl={refresh} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
+      {q && !shown.length ? <Txt muted style={{ textAlign: "center", marginTop: 32 }}>{t("stockNoMatch")}</Txt> : null}
       {[...groups.entries()].map(([key, g]) => {
-        const img = categoryImage(key);
-        const all = [...g.subs.values()].flatMap((s) => s.rows);
-        const inStock = all.filter((r) => stateOf(r.out_of_stock_until) === "in").length;
+        const img = categoryImage(key) ?? subcategoryImage(key, g.image_path);
+        const rows = [...g.subs.values()].flatMap((s) => s.rows);
+        const inStock = rows.filter((r) => stateOf(r.out_of_stock_until) === "in").length;
         const subs = [...g.subs.values()];
         return (
           <View key={key} style={{ gap: 12 }}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 4 }}>
-              <View style={{ width: 56, height: 56, borderRadius: 18, backgroundColor: c.tint, alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
-                {img ? <Image source={img} resizeMode="contain" style={{ width: 50, height: 50 }} /> : null}
-              </View>
+              {img ? (
+                <View style={{ width: 56, height: 56, borderRadius: 18, backgroundColor: c.tint, alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+                  <Image source={img} resizeMode="contain" style={{ width: 50, height: 50 }} />
+                </View>
+              ) : null}
               <Txt bold size={22} style={{ flex: 1 }}>{g.title}</Txt>
-              <Txt size={12} muted>{inStock}/{all.length}</Txt>
+              <Txt size={12} muted>{inStock}/{rows.length}</Txt>
             </View>
             {subs.map((sub, i) =>
               sub.title ? (
@@ -132,5 +170,6 @@ export function StockScreen({ dealerId }: { dealerId: string }) {
         );
       })}
     </ScrollView>
+    </View>
   );
 }
