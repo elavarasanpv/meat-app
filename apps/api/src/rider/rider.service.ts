@@ -455,9 +455,10 @@ export class RiderService {
         .order("delivered_at", { ascending: false }),
       db
         .from("cash_submissions")
-        .select("business_date, expected, submitted, mismatch_note, verified_by, created_at")
+        .select("id, business_date, expected, submitted, mismatch_note, verified_by, created_at")
         .eq("rider_id", rider.id)
         .order("business_date", { ascending: false })
+        .order("created_at", { ascending: false })
         .limit(14),
     ]);
     return {
@@ -467,6 +468,7 @@ export class RiderService {
         return { orderId: x.order_id, displayId: o?.display_id ?? "", deliveredAt: x.delivered_at, cash: Number(x.cash_collected) };
       }),
       handovers: (subs ?? []).map((h) => ({
+        id: h.id,
         date: h.business_date,
         expected: Number(h.expected),
         submitted: h.submitted == null ? null : Number(h.submitted),
@@ -476,23 +478,36 @@ export class RiderService {
     };
   }
 
-  /** Day-end cash hand-over: records it for the admin and clears the balance. */
+  /**
+   * Cash hand-over: records it for the admin to count and clears the balance.
+   * Adds to the rider's hand-over that is still waiting to be counted; once
+   * the admin has counted it, the next hand-over starts a new row.
+   */
   async cashSubmit(profileId: string, input: RiderCashSubmitInput) {
     const rider = await this.resolveRider(profileId);
     const db = this.supabase.admin;
     const expected = Number(rider.cash_balance);
-    const today = new Date().toISOString().slice(0, 10);
-    const { error } = await db.from("cash_submissions").upsert(
-      {
-        rider_id: rider.id,
-        business_date: today,
-        expected,
-        submitted: input.amount,
-        mismatch_note: input.amount === expected ? null : `expected ₹${expected}, handed ₹${input.amount}`,
-      },
-      { onConflict: "rider_id,business_date" },
-    );
-    if (error) throw new BadRequestException(error.message);
+    const today = new Date(Date.now() + 5.5 * 3600_000).toISOString().slice(0, 10); // Indian date
+    const note = (e: number, s: number) => (s === e ? null : `expected ₹${e}, handed ₹${s}`);
+    const { data: open } = await db
+      .from("cash_submissions")
+      .select("id, expected, submitted")
+      .eq("rider_id", rider.id)
+      .is("verified_by", null)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (open) {
+      const e = Number(open.expected) + expected;
+      const s = Number(open.submitted ?? 0) + input.amount;
+      const { error } = await db.from("cash_submissions").update({ business_date: today, expected: e, submitted: s, mismatch_note: note(e, s) }).eq("id", open.id);
+      if (error) throw new BadRequestException(error.message);
+    } else {
+      const { error } = await db
+        .from("cash_submissions")
+        .insert({ rider_id: rider.id, business_date: today, expected, submitted: input.amount, mismatch_note: note(expected, input.amount) });
+      if (error) throw new BadRequestException(error.message);
+    }
     await db.from("delivery_partners").update({ cash_balance: Math.max(0, expected - input.amount) }).eq("id", rider.id);
     return { expected, submitted: input.amount };
   }

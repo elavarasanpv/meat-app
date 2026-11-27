@@ -189,7 +189,7 @@ export function useRiderHistory(riderId: string | undefined) {
 export type CashView = {
   inHand: number;
   today: { orderId: string; displayId: string; deliveredAt: string; cash: number }[];
-  handovers: { date: string; expected: number; submitted: number | null; note: string | null; verified: boolean }[];
+  handovers: { id: string; date: string; expected: number; submitted: number | null; note: string | null; verified: boolean }[];
 };
 
 export function useRiderCash(riderId: string | undefined) {

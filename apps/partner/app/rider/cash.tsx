@@ -83,7 +83,7 @@ export default function RiderCash() {
             {cash.data.handovers.map((h) => {
               const short = h.submitted != null && h.submitted < h.expected;
               return (
-                <View key={h.date} style={{ gap: 2 }}>
+                <View key={h.id} style={{ gap: 2 }}>
                   <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
                     <Txt size={14} style={{ flex: 1 }}>{new Date(h.date).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</Txt>
                     <Txt bold size={14} color={short ? c.danger : c.ink}>₹{h.submitted ?? 0}</Txt>
