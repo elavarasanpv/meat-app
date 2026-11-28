@@ -57,6 +57,8 @@ export type OrderDetail = Omit<OrderSummary, "order_items"> & {
   rider_id: string | null;
   /** Delivery charge saved when the order was placed (null on very old orders). */
   delivery_fee: number | null;
+  /** Offer or coupon saving taken off the bill. */
+  discount_amount?: number | null;
   arrived_at: string | null;
   cancel_reason: string | null;
   pickup_lat: number | null;
@@ -69,6 +71,8 @@ export type OrderDetail = Omit<OrderSummary, "order_items"> & {
     unit_price_per_kg: number;
     size: string | null;
     notes: string | null;
+    /** Added by a shop offer at no charge. */
+    is_free?: boolean;
     products: { name: string; name_ta: string | null; unit: "kg" | "piece" } | null;
   }[];
   order_status_history: { to_status: OrderStatus; created_at: string }[];
@@ -312,10 +316,10 @@ export function useOrder(id: string | undefined) {
     queryFn: async () => {
       // PostgREST rejects whitespace in select and duplicate embeds, so build it compact.
       const select = [
-        "id,display_id,status,vertical_type,dealer_id,est_amount,final_amount,delivery_fee,payment_mode,created_at,rider_id,arrived_at,cancel_reason,pickup_lat,pickup_lng",
+        "id,display_id,status,vertical_type,dealer_id,est_amount,final_amount,delivery_fee,discount_amount,payment_mode,created_at,rider_id,arrived_at,cancel_reason,pickup_lat,pickup_lng",
         "delivery_slots(starts_at,ends_at)",
         "addresses(label,address_text,landmark,lat,lng)",
-        "order_items(id,requested_kg,actual_kg,unit_price_per_kg,size,notes,products(name,name_ta,unit),master_products(name,name_ta,unit,pack_size))",
+        "order_items(id,requested_kg,actual_kg,unit_price_per_kg,size,notes,is_free,products(name,name_ta,unit),master_products(name,name_ta,unit,pack_size))",
         "order_status_history(to_status,created_at)",
       ].join(",");
       const { data, error } = await supabase.from("orders").select(select).eq("id", id!).single();

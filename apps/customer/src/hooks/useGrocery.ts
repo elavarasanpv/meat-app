@@ -1,6 +1,8 @@
 import { useEffect } from "react";
 import { AppState } from "react-native";
 import { useQuery } from "@tanstack/react-query";
+import type { ShopOfferKind } from "@thanjozmart/shared";
+import { api } from "@/lib/api";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/store/auth";
 import type { FeeRule } from "@/store/cart";
@@ -74,7 +76,22 @@ export type GroceryItem = {
   shops: number;
   /** Backdrop the admin picked for the photo; absent until the catalogue carries it. */
   card_bg?: string | null;
+  /** A shop's price offer is on: the % off printed on the badge (selling_price is already the offer price). */
+  offer_pct?: number | null;
+  /** Buy this many… */
+  bogo_buy?: number | null;
+  /** …and get this many free. */
+  bogo_free?: number | null;
+  /** The buy-and-get-free offer counts any mix of its products. */
+  bogo_mix?: boolean | null;
 };
+
+/** The offer badge for a card, when the item has one: "50% OFF" or "1 + 1 FREE". */
+export function offerBadge(r: Pick<GroceryItem, "offer_pct" | "bogo_buy" | "bogo_free">): { kind: "price" | "bogo"; buy: number; free: number; pct: number } | null {
+  if (r.bogo_buy && r.bogo_free) return { kind: "bogo", buy: Number(r.bogo_buy), free: Number(r.bogo_free), pct: 0 };
+  if (r.offer_pct) return { kind: "price", buy: 0, free: 0, pct: Math.round(Number(r.offer_pct)) };
+  return null;
+}
 
 /**
  * Everything a customer at this address can buy (empty while the vertical is
@@ -145,5 +162,82 @@ export function useGroceryBought() {
       }
       return ids;
     },
+  });
+}
+
+/** A shop offer the customer can use at this address. Never says which shop. */
+export type GroceryOffer = {
+  id: string;
+  kind: ShopOfferKind;
+  pct: number | null;
+  buy_qty: number | null;
+  free_qty: number | null;
+  min_order: number | null;
+  max_discount: number | null;
+  valid_days: number | null;
+  ends_at: string;
+  master_product_id: string | null;
+  name: string | null;
+  name_ta: string | null;
+  pack_size: string | null;
+  image_path: string | null;
+  card_bg: string | null;
+  mrp: number | null;
+  price: number | null;
+  was_price: number | null;
+  /** Price and buy-get-free offers: on one product, on chosen products, or on a category. */
+  scope: "product" | "products" | "category";
+  category_id: string | null;
+  category_name: string | null;
+  category_name_ta: string | null;
+  /** The offer's own picture; without one the product photo stands in. */
+  banner_path?: string | null;
+  /** Buy-and-get-free that counts any mix of its products together. */
+  mix?: boolean | null;
+  /** The card colour the offer chose; empty wears the kind's own. */
+  color?: string | null;
+  /** Many-product offers: the products it really covers at this address. */
+  product_ids: string[] | null;
+};
+/** An offer on many products: its card opens a list, not one product. */
+export const offerIsMany = (o: Pick<GroceryOffer, "kind" | "scope">) => (o.kind === "price" || o.kind === "bogo") && (o.scope === "products" || o.scope === "category");
+
+/** Live shop offers for the address (the strip on grocery Home). Empty on any error: offers are a bonus. */
+export function useGroceryOffers(pincode?: string) {
+  const a = useSelectedAddress();
+  const pin = a && a.pincode === pincode ? { lat: a.lat, lng: a.lng } : { lat: null, lng: null };
+  return useQuery({
+    queryKey: ["grocery", "offers", pincode ?? "none", pin.lat, pin.lng],
+    enabled: !!pincode,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("grocery_live_offers", { p_pincode: pincode, p_lat: pin.lat, p_lng: pin.lng });
+      if (error) return [] as GroceryOffer[];
+      const num = (v: unknown) => (v == null ? null : Number(v));
+      return ((data ?? []) as GroceryOffer[])
+        .map((o) => ({ ...o, scope: o.scope ?? "product", pct: num(o.pct), min_order: num(o.min_order), max_discount: num(o.max_discount), mrp: num(o.mrp), price: num(o.price), was_price: num(o.was_price) }))
+        .filter((o) => !offerIsMany(o) || !!o.product_ids?.length);
+    },
+  });
+}
+
+/** What the shop offers do to this basket: free items, the coupon used, the coupon earned. */
+export type GroceryQuote = {
+  free: { masterProductId: string; name: string; nameTa: string | null; imagePath: string | null; qty: number; reason: "bogo" | "gift"; value: number }[];
+  giftHint: { need: number; minOrder: number; name: string; nameTa: string | null; imagePath: string | null } | null;
+  coupon: { id: string; pct: number; maxDiscount: number; discount: number; expiresAt: string } | null;
+  earns: { pct: number; maxDiscount: number; validDays: number } | null;
+  earnHint: { need: number; pct: number; maxDiscount: number } | null;
+  saved: number;
+};
+
+export function useGroceryQuote(addressId: string | undefined, items: { productId: string; qty: number }[], enabled = true) {
+  const key = items.map((i) => `${i.productId}:${i.qty}`).sort().join(",");
+  return useQuery({
+    queryKey: ["grocery", "offer-quote", addressId ?? "none", key],
+    enabled: enabled && !!addressId && items.length > 0,
+    staleTime: 30_000,
+    placeholderData: (prev) => prev,
+    queryFn: () => api<GroceryQuote>("/grocery/offers/quote", { method: "POST", body: { addressId, items: items.map((i) => ({ masterProductId: i.productId, qty: i.qty })) } }),
   });
 }

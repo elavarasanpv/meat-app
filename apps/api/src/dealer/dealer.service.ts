@@ -61,7 +61,7 @@ export class DealerService {
     const { data: orders, error } = await db
       .from("orders")
       .select(
-        "id, display_id, status, vertical_type, ready_by, est_amount, app_charge, app_charge_basis, created_at, items_added_at, rider_id, delivery_slots(starts_at, ends_at), order_items(id, product_id, master_product_id, requested_kg, actual_kg, size, notes, unavailable, unit_price_per_kg, shop_unit_price, products(name, name_ta, unit, image_path), master_products(name, name_ta, unit, image_path, brand, pack_size, mrp))",
+        "id, display_id, status, vertical_type, ready_by, est_amount, app_charge, app_charge_basis, discount_amount, discount_shop_share, customer_coupon_id, created_at, items_added_at, rider_id, delivery_slots(starts_at, ends_at), order_items(id, product_id, master_product_id, requested_kg, actual_kg, size, notes, unavailable, unit_price_per_kg, shop_unit_price, is_free, was_price, products(name, name_ta, unit, image_path), master_products(name, name_ta, unit, image_path, brand, pack_size, mrp))",
       )
       .or(this.visibleTo(dealerId, offered))
       .order("created_at", { ascending: false });
@@ -94,7 +94,7 @@ export class DealerService {
     // (orders accepted before the charge existed have none).
     const groceryRule = (orders ?? []).some((o) => o.vertical_type === "grocery" && o.status === "DEALER_ASSIGNED") ? await this.appChargeRule(dealerId, "grocery") : null;
 
-    return (orders ?? []).map(({ rider_id, ...o }) => {
+    return (orders ?? []).map(({ rider_id, customer_coupon_id, discount_amount, discount_shop_share, ...o }) => {
       const items = withProductShapes(o.order_items as Record<string, unknown>[]).map((it) => ({
         ...it,
         // grocery lines snapshot the shop price; meat reads the current dealer_products price
@@ -112,6 +112,8 @@ export class DealerService {
         ...o,
         app_charge: appCharge ?? 0,
         app_charge_basis: basis,
+        // a next-order coupon the shop gave: it comes off the shop's amount (nothing when Thanjoz Mart pays)
+        offer_discount: customer_coupon_id ? Number(discount_shop_share ?? discount_amount ?? 0) : 0,
         rider: rider_id ? riderOf.get(rider_id) ?? null : null,
         accept_deadline: deadlines.get(o.id) ?? null,
         order_items: items,
@@ -129,7 +131,7 @@ export class DealerService {
       db.from("orders").select("status").or(this.visibleTo(dealerId, (pending ?? []).map((p) => p.order_id as string))),
       db
         .from("orders")
-        .select("status, app_charge, order_items(product_id, requested_kg, actual_kg, unavailable, shop_unit_price)")
+        .select("status, app_charge, discount_amount, discount_shop_share, customer_coupon_id, order_items(product_id, requested_kg, actual_kg, unavailable, shop_unit_price)")
         .eq("dealer_id", dealerId)
         .gte("created_at", dayStart.toISOString()),
     ]);
@@ -138,6 +140,7 @@ export class DealerService {
     let doneCount = 0;
     let sales = 0;
     let appCharge = 0;
+    let offerDiscount = 0;
     for (const o of today ?? []) {
       if (["CANCELLED", "RETURNED", "REFUNDED", "DELIVERY_FAILED"].includes(o.status)) continue;
       doneCount += 1;
@@ -148,6 +151,7 @@ export class DealerService {
         sales += Math.round(price * Number(it.actual_kg ?? it.requested_kg));
       }
       appCharge += Number(o.app_charge ?? 0);
+      if (o.customer_coupon_id) offerDiscount += Number(o.discount_shop_share ?? o.discount_amount ?? 0);
     }
     return {
       newCount: count(["DEALER_ASSIGNED"]),
@@ -157,7 +161,8 @@ export class DealerService {
       // items at the shop's price, what the shop gives the app, and what is left
       todayItems: sales,
       todayAppCharge: appCharge,
-      todaySales: sales - appCharge,
+      todayOfferDiscount: offerDiscount,
+      todaySales: sales - appCharge - offerDiscount,
     };
   }
 
@@ -166,7 +171,7 @@ export class DealerService {
     const db = this.supabase.admin;
     const { data, error } = await db
       .from("orders")
-      .select("id, display_id, status, created_at, app_charge, order_items(product_id, requested_kg, actual_kg, unavailable, shop_unit_price, products(name, name_ta), master_products(name, name_ta))")
+      .select("id, display_id, status, created_at, app_charge, discount_amount, discount_shop_share, customer_coupon_id, order_items(product_id, requested_kg, actual_kg, unavailable, shop_unit_price, products(name, name_ta), master_products(name, name_ta))")
       .eq("dealer_id", dealerId)
       .not("status", "in", `(${SHOP_ACTIVE.join(",")})`)
       .order("created_at", { ascending: false })
@@ -179,7 +184,8 @@ export class DealerService {
         .filter((i) => !i.unavailable)
         .reduce((s, i) => s + Math.round((i.shop_unit_price != null ? Number(i.shop_unit_price) : shopPrice.get(i.product_id) ?? 0) * Number(i.actual_kg ?? i.requested_kg)), 0);
       const appCharge = Number(o.app_charge ?? 0);
-      return { id: o.id, display_id: o.display_id, status: o.status, created_at: o.created_at, shop_amount: shopAmount - appCharge, app_charge: appCharge, items: items.map((i) => i.products) };
+      const offerDiscount = o.customer_coupon_id ? Number(o.discount_shop_share ?? o.discount_amount ?? 0) : 0;
+      return { id: o.id, display_id: o.display_id, status: o.status, created_at: o.created_at, shop_amount: shopAmount - appCharge - offerDiscount, app_charge: appCharge, offer_discount: offerDiscount, items: items.map((i) => i.products) };
     });
   }
 

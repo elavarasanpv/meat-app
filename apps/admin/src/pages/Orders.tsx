@@ -31,7 +31,7 @@ type Detail = {
   payment: string;
   paymentStatus: string;
   amount: number;
-  bill: { items: number; delivery: number | null; total: number; shopItems: number | null; appCharge: number | null; appChargeBasis: string | null; shopGets: number | null; priceGap?: number | null; appEarns?: number | null };
+  bill: { items: number; delivery: number | null; total: number; shopItems: number | null; appCharge: number | null; appChargeBasis: string | null; shopGets: number | null; priceGap?: number | null; appEarns?: number | null; discount?: number; shopCoupon?: number };
   cancelReason: string | null;
   createdAt: string;
   readyBy: string | null;
@@ -39,7 +39,7 @@ type Detail = {
   address: { address_text: string; landmark: string | null; pincode: string; lat: number | null; lng: number | null; receiver_name?: string | null; receiver_phone?: string | null } | null;
   shop: { id: string; name: string; owner: string | null; phone: string | null } | null;
   rider: { id: string; name: string | null; phone: string | null; vehicle: string | null } | null;
-  items: { id: string; name: string; unit: string; qty: number; cut: string; size: string | null; unavailable: boolean; price: number }[];
+  items: { id: string; name: string; unit: string; qty: number; cut: string; size: string | null; unavailable: boolean; price: number; free?: boolean; wasPrice?: number | null }[];
   timeline: { status: string; note: string | null; at: string; by: string | null }[];
   offers: { shop: string; offeredAt: string; respondedAt: string | null; outcome: string; reason: string | null }[];
   photos: { kind: string; at: string; url: string | null }[];
@@ -255,10 +255,11 @@ function OrderDrawer({ id, onClose }: { id: string; onClose: () => void }) {
               {o.items.map((i) => (
                 <div key={i.id} className={`flex items-center gap-2 px-3 py-2 text-[12.5px] ${i.unavailable ? "opacity-50 line-through" : ""}`}>
                   <span className="flex-1">
-                    <span className="font-bold">{i.name}</span> <span className="text-muted">· {i.cut}{i.size && i.size !== i.cut ? ` · ${i.size}` : ""}</span>
+                    <span className="font-bold">{i.name}</span>{i.free && <span className="ml-1 rounded bg-ok-bg px-1 py-px text-[10px] font-extrabold text-ok">FREE</span>} <span className="text-muted">· {i.cut}{i.size && i.size !== i.cut ? ` · ${i.size}` : ""}</span>
                   </span>
                   <span className="text-muted">
-                    {i.qty} {i.unit === "piece" ? "pc" : i.unit} × {inr(i.price)}
+                    {i.qty} {i.unit === "piece" ? "pc" : i.unit} × {i.wasPrice != null && i.wasPrice > i.price && <s className="mr-1">{inr(i.wasPrice)}</s>}
+                    {inr(i.price)}
                   </span>
                   <span className="w-16 text-right font-bold">{inr(i.qty * i.price)}</span>
                 </div>
@@ -269,6 +270,7 @@ function OrderDrawer({ id, onClose }: { id: string; onClose: () => void }) {
                 <div className="mb-1 text-[11px] font-bold uppercase tracking-wide text-muted">Customer pays</div>
                 <BillRow label="Items" value={inr(o.bill.items)} />
                 {o.bill.delivery != null && <BillRow label="Delivery" value={o.bill.delivery > 0 ? inr(o.bill.delivery) : "Free"} />}
+                {!!o.bill.discount && <BillRow label={o.bill.shopCoupon ? "Shop offer coupon" : "Discount"} value={`− ${inr(o.bill.discount)}`} />}
                 <BillRow label="Total" value={inr(o.bill.total)} strong />
               </div>
               {o.bill.shopItems != null && (
@@ -279,6 +281,7 @@ function OrderDrawer({ id, onClose }: { id: string; onClose: () => void }) {
                     label={`App charge${o.bill.appChargeBasis ? ` (${o.bill.appChargeBasis})` : ""}`}
                     value={o.bill.appCharge == null ? (["PLACED", "DEALER_ASSIGNED"].includes(o.status) ? "set on accept" : "—") : o.bill.appCharge > 0 ? `− ${inr(o.bill.appCharge)}` : inr(0)}
                   />
+                  {!!o.bill.shopCoupon && <BillRow label="Its offer coupon" value={`− ${inr(o.bill.shopCoupon)}`} />}
                   <BillRow label="Shop gets" value={inr(o.bill.shopGets ?? 0)} strong />
                 </div>
               )}

@@ -1,4 +1,5 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from "@nestjs/common";
+import { couponsAfterTransition } from "../grocery-offers/order-hooks";
 import { randomInt } from "node:crypto";
 import * as bcrypt from "bcryptjs";
 import { CUSTOMER_CANCELLABLE, canTransition, type AddOrderItemsInput, type CancelOrderInput, type OrderStatus, type PlaceGroceryOrderInput, type PlaceOrderInput, type RateOrderInput } from "@thanjozmart/shared";
@@ -189,6 +190,7 @@ export class OrdersService {
     }
 
     void this.notifyCustomer(orderId, to);
+    void couponsAfterTransition(db, this.push, orderId, to);
     return { orderId, from, to };
   }
 

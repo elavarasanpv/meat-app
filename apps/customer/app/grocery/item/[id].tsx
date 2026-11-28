@@ -9,7 +9,8 @@ import { BasketConfirm, GROCERY, MiniCard } from "@/components/GroceryHome";
 import { Icon, type IconName } from "@/components/Icon";
 import { Photo } from "@/components/Photo";
 import { ErrorState, Skeleton } from "@/components/States";
-import { useGroceryCatalog, useGroceryItem, type GroceryItem } from "@/hooks/useGrocery";
+import { OfferBadge } from "@/components/GroceryOffers";
+import { offerBadge, useGroceryCatalog, useGroceryItem, type GroceryItem } from "@/hooks/useGrocery";
 import { useGroceryBasket } from "@/hooks/useGroceryBasket";
 import { useHomePincode } from "@/hooks/useOffers";
 import { useSlots } from "@/hooks/useOrders";
@@ -140,11 +141,13 @@ export default function GroceryItemScreen() {
               <View style={{ position: "absolute", width: width * 0.68, height: width * 0.68, borderRadius: width * 0.34, backgroundColor: theme.glow(0.55) }} />
               {img ? <Photo source={img} width={width * 0.8} priority="high" style={{ width: "78%", height: "100%" }} /> : <AppText style={{ fontSize: 88, lineHeight: 96 }} color={c.primary}>{item.name.charAt(0)}</AppText>}
             </Animated.View>
-            {off > 0 && (
+            {offerBadge(item) ? (
+              <View style={{ position: "absolute", left: 16, bottom: 40 }}><OfferBadge item={item} size="lg" /></View>
+            ) : off > 0 ? (
               <View style={{ position: "absolute", left: 16, bottom: 40, paddingHorizontal: 12, height: 28, borderRadius: 14, backgroundColor: GROCERY.accent, justifyContent: "center" }}>
                 <AppText variant="label" color="#3D2E00">{t("percentOff", { n: off })}</AppText>
               </View>
-            )}
+            ) : null}
           </LinearGradient>
 
           {/* Sheet over the hero: arrival, brand, name, pack, price */}
@@ -184,6 +187,12 @@ export default function GroceryItemScreen() {
                   </View>
                   <AppText variant="caption" muted>{[per, t("pdInclTax")].filter(Boolean).join(" · ")}</AppText>
                 </View>
+                {item.bogo_buy && item.bogo_free ? (
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 14, paddingVertical: 8, backgroundColor: "#FFF1DC" }}>
+                    <Icon name="tag" color="#A85A00" size={16} />
+                    <AppText variant="label" color="#A85A00" style={{ flex: 1 }}>{t(item.bogo_mix ? "go_bogoMixLine" : "go_bogoLine", { buy: item.bogo_buy, free: item.bogo_free })}</AppText>
+                  </View>
+                ) : null}
                 {saves > 0 ? (
                   <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 14, paddingVertical: 8, backgroundColor: GROCERY.accentSoft }}>
                     <Icon name="tag" color="#7A5A00" size={16} />

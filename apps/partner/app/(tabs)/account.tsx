@@ -1,4 +1,5 @@
 import { Linking, Pressable, ScrollView, View } from "react-native";
+import { useRouter, type Href } from "expo-router";
 import { Header } from "@/components/Header";
 import { Icon, type IconName } from "@/components/Icon";
 import { useDealerMe } from "@/hooks/useDealer";
@@ -17,6 +18,7 @@ export default function AccountScreen() {
   const toggle = useLang((s) => s.toggle);
   const signOut = useAuth((s) => s.signOut);
   const charge = me.data?.app_charge;
+  const router = useRouter();
 
   const Row = ({ icon, label, value, onPress, danger }: { icon: IconName; label: string; value?: string; onPress: () => void; danger?: boolean }) => (
     <Pressable onPress={onPress} style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 12, padding: 16, backgroundColor: pressed ? c.surface2 : c.surface })}>
@@ -49,6 +51,19 @@ export default function AccountScreen() {
             <Txt bold size={18}>{charge.mode === "percent" ? `${charge.basis} ${t("appChargePercent")}` : lang === "ta" ? `${t("appChargeFlat")} ${charge.basis}` : `${charge.basis} ${t("appChargeFlat")}`}</Txt>
             <Txt size={13} muted>{t("appChargeNote")}</Txt>
           </View>
+        ) : null}
+
+        {me.data?.store_type === "grocery" ? (
+          <Pressable onPress={() => router.push("/offers" as Href)} accessibilityRole="button" style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 12, padding: 16, borderRadius: 22, backgroundColor: pressed ? c.tint : c.tintSoft, borderWidth: 1, borderColor: c.primary })}>
+            <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: c.primary, alignItems: "center", justifyContent: "center" }}>
+              <Txt bold size={20} color="#FFFFFF">%</Txt>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Txt bold size={16}>{t("offers")}</Txt>
+              <Txt size={13} muted>{t("offersSub")}</Txt>
+            </View>
+            <Icon name="chevronRight" color={c.primary} size={20} />
+          </Pressable>
         ) : null}
 
         <View style={{ borderRadius: 22, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, overflow: "hidden" }}>

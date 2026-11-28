@@ -346,7 +346,7 @@ export default function OrderDetailScreen() {
                         {it.size ? ` · ${t(it.size === "small" ? "sizeSmall" : it.size === "medium" ? "sizeMedium" : "sizeLarge")}` : ""}
                       </AppText>
                     </View>
-                    <AppText variant="bodyBold" numberOfLines={1} style={{ fontSize: 13 }}>₹ {Math.round(Number(it.unit_price_per_kg) * qty)}</AppText>
+                    <AppText variant="bodyBold" numberOfLines={1} color={it.is_free ? c.successText : undefined} style={{ fontSize: 13 }}>{it.is_free ? t("free") : `₹ ${Math.round(Number(it.unit_price_per_kg) * qty)}`}</AppText>
                   </View>
                 );
               })}
@@ -354,6 +354,12 @@ export default function OrderDetailScreen() {
                 <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 12 }}>
                   <AppText variant="caption" muted>{t("deliveryFee")}</AppText>
                   <AppText variant="bodyBold" style={{ fontSize: 13 }}>{Number(o.delivery_fee) > 0 ? `₹ ${Number(o.delivery_fee)}` : t("freeDeliveryShort")}</AppText>
+                </View>
+              ) : null}
+              {Number(o.discount_amount ?? 0) > 0 ? (
+                <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 12 }}>
+                  <AppText variant="caption" color={c.successText}>{t("go_saved")}</AppText>
+                  <AppText variant="bodyBold" color={c.successText} style={{ fontSize: 13 }}>− ₹ {Number(o.discount_amount)}</AppText>
                 </View>
               ) : null}
               <View style={{ height: 1, backgroundColor: c.border }} />

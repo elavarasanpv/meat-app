@@ -6,13 +6,14 @@ import { AppText } from "@/components/AppText";
 import { ConfirmSheet } from "@/components/ConfirmSheet";
 import { Icon } from "@/components/Icon";
 import { ErrorState, ListSkeleton, Skeleton } from "@/components/States";
-import { useGroceryBought, useGroceryCatalog, useGroceryCategories, type GroceryCategory, type GroceryItem } from "@/hooks/useGrocery";
+import { offerBadge, useGroceryBought, useGroceryCatalog, useGroceryCategories, type GroceryCategory, type GroceryItem } from "@/hooks/useGrocery";
 import { useGroceryBasket } from "@/hooks/useGroceryBasket";
 import { useLocalName, useT } from "@/i18n";
 import { groceryThumb } from "@/lib/images";
 import { queryState } from "@/lib/network";
 import { cardBackdrop, radius, useTheme } from "@/theme";
 import { Photo } from "@/components/Photo";
+import { OfferBadge, OfferStrip } from "@/components/GroceryOffers";
 
 /** Grocery accent — the green/yellow half of the brand (GroceryHome design). */
 export const GROCERY = {
@@ -67,6 +68,8 @@ export function GroceryHome({ pincode }: { pincode?: string }) {
       ) : none ? (
         <View style={{ paddingHorizontal: 20 }}><ErrorState icon="cart" title={t("noProducts")} message={t("groceryNotHere")} onRetry={() => catalog.refetch()} /></View>
       ) : null}
+
+      {none ? null : <OfferStrip pincode={pincode} />}
 
       {/* Bought before: 3 × 2, then "view all" */}
       {boughtItems.length > 0 && (
@@ -164,11 +167,13 @@ export function MiniCard({ item: r, width, qty, onAdd, onStep, onOpen }: { item:
     >
       <View style={{ height: Math.round(width * 0.66), alignItems: "center", justifyContent: "center" }}>
         {img ? <Photo source={img} width={width * 0.86} style={{ width: "86%", height: "92%" }} /> : <AppText variant="title" color={c.primary} style={{ fontSize: 30 }}>{r.name.charAt(0)}</AppText>}
-        {off > 0 && (
+        {offerBadge(r) ? (
+          <View style={{ position: "absolute", top: 0, left: 0 }}><OfferBadge item={r} /></View>
+        ) : off > 0 ? (
           <View style={{ position: "absolute", top: 0, left: 0, paddingHorizontal: 7, height: 18, borderRadius: 9, backgroundColor: GROCERY.accentSoft, justifyContent: "center" }}>
             <AppText variant="label" color="#7A5A00" style={{ fontSize: 9.5 }}>{t("percentOff", { n: off })}</AppText>
           </View>
-        )}
+        ) : null}
       </View>
       <AppText variant="bodyBold" numberOfLines={2} style={{ fontSize: 13, lineHeight: 17, minHeight: 34 }}>{localName(r)}{pack}</AppText>
       <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 6 }}>
@@ -206,8 +211,10 @@ export function GroceryCard({ item: r, width, qty, onAdd, onStep, onOpen }: { it
   return (
     <Pressable onPress={onOpen} accessibilityRole="button" accessibilityLabel={r.name} style={{ width, height, borderRadius: radius.card, overflow: "hidden", borderWidth: 1, borderColor: bg.border, opacity: r.in_stock ? 1 : 0.55 }}>
       <LinearGradient colors={[...bg.colors]} locations={[0.35, 1]} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={{ flex: 1, padding: 12 }}>
-        <AppText variant="title" style={{ fontSize: 14, lineHeight: 18, height: 36, paddingRight: off ? 54 : 0 }} numberOfLines={2}>{localName(r)}</AppText>
-        {off > 0 ? (
+        <AppText variant="title" style={{ fontSize: 14, lineHeight: 18, height: 36, paddingRight: off || offerBadge(r) ? 54 : 0 }} numberOfLines={2}>{localName(r)}</AppText>
+        {offerBadge(r) ? (
+          <View style={{ position: "absolute", top: 10, right: 10 }}><OfferBadge item={r} size="md" /></View>
+        ) : off > 0 ? (
           <View style={{ position: "absolute", top: 10, right: 10, paddingHorizontal: 8, height: 20, borderRadius: 10, backgroundColor: GROCERY.accent, justifyContent: "center" }}>
             <AppText variant="label" color="#3D2E00" numberOfLines={1} style={{ fontSize: 10.5 }}>{t("percentOff", { n: off })}</AppText>
           </View>

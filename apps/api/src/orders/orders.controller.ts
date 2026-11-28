@@ -5,6 +5,7 @@ import { OrdersService } from "./orders.service";
 import { SuggestionsService } from "./suggestions.service";
 import { OffersService } from "../offers/offers.service";
 import { AssignmentService } from "../dealer/assignment.service";
+import { GroceryOffersService } from "../grocery-offers/grocery-offers.service";
 import { SupabaseService } from "../supabase.service";
 import { requireUser } from "../auth";
 
@@ -55,6 +56,7 @@ export class OrdersController {
     private readonly assignment: AssignmentService,
     private readonly suggest: SuggestionsService,
     private readonly offers: OffersService,
+    private readonly groceryOffers: GroceryOffersService,
   ) {}
 
   /** GET /orders/slots — delivery windows the customer can pick right now. */
@@ -99,6 +101,14 @@ export class OrdersController {
     const user = await requireUser(this.supabase, auth);
     const input = parse(placeGroceryOrderSchema, body);
     const result = await this.orders.placeGroceryOrder(user.id, input);
+    // Shop offers: free items, the coupon this order earns, and the customer's own coupon.
+    if (!result.replayed) {
+      const amounts = await this.groceryOffers.applyToOrders(user.id, result.orders).catch((e) => (console.error("[offers] grocery apply", e), null));
+      if (amounts) {
+        for (const o of result.orders) o.estAmount = amounts.get(o.orderId) ?? o.estAmount;
+        result.estAmount = result.orders.reduce((s, o) => s + o.estAmount, 0);
+      }
+    }
     // Each order goes straight to the shop the server chose (same accept window + ring).
     for (const o of result.replayed ? [] : result.orders) {
       await this.assignment.offerTo(o.orderId, o.dealerId).catch((e) => console.error("[assign] grocery offer", e));

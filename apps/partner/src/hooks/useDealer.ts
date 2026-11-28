@@ -16,6 +16,8 @@ export type DealerOrderItem = {
   shop_price_per_kg: number;
   /** Scale photo already uploaded for this item (storage path), if any. */
   photo_path: string | null;
+  /** A free item from one of the shop's own offers: the shop gets nothing for it. */
+  is_free?: boolean;
   /** Picture, brand and pack size come with newer servers; grocery lines carry brand and pack size. */
   products: { name: string; name_ta: string | null; unit: "kg" | "piece"; image_path?: string | null; brand?: string | null; pack_size?: string | null; mrp?: number | null };
 };
@@ -41,6 +43,8 @@ export type DealerOrder = {
   app_charge?: number;
   /** The rule behind it, e.g. "3%" or "₹10". */
   app_charge_basis?: string | null;
+  /** A next-order coupon the shop gave, used on this order: it comes off the shop's amount. */
+  offer_discount?: number;
 };
 
 const STAGE: Record<DealerOrder["status"], number> = { DEALER_ASSIGNED: 0, ACCEPTED: 1, PACKING: 2, PACKED: 3, RIDER_ASSIGNED: 4 };
@@ -158,13 +162,13 @@ export function useShopState() {
   });
 }
 
-export type Summary = { newCount: number; inProgressCount: number; readyCount: number; todayOrders: number; todaySales: number; todayItems?: number; todayAppCharge?: number };
+export type Summary = { newCount: number; inProgressCount: number; readyCount: number; todayOrders: number; todaySales: number; todayItems?: number; todayAppCharge?: number; todayOfferDiscount?: number };
 
 export function useSummary(dealerId: string | undefined) {
   return useQuery<Summary>({ queryKey: ["dealer", "summary"], enabled: !!dealerId, refetchInterval: 30_000, queryFn: () => api("/dealer/summary") });
 }
 
-export type HistoryRow = { id: string; display_id: string; status: string; created_at: string; shop_amount: number; app_charge?: number; items: { name: string; name_ta: string | null }[] };
+export type HistoryRow = { id: string; display_id: string; status: string; created_at: string; shop_amount: number; app_charge?: number; offer_discount?: number; items: { name: string; name_ta: string | null }[] };
 
 export function useHistory(dealerId: string | undefined) {
   return useQuery<HistoryRow[]>({ queryKey: ["dealer", "history"], enabled: !!dealerId, queryFn: () => api("/dealer/history") });
@@ -294,6 +298,80 @@ export function useProductActions() {
     setActive: (id: string, isActive: boolean) => api(`/dealer/catalog/${id}`, { method: "PATCH", body: { isActive } }),
     setPhoto: (id: string, file: { uri: string; name: string; type: string }) => apiUpload(`/dealer/catalog/${id}/image`, file),
     removePhoto: (id: string) => api(`/dealer/catalog/${id}/image`, { method: "DELETE" }),
+    done,
+  };
+}
+
+// ───────────── grocery shop: offers for customers ─────────────
+export type OfferKind = "price" | "bogo" | "free_gift" | "next_order";
+export type OfferScope = "product" | "products" | "category";
+export type OfferState = "waiting" | "rejected" | "off" | "scheduled" | "live" | "ended";
+export type ShopOffer = {
+  id: string;
+  kind: OfferKind;
+  productId: string | null;
+  product: { name: string; nameTa: string | null; imagePath: string | null; packSize: string | null; mrp: number | null } | null;
+  /** Price and buy-get-free offers: one product, chosen products, or a whole category. */
+  scope: OfferScope;
+  productIds: string[] | null;
+  category: { id: string; name: string; nameTa: string | null } | null;
+  pct: number | null;
+  buyQty: number | null;
+  /** Buy-and-get-free on many products: any mix counts, not each product on its own. */
+  mix?: boolean;
+  /** The card colour; null wears the kind's own colour. */
+  color?: string | null;
+  freeQty: number | null;
+  minOrder: number | null;
+  maxDiscount: number | null;
+  validDays: number | null;
+  startsAt: string;
+  endsAt: string;
+  isActive: boolean;
+  status: "pending" | "approved" | "rejected";
+  state: OfferState;
+  rejectReason: string | null;
+  /** The offer's own banner picture; without one the product photo is shown. */
+  bannerPath: string | null;
+  /** 'app': Thanjoz Mart made this offer and pays for it; the shop cannot change it. */
+  paidBy: "shop" | "app";
+  /** Price offers: today's customer price and shop amount, before and during the offer. */
+  priceNow: { usual: number; offer: number; shopUsual: number; shopGets: number } | null;
+  /** What the offer has done so far; `given` is the rupees it has cost the shop. */
+  stats: { orders: number; freeUnits: number; couponsGiven: number; couponsUsed: number; given: number };
+};
+export type ShopOfferInput = {
+  kind: OfferKind;
+  masterProductId?: string | null;
+  scope?: OfferScope;
+  productIds?: string[] | null;
+  categoryId?: string | null;
+  pct?: number | null;
+  buyQty?: number | null;
+  freeQty?: number | null;
+  mix?: boolean;
+  color?: string | null;
+  minOrder?: number | null;
+  maxDiscount?: number | null;
+  validDays?: number | null;
+  startsAt: string;
+  endsAt: string;
+};
+
+export function useShopOffers(enabled = true) {
+  return useQuery<ShopOffer[]>({ queryKey: ["dealer", "offers"], enabled, queryFn: () => api("/dealer/offers") });
+}
+
+/** Make, change, switch on/off or end an offer. A new or changed offer waits for Thanjoz Mart to approve it. */
+export function useOfferActions() {
+  const qc = useQueryClient();
+  const done = () => qc.invalidateQueries({ queryKey: ["dealer", "offers"] });
+  return {
+    save: (input: ShopOfferInput, id?: string) => api<{ id: string }>(id ? `/dealer/offers/${id}` : "/dealer/offers", { method: "POST", body: input }),
+    setActive: (id: string, active: boolean) => api(`/dealer/offers/${id}/active`, { method: "POST", body: { active } }),
+    end: (id: string) => api(`/dealer/offers/${id}/end`, { method: "POST" }),
+    setBanner: (id: string, file: { uri: string; name: string; type: string }) => apiUpload(`/dealer/offers/${id}/image`, file),
+    removeBanner: (id: string) => api(`/dealer/offers/${id}/image`, { method: "DELETE" }),
     done,
   };
 }

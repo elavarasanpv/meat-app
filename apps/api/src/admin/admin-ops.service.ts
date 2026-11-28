@@ -276,7 +276,7 @@ export class AdminOpsService {
     const { data: o, error } = await db
       .from("orders")
       .select(
-        "id, display_id, status, vertical_type, payment_mode, payment_status, est_amount, final_amount, delivery_fee, app_charge, app_charge_basis, cancel_reason, created_at, ready_by, dealer_id, rider_id, profiles!orders_customer_id_fkey(full_name, phone), addresses(address_text, landmark, pincode, lat, lng, receiver_name, receiver_phone), dealers(id, shop_name, profiles(full_name, phone)), delivery_partners(id, vehicle, profiles(full_name, phone)), order_items(id, requested_kg, actual_kg, cut, size, unavailable, unit_price_per_kg, shop_unit_price, products(name, unit), master_products(name, unit))",
+        "id, display_id, status, vertical_type, payment_mode, payment_status, est_amount, final_amount, delivery_fee, app_charge, app_charge_basis, discount_amount, discount_shop_share, customer_coupon_id, cancel_reason, created_at, ready_by, dealer_id, rider_id, profiles!orders_customer_id_fkey(full_name, phone), addresses(address_text, landmark, pincode, lat, lng, receiver_name, receiver_phone), dealers(id, shop_name, profiles(full_name, phone)), delivery_partners(id, vehicle, profiles(full_name, phone)), order_items(id, requested_kg, actual_kg, cut, size, unavailable, unit_price_per_kg, shop_unit_price, is_free, was_price, products(name, unit), master_products(name, unit))",
       )
       .eq("id", id)
       .maybeSingle();
@@ -304,6 +304,8 @@ export class AdminOpsService {
     const itemsTotal = lines.reduce((t, i) => t + Math.round(Number(i.unit_price_per_kg) * qty(i)), 0);
     const shopItems = lines.every((i) => i.shop_unit_price != null) ? lines.reduce((t, i) => t + Math.round(Number(i.shop_unit_price) * qty(i)), 0) : null;
     const appCharge = o.app_charge == null ? null : Number(o.app_charge);
+    // A next-order coupon comes off the customer's bill, and off the shop's amount when the shop gave it.
+    const shopCoupon = o.customer_coupon_id ? Number(o.discount_shop_share ?? o.discount_amount ?? 0) : 0;
     return {
       id: o.id,
       displayId: o.display_id,
@@ -318,7 +320,9 @@ export class AdminOpsService {
         shopItems,
         appCharge,
         appChargeBasis: o.app_charge_basis as string | null,
-        shopGets: shopItems == null ? null : shopItems - (appCharge ?? 0),
+        discount: Number(o.discount_amount ?? 0),
+        shopCoupon,
+        shopGets: shopItems == null ? null : shopItems - (appCharge ?? 0) - shopCoupon,
         // What Thanjoz Mart keeps: the gap between the two prices, plus the app charge.
         priceGap: shopItems == null ? null : itemsTotal - shopItems,
         appEarns: shopItems == null ? null : itemsTotal - shopItems + (appCharge ?? 0),
@@ -330,7 +334,7 @@ export class AdminOpsService {
       address: o.addresses,
       shop: shop ? { id: shop.id, name: shop.shop_name, owner: shop.profiles?.full_name ?? null, phone: shop.profiles?.phone ?? null } : null,
       rider: rider ? { id: rider.id, name: rider.profiles?.full_name ?? null, phone: rider.profiles?.phone ?? null, vehicle: rider.vehicle } : null,
-      items: withProductShapes(o.order_items as unknown as { id: string; requested_kg: number; cut: string; size: string | null; unavailable: boolean; unit_price_per_kg: number; products: { name: string; unit: string } | null; master_products: { name: string; unit: string } | null }[]).map((i) => ({
+      items: withProductShapes(o.order_items as unknown as { id: string; requested_kg: number; cut: string; size: string | null; unavailable: boolean; unit_price_per_kg: number; is_free: boolean; was_price: number | null; products: { name: string; unit: string } | null; master_products: { name: string; unit: string } | null }[]).map((i) => ({
         id: i.id,
         name: i.products?.name ?? "Item",
         unit: i.products?.unit ?? "kg",
@@ -339,6 +343,8 @@ export class AdminOpsService {
         size: i.size,
         unavailable: i.unavailable,
         price: Number(i.unit_price_per_kg),
+        free: !!i.is_free,
+        wasPrice: i.was_price == null ? null : Number(i.was_price),
       })),
       timeline: (history ?? []).map((h) => ({ status: h.to_status, note: h.note, at: h.created_at, by: (h.profiles as unknown as Name)?.full_name ?? null })),
       offers: (offers ?? []).map((a) => ({ shop: (a.dealers as unknown as { shop_name: string } | null)?.shop_name ?? "", offeredAt: a.offered_at, respondedAt: a.responded_at, outcome: a.outcome, reason: a.reason })),

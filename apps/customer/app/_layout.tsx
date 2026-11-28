@@ -81,6 +81,7 @@ export default function RootLayout() {
           <Stack.Screen name="product/[id]" />
           <Stack.Screen name="grocery/item/[id]" />
           <Stack.Screen name="grocery/category/[id]" />
+          <Stack.Screen name="grocery/offer/[id]" />
           <Stack.Screen name="grocery/bought" />
           <Stack.Screen name="grocery/cart" />
           <Stack.Screen name="meat/cart" />

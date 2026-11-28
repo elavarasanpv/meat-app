@@ -5,3 +5,4 @@ export * from "./slots";
 export * from "./geo";
 export * from "./route";
 export * from "./app-charge";
+export * from "./shop-offers";

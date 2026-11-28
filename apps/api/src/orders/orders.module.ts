@@ -6,9 +6,10 @@ import { SuggestionsService } from "./suggestions.service";
 import { OffersModule } from "../offers/offers.module";
 import { SupabaseService } from "../supabase.service";
 import { DealerModule } from "../dealer/dealer.module";
+import { GroceryOffersModule } from "../grocery-offers/grocery-offers.module";
 
 @Module({
-  imports: [DealerModule, OffersModule],
+  imports: [DealerModule, OffersModule, GroceryOffersModule],
   controllers: [OrdersController],
   providers: [OrdersService, PushService, SuggestionsService, SupabaseService],
 })

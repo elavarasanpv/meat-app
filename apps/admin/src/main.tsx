@@ -16,6 +16,7 @@ import { Notifications } from "./pages/Notifications";
 import { Settings } from "./pages/Settings";
 import { Support } from "./pages/Support";
 import { Offers } from "./pages/Offers";
+import { ShopOffers } from "./pages/ShopOffers";
 import { RatingsPage } from "./pages/Ratings";
 import { PricingPage } from "./pages/Pricing";
 import { CatalogPage } from "./pages/Catalog";
@@ -45,6 +46,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
               <Route path="/cash" element={<Cash />} />
               <Route path="/support" element={<Support />} />
               <Route path="/offers" element={<Offers />} />
+              <Route path="/shop-offers" element={<ShopOffers />} />
               <Route path="/pricing" element={<PricingPage />} />
               <Route path="/delivery" element={<DeliveryPage />} />
               <Route path="/catalog" element={<CatalogPage />} />

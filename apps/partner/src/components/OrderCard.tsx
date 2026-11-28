@@ -95,7 +95,7 @@ function ItemRow({ it }: { it: DealerOrderItem }) {
   return (
     <View style={{ gap: 2 }}>
       <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 10 }}>
-        <Txt bold size={15} style={{ flex: 1 }} numberOfLines={2}>{name}</Txt>
+        <Txt bold size={15} style={{ flex: 1 }}>{name}{it.is_free ? <Txt bold size={12} color="#1F8A4C">  {t("offerFreeLine")}</Txt> : null}</Txt>
         <Txt bold size={15}>{qty}{it.size ? ` · ${t(`size_${it.size}` as TKey)}` : ""}</Txt>
       </View>
       {it.products.pack_size ? <Txt size={13} muted>{[it.products.brand, it.products.pack_size].filter(Boolean).join(" · ")}</Txt> : null}
@@ -160,7 +160,9 @@ export function OrderCard({ o, compact, noDetails }: { o: DealerOrder; compact?:
   const itemsTotal = items.reduce((s, i) => s + Math.round(i.shop_price_per_kg * i.requested_kg), 0);
   // The app charge comes off what the shop gets; the customer pays the same.
   const appCharge = Math.min(Number(o.app_charge ?? 0), itemsTotal);
-  const shopTotal = itemsTotal - appCharge;
+  // A next-order coupon the shop gave earlier, used on this order.
+  const offerDiscount = Math.min(Number(o.offer_discount ?? 0), itemsTotal - appCharge);
+  const shopTotal = itemsTotal - appCharge - offerDiscount;
   const isNew = o.status === "DEALER_ASSIGNED";
   const late = !!o.ready_by && (o.status === "ACCEPTED" || o.status === "PACKING") && readyState(o.ready_by, Date.now()).phase === "late";
   const tap = () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
@@ -194,6 +196,12 @@ export function OrderCard({ o, compact, noDetails }: { o: DealerOrder; compact?:
               <Txt size={13} muted style={{ flex: 1 }}>{t("appCharge")}{o.app_charge_basis ? ` (${o.app_charge_basis})` : ""}</Txt>
               <Txt size={13}>{appCharge > 0 ? `− ₹${appCharge}` : "₹0"}</Txt>
             </View>
+            {offerDiscount > 0 ? (
+              <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 10 }}>
+                <Txt size={13} muted style={{ flex: 1 }}>{t("offerCoupon")}</Txt>
+                <Txt size={13}>− ₹{offerDiscount}</Txt>
+              </View>
+            ) : null}
           </View>
         ) : null}
         <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 10 }}>

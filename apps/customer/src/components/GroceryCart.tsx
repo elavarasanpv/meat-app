@@ -20,6 +20,7 @@ import { formatQty, lineTotal, qtyStep, useCart, type CartItem } from "@/store/c
 import { useVertical } from "@/store/vertical";
 import { radius, useTheme } from "@/theme";
 import { Photo } from "@/components/Photo";
+import { BasketPerks, FreeLines } from "@/components/GroceryOffers";
 
 /**
  * Grocery basket (GroceryCart design): the slot box with the lines inside it,
@@ -145,6 +146,8 @@ export function GroceryCart({ bill, onBack, cta, address }: { bill: ReturnType<t
             );
           })}
 
+          <FreeLines quote={bill.shopOffers} />
+
           <Pressable onPress={goHome} accessibilityRole="button" style={{ padding: 10, borderTopWidth: 1, borderTopColor: c.surface2, alignItems: "center" }}>
             <AppText variant="label" numberOfLines={1} style={{ fontSize: 13 }}>
               {t("addMoreTitle")} <AppText variant="label" color={c.primary} style={{ fontSize: 13 }}>{t("addMoreItems")}</AppText>
@@ -177,6 +180,8 @@ export function GroceryCart({ bill, onBack, cta, address }: { bill: ReturnType<t
           </View>
         )}
 
+        <BasketPerks quote={bill.shopOffers} />
+
         {/* Bill */}
         <View style={{ ...box, padding: 14, paddingHorizontal: 16, gap: 8 }}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
@@ -184,6 +189,12 @@ export function GroceryCart({ bill, onBack, cta, address }: { bill: ReturnType<t
             <AppText variant="subtitle">{t("billSummary")}</AppText>
           </View>
           <Row label={t("itemTotal")} value={`₹${bill.itemTotal}`} />
+          {bill.discount > 0 && bill.shopOffers?.coupon ? (
+            <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 10 }}>
+              <AppText variant="caption" color={c.successText} style={{ fontSize: 13, flex: 1 }}>{t("go_couponLine", { n: bill.shopOffers.coupon.pct })}</AppText>
+              <AppText variant="caption" color={c.successText} style={{ fontSize: 13 }}>− ₹{bill.discount}</AppText>
+            </View>
+          ) : null}
           <Row label={t("deliveryFee")} value={bill.delivery === 0 ? t("free") : `₹${bill.delivery}`} />
           {!unlocked && remaining > 0 ? <AppText variant="caption" color={c.primary} style={{ marginTop: -4, fontSize: 11.5 }}>{t("freeAbove", { n: freeAbove! })} · {t("addNMore", { n: remaining })}</AppText> : null}
           {bill.firstFree ? <AppText variant="caption" color={c.primary} style={{ marginTop: -4, fontSize: 11.5 }}>{t("firstOrderFree")}</AppText> : null}

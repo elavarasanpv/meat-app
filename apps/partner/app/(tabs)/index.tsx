@@ -107,6 +107,12 @@ export default function HomeScreen() {
                 <Txt size={14} muted style={{ flex: 1 }}>{t("appCharge")}</Txt>
                 <Txt size={14}>{s?.todayAppCharge ? `− ₹${s.todayAppCharge}` : "₹0"}</Txt>
               </View>
+              {s?.todayOfferDiscount ? (
+                <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 10 }}>
+                  <Txt size={14} muted style={{ flex: 1 }}>{t("offersGiven")}</Txt>
+                  <Txt size={14}>− ₹{s.todayOfferDiscount}</Txt>
+                </View>
+              ) : null}
             </View>
           ) : null}
         </View>

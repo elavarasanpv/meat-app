@@ -53,7 +53,7 @@ export default function CheckoutScreen() {
   }, [slots.data]);
 
   const pincode = (addresses.data ?? []).find((a) => a.id === addressId)?.pincode;
-  const bill = useBill(pincode);
+  const bill = useBill(pincode, addressId ?? undefined);
   const { toPay } = bill;
   const coupon = useCart((s) => s.coupon);
 
