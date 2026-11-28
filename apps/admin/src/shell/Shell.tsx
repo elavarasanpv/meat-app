@@ -5,6 +5,7 @@ import type { AdminMe } from "../auth/Gate";
 import { useAlerts, type Alert } from "../lib/alerts";
 import { Avatar, ago, useDismiss } from "../ui/kit";
 import { BrandMark } from "../ui/BrandMark";
+import { PriceAlertBanner } from "./PriceAlerts";
 import {
   IconBan,
   IconBell,
@@ -24,6 +25,7 @@ import {
   IconSearch,
   IconSettings,
   IconSliders,
+  IconAlert,
   IconCalendar,
   IconShop,
   IconTag,
@@ -139,6 +141,7 @@ export function Shell() {
 
       <div className="flex min-w-0 flex-1 flex-col">
         <TopBar me={me} />
+        <PriceAlertBanner />
         <main className="min-w-0 flex-1 pb-20 md:pb-0">
           <Outlet context={me} />
         </main>
@@ -295,6 +298,8 @@ export const KIND: Record<Alert["kind"], { Icon: typeof IconShop; icon: string; 
   cancelled: { Icon: IconBan, icon: "bg-[#EDEAE6] text-[#6E625B]", chip: "bg-[#EDEAE6] text-[#6E625B]", dot: "bg-[#6E625B]", label: "Cancelled" },
   ticket: { Icon: IconChat, icon: "bg-[#FDE6DF] text-[#E4461F]", chip: "bg-[#FDE6DF] text-[#E4461F]", dot: "bg-[#E4461F]", label: "Support" },
   shop_declined: { Icon: IconShopOff, icon: "bg-[#DFEAFB] text-[#2F6FD1]", chip: "bg-[#DFEAFB] text-[#2F6FD1]", dot: "bg-[#2F6FD1]", label: "Shop declined" },
+  price_risk: { Icon: IconAlert, icon: "bg-[#B8361A] text-white", chip: "bg-[#B8361A] text-white", dot: "bg-[#B8361A]", label: "Price alert" },
+  market_change: { Icon: IconSliders, icon: "bg-[#FFF4CC] text-[#8A6A00]", chip: "bg-[#FFF4CC] text-[#8A6A00]", dot: "bg-[#F2B705]", label: "Market price" },
 };
 
 export function AlertRow({ a, fresh, onClick, compact }: { a: Alert; fresh: boolean; onClick?: () => void; compact?: boolean }) {

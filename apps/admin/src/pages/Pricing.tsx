@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
 import { PageHeader } from "../shell/Shell";
@@ -22,7 +23,7 @@ type Pricing = {
     overrides: Record<string, number>;
     costs: Record<string, number>;
     /** The shop's live market (counter) price, by shop. */
-    market: Record<string, { price: number; at: string | null }>;
+    market: Record<string, { price: number; at: string | null; /** Price before the last change, if it changed in the last day. */ prev?: number | null }>;
     /** Shops that list the product, with when it is out of stock until (null = in stock). */
     stock: Record<string, { outOfStockUntil: string | null }>;
   }[];
@@ -140,6 +141,19 @@ export function PricingPage() {
   const [scope, setScope] = useState<string>("default");
   const d = q.data;
   const [savingKey, setSavingKey] = useState<string | null>(null);
+  // Opened from a price alert: jump to that product and light its row up for a moment.
+  const [params] = useSearchParams();
+  const focus = params.get("product");
+  const [lit, setLit] = useState<string | null>(null);
+  useEffect(() => {
+    if (!focus || !d) return;
+    const el = document.getElementById(`price-row-${focus}`);
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    setLit(focus);
+    const t = setTimeout(() => setLit(null), 6000);
+    return () => clearTimeout(t);
+  }, [focus, !!d]);
 
   const refresh = () => {
     void qc.invalidateQueries({ queryKey: ["admin", "pricing"] });
@@ -243,7 +257,7 @@ export function PricingPage() {
                         <td colSpan={3 + (d?.dealers.length ?? 0)} className="border-t border-line bg-ground px-4 py-1.5 text-[10.5px] font-extrabold uppercase tracking-wide text-muted">{p.category}</td>
                       </tr>
                     )}
-                    <tr key={p.id} className="border-t border-line align-top">
+                    <tr key={p.id} id={`price-row-${p.id}`} className={`border-t border-line align-top transition-colors duration-700 ${lit === p.id ? "bg-[#FFF4CC]" : ""}`}>
                       <td className="px-4 py-2">
                         <div className={`font-bold ${p.isActive ? "" : "text-muted line-through"}`}>{p.name}</div>
                         {p.nameTa && <div className="text-[11px] text-muted">{p.nameTa}</div>}
@@ -378,7 +392,7 @@ export function PricingPage() {
                         const mk = p.market[s.id];
                         return (
                           <td key={s.id} className="px-3 py-2 text-right">
-                            <div className="flex flex-col items-end gap-1.5">
+                            <div className={`flex flex-col items-end gap-1.5 ${mk && (mk.price < effSell || (p.costs[s.id] != null && mk.price < p.costs[s.id])) ? "-m-1.5 rounded-xl p-1.5 ring-2 ring-bad" : ""}`}>
                               <div className="flex items-center gap-1.5">
                                 <span className="text-[10.5px] font-extrabold uppercase tracking-wide text-muted" title="What you pay this shop">Cost</span>
                                 <PriceCell
@@ -405,7 +419,21 @@ export function PricingPage() {
                                   }}
                                 />
                               </div>
-                              {mk?.at && <div className="text-[10.5px] text-muted">updated {ago(mk.at)}</div>}
+                              {mk?.at &&
+                                (Date.now() - new Date(mk.at).getTime() < 24 * 3600_000 ? (
+                                  <span className="rounded-lg bg-[#F2B705] px-2 py-1 text-right text-[11px] font-extrabold leading-tight text-[#3D2E00]">
+                                    Market now ₹{mk.price}
+                                    {mk.prev != null && mk.prev !== mk.price && (
+                                      <span className="font-bold">
+                                        {" "}
+                                        (was <s>₹{mk.prev}</s>)
+                                      </span>
+                                    )}
+                                    <span className="block text-[10px] font-bold">changed {ago(mk.at)}</span>
+                                  </span>
+                                ) : (
+                                  <div className="text-[10.5px] text-muted">updated {ago(mk.at)}</div>
+                                ))}
                               {mk && p.costs[s.id] != null && (
                                 <div className="text-right text-[10.5px] font-bold leading-snug" title="Against this shop's market price. Profit still uses the cost, not the market price.">
                                   <div className={mk.price - p.costs[s.id] > 0 ? "text-ok" : "text-bad"}>Our benefit vs market {mk.price - p.costs[s.id] < 0 ? "−" : ""}₹{Math.abs(Math.round(mk.price - p.costs[s.id]))}</div>

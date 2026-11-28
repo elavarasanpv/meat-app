@@ -16,7 +16,7 @@ const ACCEPT_GRACE_MS = 10 * 60_000;
 
 export type Alert = {
   id: string;
-  kind: "no_shop" | "not_accepted" | "late" | "waiting_rider" | "cash_count" | "failed" | "cancelled" | "shop_declined" | "ticket";
+  kind: "no_shop" | "not_accepted" | "late" | "waiting_rider" | "cash_count" | "failed" | "cancelled" | "shop_declined" | "ticket" | "price_risk" | "market_change";
   severity: "urgent" | "warn" | "info";
   open: boolean; // still needs someone to act
   title: string;
@@ -94,8 +94,89 @@ export class AdminAccountService {
       const who = (t.profiles as unknown as { full_name: string | null } | null)?.full_name ?? "A customer";
       out.push({ id: `ticket:${t.id}`, kind: "ticket", severity: "warn", open: true, title: `Support: ${who}`, body: (t.body ?? "").slice(0, 110), at: t.created_at, link: `/support?id=${t.id}` });
     }
+    out.push(...(await this.priceAlerts(dayAgo)));
     const rank = { urgent: 0, warn: 1, info: 2 };
     return out.sort((a, b) => Number(b.open) - Number(a.open) || rank[a.severity] - rank[b.severity] || b.at.localeCompare(a.at));
+  }
+
+  /**
+   * Meat prices against each shop's own counter (market) price.
+   *  • Needs action while it lasts: the shop's counter price is below what we
+   *    sell for (customers pay more on the app), or below what we pay the shop.
+   *  • Updates: every market price change of the last 24 hours, with what it
+   *    now means for us.
+   */
+  private async priceAlerts(dayAgo: string): Promise<Alert[]> {
+    const db = this.db;
+    const [{ data: rows }, { data: changes }] = await Promise.all([
+      db
+        .from("dealer_products")
+        .select("dealer_id, product_id, price_per_kg, market_price, market_price_at, dealers!inner(shop_name, is_active, store_type), products!inner(name, unit, base_price_per_kg, is_active)")
+        .not("market_price", "is", null)
+        .eq("dealers.store_type", "meat"),
+      db
+        .from("price_history")
+        .select("id, dealer_id, product_id, old_price, new_price, created_at, products(name, unit, base_price_per_kg), dealers(shop_name), profiles:changed_by(role)")
+        .eq("kind", "market")
+        .gte("created_at", dayAgo)
+        .order("created_at", { ascending: false })
+        .limit(50),
+    ]);
+    type Shop = { shop_name: string; is_active?: boolean };
+    type Prod = { name: string; unit: string; base_price_per_kg: number; is_active?: boolean };
+    const rs = (n: number) => `₹${Math.round(n).toLocaleString("en-IN")}`;
+    const per = (u: string) => (u === "piece" ? "/pc" : "/kg");
+    const costOf = new Map((rows ?? []).map((r) => [`${r.dealer_id}:${r.product_id}`, r.price_per_kg == null ? null : Number(r.price_per_kg)]));
+    const out: Alert[] = [];
+    for (const r of rows ?? []) {
+      const shop = r.dealers as unknown as Shop;
+      const prod = r.products as unknown as Prod;
+      if (!shop?.is_active || !prod?.is_active) continue;
+      const market = Number(r.market_price);
+      const sell = Number(prod.base_price_per_kg);
+      const cost = r.price_per_kg == null ? null : Number(r.price_per_kg);
+      const overSell = sell - market;
+      const overCost = cost == null ? 0 : cost - market;
+      if (overSell <= 0 && overCost <= 0) continue;
+      const u = per(prod.unit);
+      const lines: string[] = [];
+      if (overCost > 0) lines.push(`We pay the shop ${rs(cost!)}${u}, ${rs(overCost)} more than its own counter price. Ask the shop for a lower cost.`);
+      if (overSell > 0) lines.push(`Customers pay ${rs(sell)}${u} on the app, ${rs(overSell)} more than at the shop. Lower our selling price.`);
+      out.push({
+        id: `price_risk:${r.dealer_id}:${r.product_id}`,
+        kind: "price_risk",
+        severity: overCost > 0 || overSell >= sell * 0.05 ? "urgent" : "warn",
+        open: true,
+        title: `${prod.name}: ${shop.shop_name} counter price is ${rs(market)}${u}`,
+        body: lines.join(" "),
+        at: r.market_price_at ?? new Date().toISOString(),
+        link: `/pricing?product=${r.product_id}`,
+      });
+    }
+    for (const c of changes ?? []) {
+      const prod = c.products as unknown as Prod | null;
+      const shop = c.dealers as unknown as Shop | null;
+      if (!prod || !shop) continue;
+      const from = c.old_price == null ? null : Number(c.old_price);
+      const to = Number(c.new_price);
+      const by = (c.profiles as unknown as { role: string } | null)?.role === "admin" ? "You set" : `${shop.shop_name} changed`;
+      const pct = from ? Math.round(((to - from) / from) * 100) : null;
+      const cost = costOf.get(`${c.dealer_id}:${c.product_id}`) ?? null;
+      const sell = Number(prod.base_price_per_kg);
+      const u = per(prod.unit);
+      const now = `Now: market ${rs(to)}, our cost ${cost == null ? "not set" : rs(cost)}, we sell ${rs(sell)}${u}.`;
+      out.push({
+        id: `market_change:${c.id}`,
+        kind: "market_change",
+        severity: pct != null && Math.abs(pct) >= 10 ? "warn" : "info",
+        open: false,
+        title: `${by} ${prod.name} market price ${from == null ? "" : `${rs(from)} → `}${rs(to)}${u}${pct ? ` (${pct > 0 ? "+" : ""}${pct}%)` : ""}`,
+        body: now,
+        at: c.created_at,
+        link: `/pricing?product=${c.product_id}`,
+      });
+    }
+    return out;
   }
 
   /**

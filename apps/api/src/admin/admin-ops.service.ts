@@ -43,7 +43,7 @@ export class AdminOpsService {
    */
   async pricing() {
     const db = this.supabase.admin;
-    const [{ data: products }, { data: overrides }, { data: costs }, { data: dealers }, { data: pins }] = await Promise.all([
+    const [{ data: products }, { data: overrides }, { data: costs }, { data: dealers }, { data: pins }, { data: moves }] = await Promise.all([
       // Products taken off sale stay on the page, so the admin can put them back.
       db.from("products").select("id, name, name_ta, unit, base_price_per_kg, was_price, margin_pct, is_active, categories(name, sort)"),
       db.from("product_prices").select("product_id, pincode, price_per_kg"),
@@ -51,7 +51,14 @@ export class AdminOpsService {
       // Only meat shops: grocery stores price their own catalogue (store_products).
       db.from("dealers").select("id, shop_name").eq("is_active", true).eq("store_type", "meat").order("shop_name"),
       db.from("zone_pincodes").select("pincode, area").order("pincode"),
+      // The last day's market price changes, so the page can show "₹250 → ₹230".
+      db.from("price_history").select("dealer_id, product_id, old_price, created_at").eq("kind", "market").gte("created_at", new Date(Date.now() - 24 * 3600_000).toISOString()).order("created_at", { ascending: false }).limit(500),
     ]);
+    const prevOf = new Map<string, number | null>();
+    for (const m of moves ?? []) {
+      const k = `${m.dealer_id}:${m.product_id}`;
+      if (!prevOf.has(k)) prevOf.set(k, m.old_price == null ? null : Number(m.old_price));
+    }
     const over = new Map<string, Record<string, number>>();
     for (const o of overrides ?? []) {
       const m = over.get(o.product_id) ?? {};
@@ -60,7 +67,7 @@ export class AdminOpsService {
     }
     const cost = new Map<string, Record<string, number>>();
     // Per shop: the live market price and whether the shop has it in stock now.
-    const market = new Map<string, Record<string, { price: number; at: string | null }>>();
+    const market = new Map<string, Record<string, { price: number; at: string | null; prev: number | null }>>();
     const listed = new Map<string, Record<string, { outOfStockUntil: string | null }>>();
     const now = Date.now();
     for (const c of costs ?? []) {
@@ -71,7 +78,7 @@ export class AdminOpsService {
       listed.set(c.product_id, l);
       if (c.market_price != null) {
         const k = market.get(c.product_id) ?? {};
-        k[c.dealer_id] = { price: Number(c.market_price), at: c.market_price_at };
+        k[c.dealer_id] = { price: Number(c.market_price), at: c.market_price_at, prev: prevOf.get(`${c.dealer_id}:${c.product_id}`) ?? null };
         market.set(c.product_id, k);
       }
       if (c.price_per_kg == null) continue;

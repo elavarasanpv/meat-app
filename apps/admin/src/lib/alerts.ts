@@ -4,7 +4,7 @@ import { api } from "./api";
 
 export type Alert = {
   id: string;
-  kind: "no_shop" | "not_accepted" | "late" | "waiting_rider" | "cash_count" | "failed" | "cancelled" | "shop_declined" | "ticket";
+  kind: "no_shop" | "not_accepted" | "late" | "waiting_rider" | "cash_count" | "failed" | "cancelled" | "shop_declined" | "ticket" | "price_risk" | "market_change";
   severity: "urgent" | "warn" | "info";
   open: boolean;
   title: string;
