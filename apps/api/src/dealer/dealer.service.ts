@@ -220,6 +220,7 @@ export class DealerService {
     await this.orders.transition({ orderId: input.orderId, to: "ACCEPTED", actorId: profileId, note: scheduled ? "accepted for the slot" : `ready in ${input.readyMinutes} min` });
     // The order may have been shown to several shops: it is this shop's now, and the others lose it.
     await db.from("orders").update({ ready_by: readyBy, dealer_id: dealer.id }).eq("id", input.orderId);
+    if (o?.vertical_type === "meat") await this.lockMeatCost(input.orderId, dealer.id);
     await db
       .from("order_assignments")
       .update({ outcome: "cancelled", responded_at: new Date().toISOString(), reason: "accepted by another shop" })
@@ -485,6 +486,20 @@ export class DealerService {
   }
 
   // ───────────────────────── helpers ─────────────────────────
+
+  /**
+   * A meat order keeps the shop price of the moment the shop accepted it, so a
+   * later cost change does not change what this order owes the shop or earns us.
+   */
+  private async lockMeatCost(orderId: string, dealerId: string) {
+    const db = this.supabase.admin;
+    const shopPrice = await this.shopPrices(dealerId);
+    const { data: lines } = await db.from("order_items").select("id, product_id").eq("order_id", orderId).is("shop_unit_price", null).not("product_id", "is", null);
+    for (const l of lines ?? []) {
+      const price = shopPrice.get(l.product_id as string);
+      if (price) await db.from("order_items").update({ shop_unit_price: price }).eq("id", l.id);
+    }
+  }
 
   private async pendingAssignment(orderId: string, dealerId: string) {
     const { data } = await this.supabase.admin

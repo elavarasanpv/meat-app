@@ -19,6 +19,7 @@ import { Offers } from "./pages/Offers";
 import { ShopOffers } from "./pages/ShopOffers";
 import { RatingsPage } from "./pages/Ratings";
 import { PricingPage } from "./pages/Pricing";
+import { PnlPage } from "./pages/Pnl";
 import { CatalogPage } from "./pages/Catalog";
 import { DeliveryPage } from "./pages/Delivery";
 import { Privacy, Terms } from "./pages/Legal";
@@ -48,6 +49,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
               <Route path="/offers" element={<Offers />} />
               <Route path="/shop-offers" element={<ShopOffers />} />
               <Route path="/pricing" element={<PricingPage />} />
+              <Route path="/pnl" element={<PnlPage />} />
               <Route path="/delivery" element={<DeliveryPage />} />
               <Route path="/catalog" element={<CatalogPage />} />
               <Route path="/ratings" element={<RatingsPage />} />

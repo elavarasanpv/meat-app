@@ -402,6 +402,12 @@ export function PricingPage() {
                                 />
                               </div>
                               {mk?.at && <div className="text-[10.5px] text-muted">updated {ago(mk.at)}</div>}
+                              {mk && p.costs[s.id] != null && (
+                                <div className="text-right text-[10.5px] font-bold leading-snug" title="Against this shop's market price. Profit still uses the cost, not the market price.">
+                                  <div className={mk.price - p.costs[s.id] > 0 ? "text-ok" : "text-bad"}>Our benefit vs market {mk.price - p.costs[s.id] < 0 ? "−" : ""}₹{Math.abs(Math.round(mk.price - p.costs[s.id]))}</div>
+                                  <div className={mk.price - effSell >= 0 ? "text-ok" : "text-bad"}>{mk.price - effSell >= 0 ? `Customer saves ₹${Math.round(mk.price - effSell)}` : `Customer pays ₹${Math.round(effSell - mk.price)} above market`}</div>
+                                </div>
+                              )}
                               {listing && (
                                 <button
                                   type="button"
@@ -428,7 +434,7 @@ export function PricingPage() {
           {d && !d.products.length && <Empty>No products.</Empty>}
         </section>
         <div className="mt-2 text-[11px] text-muted">
-          Market price is for your reference only: it does not change what customers pay or what the shop is paid. "Was ₹" is the price before discount, shown struck through to customers when it is above the selling price.
+          Market price is for your reference only: it does not change what customers pay or what the shop is paid, and profit never uses it. "Our benefit vs market" is market − cost; "Customer saves" is market − selling price. "Was ₹" is the price before discount, shown struck through to customers when it is above the selling price.
           {" "}New orders use the new price at once; already-placed orders keep the price they were placed at. Profit uses the cheapest shop when several stock a product.
           In % mode the selling price follows the shop cost: highest shop cost plus the margin, rounded up to the rupee, recomputed whenever a cost changes. Typing a ₹ price switches back to fixed.
         </div>

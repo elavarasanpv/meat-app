@@ -392,6 +392,15 @@ export const adminMeatProductSchema = z.object({
   /** null removes the discount. */
   wasPrice: z.number().positive().max(100000).nullable().optional(),
 });
+/** Spending outside orders, for the P&L. */
+export const EXPENSE_CATEGORIES = ["rider_pay", "marketing", "fuel", "staff", "packaging", "rent", "tech", "other"] as const;
+export const adminExpenseSchema = z.object({
+  spentOn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  category: z.enum(EXPENSE_CATEGORIES),
+  amount: z.number().positive().max(10000000),
+  note: z.string().trim().max(200).optional().nullable(),
+});
+export type AdminExpenseInput = z.infer<typeof adminExpenseSchema>;
 export type AdminMarketPriceInput = z.infer<typeof adminMarketPriceSchema>;
 export type AdminMeatStockInput = z.infer<typeof adminMeatStockSchema>;
 export type AdminMeatProductInput = z.infer<typeof adminMeatProductSchema>;

@@ -1,10 +1,11 @@
-import { BadRequestException, Body, Controller, Delete, Get, Headers, Param, Patch, Post, Query, UploadedFile, UseInterceptors } from "@nestjs/common";
+import { BadRequestException, Body, Controller, Delete, Get, Headers, Param, ParseUUIDPipe, Patch, Post, Query, UploadedFile, UseInterceptors } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
-import { adminHeadlineSchema, adminOfferSchema, ticketResolveSchema, ticketReplySchema, adminInviteSchema, adminProfileSchema, adminCancelSchema, adminCashVerifySchema, adminReassignShopSchema, adminRiderSchema, adminShopSchema, adminBroadcastSchema, adminSellPriceSchema, adminShopPriceSchema, adminMarginSchema, adminMarketPriceSchema, adminMeatStockSchema, adminMeatProductSchema, deliveryRuleSchema, deliveryFirstFreeSchema, deliveryTestSchema, appChargeDefaultSchema, appChargeShopSchema } from "@thanjozmart/shared";
+import { adminHeadlineSchema, adminOfferSchema, ticketResolveSchema, ticketReplySchema, adminInviteSchema, adminProfileSchema, adminCancelSchema, adminCashVerifySchema, adminReassignShopSchema, adminRiderSchema, adminShopSchema, adminBroadcastSchema, adminSellPriceSchema, adminShopPriceSchema, adminMarginSchema, adminMarketPriceSchema, adminMeatStockSchema, adminMeatProductSchema, adminExpenseSchema, deliveryRuleSchema, deliveryFirstFreeSchema, deliveryTestSchema, appChargeDefaultSchema, appChargeShopSchema } from "@thanjozmart/shared";
 import type { ZodTypeAny, z } from "zod";
 import { AdminOpsService } from "./admin-ops.service";
 import { AdminAccountService } from "./admin-account.service";
 import { DeliverySettingsService } from "./delivery-settings.service";
+import { PnlService } from "./pnl.service";
 import { SupportService } from "../support/support.service";
 import { OffersService } from "../offers/offers.service";
 import { SupabaseService } from "../supabase.service";
@@ -23,6 +24,7 @@ export class AdminController {
     private readonly offersSvc: OffersService,
     private readonly images: ImagesService,
     private readonly delivery: DeliverySettingsService,
+    private readonly pnlSvc: PnlService,
   ) {}
 
   private guard(auth: string | undefined) {
@@ -269,6 +271,31 @@ export class AdminController {
   async priceHistory(@Headers("authorization") auth: string | undefined) {
     await this.guard(auth);
     return this.ops.priceHistory();
+  }
+
+  // ── profit and loss ──
+  @Get("pnl")
+  async pnl(@Headers("authorization") auth: string | undefined, @Query("from") from: string, @Query("to") to: string) {
+    await this.guard(auth);
+    return this.pnlSvc.pnl(from, to);
+  }
+
+  @Get("expenses")
+  async expenses(@Headers("authorization") auth: string | undefined, @Query("from") from: string, @Query("to") to: string) {
+    await this.guard(auth);
+    return this.pnlSvc.listExpenses(from, to);
+  }
+
+  @Post("expenses")
+  async addExpense(@Headers("authorization") auth: string | undefined, @Body() body: unknown) {
+    const a = await this.guard(auth);
+    return this.pnlSvc.addExpense(a.id, parse(adminExpenseSchema, body));
+  }
+
+  @Delete("expenses/:id")
+  async removeExpense(@Headers("authorization") auth: string | undefined, @Param("id", new ParseUUIDPipe()) id: string) {
+    const a = await this.guard(auth);
+    return this.pnlSvc.removeExpense(a.id, id);
   }
 
   // ── promo pushes ──
