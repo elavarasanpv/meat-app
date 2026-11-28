@@ -180,6 +180,8 @@ export type StockRow = { product_id: string; name: string; name_ta: string | nul
   /** Grocery listings only: the three prices, and whether the shop has hidden it from customers. */
   prices?: { mrp: number | null; selling: number; shop: number };
   hidden?: boolean;
+  /** Meat listings only: the shop's live market (counter) price; null until the shop sets it. */
+  market?: { price: number | null; at: string | null };
 };
 
 const OTHER: Group = { name: "Other", name_ta: null, sort: 99 };
@@ -198,7 +200,7 @@ export function useStock(dealerId: string | undefined) {
       const [meat, grocery] = await Promise.all([
         supabase
           .from("dealer_products")
-          .select("product_id, out_of_stock_until, products(name, name_ta, unit, image_path, categories(name, name_ta, sort), subcategories(name, name_ta, sort, image_path))")
+          .select("product_id, out_of_stock_until, market_price, market_price_at, products(name, name_ta, unit, image_path, categories(name, name_ta, sort), subcategories(name, name_ta, sort, image_path))")
           .eq("dealer_id", dealerId!),
         supabase
           .from("store_products")
@@ -218,6 +220,7 @@ export function useStock(dealerId: string | undefined) {
           image_path: p.image_path,
           category: p.categories ?? OTHER,
           subcategory: p.subcategories,
+          market: { price: r.market_price == null ? null : Number(r.market_price), at: r.market_price_at },
         };
       });
       const groceryRows: StockRow[] = (grocery.data ?? []).flatMap((r) => {
@@ -248,6 +251,15 @@ export function useSetStock() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (p: { productId: string; outOfStockUntil: string | null }) => api("/dealer/stock", { method: "POST", body: p }),
+    onSettled: () => qc.invalidateQueries({ queryKey: ["dealer", "stock"] }),
+  });
+}
+
+/** A meat shop keeps its live market price current; the admin sees it at once. */
+export function useSetMarketPrice() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (p: { productId: string; price: number }) => api("/dealer/market-price", { method: "POST", body: p }),
     onSettled: () => qc.invalidateQueries({ queryKey: ["dealer", "stock"] }),
   });
 }

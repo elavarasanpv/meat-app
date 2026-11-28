@@ -1,6 +1,6 @@
 import { BadRequestException, Body, Controller, Get, Headers, Param, Post } from "@nestjs/common";
 import { z } from "zod";
-import { appChargeBasis, dealerAcceptSchema, dealerRejectSchema, itemPhotoSchema, itemUnavailableSchema, shopStateSchema, stockSchema, weighItemSchema } from "@thanjozmart/shared";
+import { appChargeBasis, dealerAcceptSchema, dealerRejectSchema, itemPhotoSchema, itemUnavailableSchema, marketPriceSchema, shopStateSchema, stockSchema, weighItemSchema } from "@thanjozmart/shared";
 import { SupabaseService } from "../supabase.service";
 import { requireUser } from "../auth";
 import { DealerService } from "./dealer.service";
@@ -114,5 +114,12 @@ export class DealerController {
   async stock(@Headers("authorization") auth: string | undefined, @Body() body: unknown) {
     const user = await requireUser(this.supabase, auth);
     return this.dealer.setStock(user.id, parse(stockSchema, body));
+  }
+
+  /** POST /dealer/market-price { productId, price } — a meat shop's live market price. */
+  @Post("market-price")
+  async marketPrice(@Headers("authorization") auth: string | undefined, @Body() body: unknown) {
+    const user = await requireUser(this.supabase, auth);
+    return this.dealer.setMarketPrice(user.id, parse(marketPriceSchema, body));
   }
 }

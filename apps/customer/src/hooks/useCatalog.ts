@@ -12,6 +12,8 @@ export type Product = {
   name: string;
   name_ta: string | null;
   base_price_per_kg: number; // price per unit (kg or piece)
+  /** Price before discount; shown struck through when above the price the customer pays. */
+  was_price: number | null;
   unit: ProductUnit;
   image_path: string | null;
 };
@@ -125,7 +127,7 @@ export function useProducts(categoryId?: string | null) {
     queryFn: async () => {
       let q = supabase
         .from("products")
-        .select("id, category_id, subcategory_id, name, name_ta, base_price_per_kg, unit, image_path")
+        .select("id, category_id, subcategory_id, name, name_ta, base_price_per_kg, was_price, unit, image_path")
         .eq("is_active", true)
         .order("name");
       if (categoryId) q = q.eq("category_id", categoryId);

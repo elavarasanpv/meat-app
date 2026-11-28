@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Image, Pressable, ScrollView, TextInput, View } from "react-native";
 import { useRouter } from "expo-router";
 import { Icon } from "@/components/Icon";
-import { useSetStock, useStock, type StockRow } from "@/hooks/useDealer";
+import { useSetMarketPrice, useSetStock, useStock, type StockRow } from "@/hooks/useDealer";
 import { usePullRefresh } from "@/hooks/usePullRefresh";
 import { useLang, useT, type TKey } from "@/i18n";
 import { categoryImage, productImage, subcategoryImage } from "@/lib/images";
@@ -41,6 +41,83 @@ function StockSwitch({ value, onChange }: { value: State; onChange: (s: State) =
   );
 }
 
+/** The meat shop's own counter price for today: shown, and changed in place. */
+function MarketPrice({ row }: { row: StockRow }) {
+  const c = useC();
+  const t = useT();
+  const save = useSetMarketPrice();
+  const [editing, setEditing] = useState(false);
+  const [text, setText] = useState("");
+  const [bad, setBad] = useState(false);
+  const price = row.market?.price ?? null;
+  const unit = t(row.unit === "piece" ? "marketPerPiece" : "marketPerKg");
+  const start = () => {
+    setText(price == null ? "" : String(price));
+    setBad(false);
+    save.reset();
+    setEditing(true);
+  };
+  const submit = () => {
+    const n = Number(text.replace(",", ".").trim());
+    if (!Number.isFinite(n) || n <= 0 || n > 100000) return setBad(true);
+    save.mutate({ productId: row.product_id, price: Math.round(n * 100) / 100 }, { onSuccess: () => setEditing(false) });
+  };
+  const pill = { minHeight: 44, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 22, alignItems: "center" as const, justifyContent: "center" as const };
+  return (
+    <View style={{ padding: 12, borderRadius: 14, backgroundColor: c.surface2, gap: 8 }}>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+        <View style={{ flex: 1 }}>
+          <Txt size={12} muted>{t("marketPrice")}{price == null ? ` · ${t(row.unit === "piece" ? "marketPerPieceLong" : "marketPerKgLong")}` : ""}</Txt>
+          {editing ? null : price != null ? (
+            <Txt bold size={20}>
+              ₹{price} <Txt bold size={15} muted>/ {unit}</Txt>
+            </Txt>
+          ) : (
+            <Txt bold size={15} color={c.warning}>{t("marketNotSet")}</Txt>
+          )}
+        </View>
+        {editing ? null : (
+          <Pressable onPress={start} accessibilityRole="button" style={[pill, { backgroundColor: c.surface, borderWidth: 1.5, borderColor: c.primary }]}>
+            <Txt bold size={14} color={c.primary} style={{ textAlign: "center" }}>{t(price == null ? "marketSet" : "marketUpdate")}</Txt>
+          </Pressable>
+        )}
+      </View>
+      {editing ? (
+        <>
+          <Txt bold size={13}>{t(row.unit === "piece" ? "marketPriceOfPiece" : "marketPriceOf")}</Txt>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 14, minHeight: 52, borderRadius: 14, borderWidth: 1.5, borderColor: bad ? c.danger : c.primary, backgroundColor: c.surface }}>
+            <Txt bold size={18}>₹</Txt>
+            <TextInput
+              value={text}
+              onChangeText={(v) => {
+                setText(v.replace(/[^0-9.]/g, ""));
+                setBad(false);
+              }}
+              autoFocus
+              keyboardType="decimal-pad"
+              returnKeyType="done"
+              onSubmitEditing={submit}
+              allowFontScaling={false}
+              placeholderTextColor={c.muted}
+              style={{ flex: 1, minHeight: 52, padding: 0, fontFamily: "Manrope_700Bold", fontSize: 18, color: c.ink }}
+            />
+            <Txt bold size={15} muted>/ {unit}</Txt>
+          </View>
+          {bad ? <Txt size={13} color={c.danger}>{t("marketBad")}</Txt> : save.isError ? <Txt size={13} color={c.danger}>{t("marketFailed")}</Txt> : <Txt size={12} muted>{t("marketHint")}</Txt>}
+          <View style={{ flexDirection: "row", gap: 8 }}>
+            <Pressable onPress={() => setEditing(false)} disabled={save.isPending} accessibilityRole="button" style={[pill, { flex: 1, backgroundColor: c.surface, borderWidth: 1.5, borderColor: c.border }]}>
+              <Txt bold size={14} style={{ textAlign: "center" }}>{t("marketCancel")}</Txt>
+            </Pressable>
+            <Pressable onPress={submit} disabled={save.isPending} accessibilityRole="button" style={[pill, { flex: 1, backgroundColor: c.primary, opacity: save.isPending ? 0.6 : 1 }]}>
+              <Txt bold size={14} color="#FFFFFF" style={{ textAlign: "center" }}>{t("marketSave")}</Txt>
+            </Pressable>
+          </View>
+        </>
+      ) : null}
+    </View>
+  );
+}
+
 function Row({ row, onChange, onOpen }: { row: StockRow; onChange: (s: State) => void; onOpen?: () => void }) {
   const c = useC();
   const t = useT();
@@ -67,6 +144,7 @@ function Row({ row, onChange, onOpen }: { row: StockRow; onChange: (s: State) =>
         </View>
         {onOpen ? <Icon name="chevronRight" color={c.muted} size={20} /> : null}
       </Pressable>
+      {row.market ? <MarketPrice row={row} /> : null}
       <StockSwitch value={state} onChange={onChange} />
     </View>
   );

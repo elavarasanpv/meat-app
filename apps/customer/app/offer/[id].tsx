@@ -49,6 +49,7 @@ export default function OfferScreen() {
             width={cardWidth}
             name={localName(p)}
             pricePerKg={Number(p.base_price_per_kg)}
+            wasPrice={p.was_price}
             unit={p.unit}
             image={productImage(p.name, p.image_path)}
             offerTag={o ? offerTag(o) : null}

@@ -1,6 +1,6 @@
 import { BadRequestException, Body, Controller, Delete, Get, Headers, Param, Patch, Post, Query, UploadedFile, UseInterceptors } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
-import { adminHeadlineSchema, adminOfferSchema, ticketResolveSchema, ticketReplySchema, adminInviteSchema, adminProfileSchema, adminCancelSchema, adminCashVerifySchema, adminReassignShopSchema, adminRiderSchema, adminShopSchema, adminBroadcastSchema, adminSellPriceSchema, adminShopPriceSchema, adminMarginSchema, deliveryRuleSchema, deliveryFirstFreeSchema, deliveryTestSchema, appChargeDefaultSchema, appChargeShopSchema } from "@thanjozmart/shared";
+import { adminHeadlineSchema, adminOfferSchema, ticketResolveSchema, ticketReplySchema, adminInviteSchema, adminProfileSchema, adminCancelSchema, adminCashVerifySchema, adminReassignShopSchema, adminRiderSchema, adminShopSchema, adminBroadcastSchema, adminSellPriceSchema, adminShopPriceSchema, adminMarginSchema, adminMarketPriceSchema, adminMeatStockSchema, adminMeatProductSchema, deliveryRuleSchema, deliveryFirstFreeSchema, deliveryTestSchema, appChargeDefaultSchema, appChargeShopSchema } from "@thanjozmart/shared";
 import type { ZodTypeAny, z } from "zod";
 import { AdminOpsService } from "./admin-ops.service";
 import { AdminAccountService } from "./admin-account.service";
@@ -245,6 +245,24 @@ export class AdminController {
   async margin(@Headers("authorization") auth: string | undefined, @Body() body: unknown) {
     const a = await this.guard(auth);
     return this.ops.setMargin(a.id, parse(adminMarginSchema, body));
+  }
+
+  @Post("pricing/market")
+  async marketPrice(@Headers("authorization") auth: string | undefined, @Body() body: unknown) {
+    const a = await this.guard(auth);
+    return this.ops.setMarketPrice(a.id, parse(adminMarketPriceSchema, body));
+  }
+
+  @Post("pricing/stock")
+  async meatStock(@Headers("authorization") auth: string | undefined, @Body() body: unknown) {
+    const a = await this.guard(auth);
+    return this.ops.setMeatStock(a.id, parse(adminMeatStockSchema, body));
+  }
+
+  @Post("pricing/product")
+  async meatProduct(@Headers("authorization") auth: string | undefined, @Body() body: unknown) {
+    const a = await this.guard(auth);
+    return this.ops.setMeatProduct(a.id, parse(adminMeatProductSchema, body));
   }
 
   @Get("pricing/history")

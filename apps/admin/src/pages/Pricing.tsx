@@ -8,7 +8,33 @@ import { IconCheck, IconX } from "../ui/icons";
 type Pricing = {
   dealers: { id: string; shop_name: string }[];
   pincodes: { pincode: string; area: string | null }[];
-  products: { id: string; name: string; nameTa: string | null; unit: "kg" | "piece"; category: string; sellingPrice: number; marginPct: number | null; overrides: Record<string, number>; costs: Record<string, number> }[];
+  products: {
+    id: string;
+    name: string;
+    nameTa: string | null;
+    unit: "kg" | "piece";
+    category: string;
+    isActive: boolean;
+    sellingPrice: number;
+    /** Price before discount; customers see it struck through. */
+    wasPrice: number | null;
+    marginPct: number | null;
+    overrides: Record<string, number>;
+    costs: Record<string, number>;
+    /** The shop's live market (counter) price, by shop. */
+    market: Record<string, { price: number; at: string | null }>;
+    /** Shops that list the product, with when it is out of stock until (null = in stock). */
+    stock: Record<string, { outOfStockUntil: string | null }>;
+  }[];
+};
+
+const ago = (iso: string | null) => {
+  if (!iso) return "";
+  const min = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
+  if (min < 1) return "just now";
+  if (min < 60) return `${min} min ago`;
+  if (min < 48 * 60) return `${Math.round(min / 60)} h ago`;
+  return `${Math.round(min / 1440)} days ago`;
 };
 
 /**
@@ -141,6 +167,27 @@ export function PricingPage() {
       refresh();
     },
   });
+  const market = useMutation({
+    mutationFn: (body: { dealerId: string; productId: string; price: number | null }) => api("/admin/pricing/market", { method: "POST", body }),
+    onSettled: () => {
+      setSavingKey(null);
+      refresh();
+    },
+  });
+  const stock = useMutation({
+    mutationFn: (body: { dealerId: string; productId: string; outOfStockUntil: string | null }) => api("/admin/pricing/stock", { method: "POST", body }),
+    onSettled: () => {
+      setSavingKey(null);
+      refresh();
+    },
+  });
+  const product = useMutation({
+    mutationFn: (body: { productId: string; unit?: "kg" | "piece"; isActive?: boolean; wasPrice?: number | null }) => api("/admin/pricing/product", { method: "POST", body }),
+    onSettled: () => {
+      setSavingKey(null);
+      refresh();
+    },
+  });
   /** Products switched to % but with no margin saved yet. */
   const [pendingMargin, setPendingMargin] = useState<Record<string, true>>({});
   /** Margin % being typed, by product: the price beside it previews the result before saving. */
@@ -154,10 +201,10 @@ export function PricingPage() {
     <div className="pb-6">
       <PageHeader
         title="Pricing"
-        sub="Selling price is what customers pay; shop price is what you owe the shop. Profit is the difference, before delivery costs."
+        sub="Selling price is what customers pay; cost is what you owe the shop. Profit is the difference, before delivery costs. Market is the shop's own counter price, which the shop keeps up to date from its app."
       />
       <div className="px-4 pt-3 md:px-6">
-        <ErrorBox error={q.error ?? sell.error ?? shop.error ?? margin.error} />
+        <ErrorBox error={q.error ?? sell.error ?? shop.error ?? margin.error ?? market.error ?? stock.error ?? product.error} />
         <Segments value={scope} onChange={setScope} items={scopeItems} />
         {pincode && (
           <div className="mt-2 text-[12px] font-bold text-muted">
@@ -170,10 +217,10 @@ export function PricingPage() {
           <table className="w-full min-w-[720px] border-collapse text-[12.5px]">
             <thead>
               <tr className="bg-surface-2/60 text-left text-[10.5px] font-extrabold uppercase tracking-wide text-muted">
-                <th className="px-4 py-2">Product</th>
+                <th className="min-w-[210px] px-4 py-2">Product</th>
                 <th className="w-[340px] min-w-[340px] px-3 py-2 text-right">Selling price {pincode ? `· ${pincode}` : "· default"}</th>
                 {(d?.dealers ?? []).map((s) => (
-                  <th key={s.id} className="w-[200px] min-w-[200px] px-3 py-2 text-right">{s.shop_name} (cost)</th>
+                  <th key={s.id} className="w-[220px] min-w-[220px] px-3 py-2 text-right">{s.shop_name}</th>
                 ))}
                 <th className="w-[160px] min-w-[160px] px-3 py-2">Profit</th>
               </tr>
@@ -196,10 +243,33 @@ export function PricingPage() {
                         <td colSpan={3 + (d?.dealers.length ?? 0)} className="border-t border-line bg-ground px-4 py-1.5 text-[10.5px] font-extrabold uppercase tracking-wide text-muted">{p.category}</td>
                       </tr>
                     )}
-                    <tr key={p.id} className="border-t border-line">
+                    <tr key={p.id} className="border-t border-line align-top">
                       <td className="px-4 py-2">
-                        <div className="font-bold">{p.name}</div>
-                        <div className="text-[11px] text-muted">{p.nameTa ?? ""} · per {p.unit === "kg" ? "kg" : "piece"}</div>
+                        <div className={`font-bold ${p.isActive ? "" : "text-muted line-through"}`}>{p.name}</div>
+                        {p.nameTa && <div className="text-[11px] text-muted">{p.nameTa}</div>}
+                        <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                          <select
+                            aria-label={`Unit for ${p.name}`}
+                            title="How it is sold and priced"
+                            className="h-7 rounded-lg border border-line bg-surface px-2 text-[11px] font-bold text-ink outline-none focus:border-primary"
+                            value={p.unit}
+                            disabled={product.isPending}
+                            onChange={(e) => product.mutate({ productId: p.id, unit: e.target.value as "kg" | "piece" })}
+                          >
+                            <option value="kg">per kg</option>
+                            <option value="piece">per piece</option>
+                          </select>
+                          <button
+                            type="button"
+                            aria-pressed={p.isActive}
+                            title={p.isActive ? "Customers can order this. Click to take it off sale everywhere." : "Hidden from customers. Click to put it back on sale."}
+                            disabled={product.isPending}
+                            onClick={() => product.mutate({ productId: p.id, isActive: !p.isActive })}
+                            className={`h-7 rounded-lg border px-2 text-[11px] font-extrabold transition ${p.isActive ? "border-ok/40 bg-ok/10 text-ok" : "border-line bg-surface-2 text-muted"}`}
+                          >
+                            {p.isActive ? "On sale" : "Off sale"}
+                          </button>
+                        </div>
                       </td>
                       <td className="px-3 py-2 text-right">
                         <div className="flex items-center justify-end gap-1.5">
@@ -266,21 +336,88 @@ export function PricingPage() {
                             />
                           )}
                         </div>
+                        {!pincode && (
+                          <div className="mt-1.5 flex items-center justify-end gap-1.5">
+                            {p.wasPrice != null && p.wasPrice > p.sellingPrice && <Chip tone="ok">{Math.round(((p.wasPrice - p.sellingPrice) / p.wasPrice) * 100)}% off</Chip>}
+                            {p.wasPrice != null && p.wasPrice <= p.sellingPrice && <span className="text-[10.5px] font-bold text-bad">not shown: below selling price</span>}
+                            {p.wasPrice != null && (
+                              <button
+                                type="button"
+                                title="Remove the discount"
+                                aria-label={`Remove the discount on ${p.name}`}
+                                className="rounded-full bg-surface-2 px-2 py-0.5 text-[10.5px] font-extrabold text-muted hover:text-ink"
+                                onClick={() => {
+                                  setSavingKey(`w-${p.id}`);
+                                  product.mutate({ productId: p.id, wasPrice: null });
+                                }}
+                              >
+                                remove
+                              </button>
+                            )}
+                            <span className="text-[10.5px] font-extrabold uppercase tracking-wide text-muted" title="The price before discount. Customers see it struck through next to the selling price.">Was ₹</span>
+                            <PriceCell
+                              label={`Price before discount for ${p.name}`}
+                              value={p.wasPrice}
+                              placeholder="none"
+                              saving={savingKey === `w-${p.id}` && (product.isPending || q.isFetching)}
+                              onSave={(v) => {
+                                setSavingKey(`w-${p.id}`);
+                                product.mutate({ productId: p.id, wasPrice: v });
+                              }}
+                            />
+                          </div>
+                        )}
                       </td>
-                      {(d?.dealers ?? []).map((s) => (
-                        <td key={s.id} className="px-3 py-2 text-right">
-                          <PriceCell
-                            label={`${s.shop_name} cost for ${p.name}`}
-                            value={p.costs[s.id] ?? null}
-                            placeholder="—"
-                            saving={savingKey === `c-${p.id}-${s.id}` && (shop.isPending || q.isFetching)}
-                            onSave={(v) => {
-                              setSavingKey(`c-${p.id}-${s.id}`);
-                              shop.mutate({ dealerId: s.id, productId: p.id, price: v });
-                            }}
-                          />
-                        </td>
-                      ))}
+                      {(d?.dealers ?? []).map((s) => {
+                        const listing = p.stock[s.id];
+                        const out = !!listing?.outOfStockUntil;
+                        const mk = p.market[s.id];
+                        return (
+                          <td key={s.id} className="px-3 py-2 text-right">
+                            <div className="flex flex-col items-end gap-1.5">
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-[10.5px] font-extrabold uppercase tracking-wide text-muted" title="What you pay this shop">Cost</span>
+                                <PriceCell
+                                  label={`${s.shop_name} cost for ${p.name}`}
+                                  value={p.costs[s.id] ?? null}
+                                  placeholder="—"
+                                  saving={savingKey === `c-${p.id}-${s.id}` && (shop.isPending || q.isFetching)}
+                                  onSave={(v) => {
+                                    setSavingKey(`c-${p.id}-${s.id}`);
+                                    shop.mutate({ dealerId: s.id, productId: p.id, price: v });
+                                  }}
+                                />
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-[10.5px] font-extrabold uppercase tracking-wide text-muted" title={mk?.at ? `The shop's own counter price, updated ${ago(mk.at)}` : "The shop's own counter price. The shop updates it from its app."}>Market</span>
+                                <PriceCell
+                                  label={`${s.shop_name} market price for ${p.name}`}
+                                  value={mk?.price ?? null}
+                                  placeholder="—"
+                                  saving={savingKey === `m-${p.id}-${s.id}` && (market.isPending || q.isFetching)}
+                                  onSave={(v) => {
+                                    setSavingKey(`m-${p.id}-${s.id}`);
+                                    market.mutate({ dealerId: s.id, productId: p.id, price: v });
+                                  }}
+                                />
+                              </div>
+                              {mk?.at && <div className="text-[10.5px] text-muted">updated {ago(mk.at)}</div>}
+                              {listing && (
+                                <button
+                                  type="button"
+                                  aria-pressed={!out}
+                                  title={out ? (listing.outOfStockUntil === "infinity" ? "Out of stock until switched back on. Click to put it in stock." : `Out of stock until ${new Date(listing.outOfStockUntil!).toLocaleString()}. Click to put it in stock.`) : "In stock at this shop. Click to mark it out of stock."}
+                                  disabled={stock.isPending}
+                                  onClick={() => stock.mutate({ dealerId: s.id, productId: p.id, outOfStockUntil: out ? null : "infinity" })}
+                                  className={`h-7 rounded-lg border px-2 text-[11px] font-extrabold transition ${out ? "border-bad/40 bg-bad/10 text-bad" : "border-ok/40 bg-ok/10 text-ok"}`}
+                                >
+                                  {out ? "Out of stock" : "In stock"}
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        );
+                      })}
                       <td className="px-3 py-2"><Profit sell={effSell} cost={minCost} /></td>
                     </tr>
                   </>
@@ -288,10 +425,11 @@ export function PricingPage() {
               })}
             </tbody>
           </table>
-          {d && !d.products.length && <Empty>No active products.</Empty>}
+          {d && !d.products.length && <Empty>No products.</Empty>}
         </section>
         <div className="mt-2 text-[11px] text-muted">
-          New orders use the new price at once; already-placed orders keep the price they were placed at. Profit uses the cheapest shop when several stock a product.
+          Market price is for your reference only: it does not change what customers pay or what the shop is paid. "Was ₹" is the price before discount, shown struck through to customers when it is above the selling price.
+          {" "}New orders use the new price at once; already-placed orders keep the price they were placed at. Profit uses the cheapest shop when several stock a product.
           In % mode the selling price follows the shop cost: highest shop cost plus the margin, rounded up to the rupee, recomputed whenever a cost changes. Typing a ₹ price switches back to fixed.
         </div>
       </div>

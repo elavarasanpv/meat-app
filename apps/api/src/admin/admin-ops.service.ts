@@ -1,5 +1,5 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from "@nestjs/common";
-import type { AdminBroadcastInput, AdminRiderInput, AdminMarginInput, AdminSellPriceInput, AdminShopInput, AdminShopPriceInput } from "@thanjozmart/shared";
+import type { AdminBroadcastInput, AdminRiderInput, AdminMarginInput, AdminMarketPriceInput, AdminMeatProductInput, AdminMeatStockInput, AdminSellPriceInput, AdminShopInput, AdminShopPriceInput } from "@thanjozmart/shared";
 import { SupabaseService } from "../supabase.service";
 import { withProductShapes } from "../orders/item-shape";
 import { OrdersService } from "../orders/orders.service";
@@ -44,9 +44,10 @@ export class AdminOpsService {
   async pricing() {
     const db = this.supabase.admin;
     const [{ data: products }, { data: overrides }, { data: costs }, { data: dealers }, { data: pins }] = await Promise.all([
-      db.from("products").select("id, name, name_ta, unit, base_price_per_kg, margin_pct, is_active, categories(name, sort)").eq("is_active", true),
+      // Products taken off sale stay on the page, so the admin can put them back.
+      db.from("products").select("id, name, name_ta, unit, base_price_per_kg, was_price, margin_pct, is_active, categories(name, sort)"),
       db.from("product_prices").select("product_id, pincode, price_per_kg"),
-      db.from("dealer_products").select("dealer_id, product_id, price_per_kg"),
+      db.from("dealer_products").select("dealer_id, product_id, price_per_kg, market_price, market_price_at, out_of_stock_until"),
       // Only meat shops: grocery stores price their own catalogue (store_products).
       db.from("dealers").select("id, shop_name").eq("is_active", true).eq("store_type", "meat").order("shop_name"),
       db.from("zone_pincodes").select("pincode, area").order("pincode"),
@@ -58,7 +59,21 @@ export class AdminOpsService {
       over.set(o.product_id, m);
     }
     const cost = new Map<string, Record<string, number>>();
+    // Per shop: the live market price and whether the shop has it in stock now.
+    const market = new Map<string, Record<string, { price: number; at: string | null }>>();
+    const listed = new Map<string, Record<string, { outOfStockUntil: string | null }>>();
+    const now = Date.now();
     for (const c of costs ?? []) {
+      const until = c.out_of_stock_until as string | null;
+      const out = until != null && (until === "infinity" || new Date(until).getTime() > now);
+      const l = listed.get(c.product_id) ?? {};
+      l[c.dealer_id] = { outOfStockUntil: out ? until : null };
+      listed.set(c.product_id, l);
+      if (c.market_price != null) {
+        const k = market.get(c.product_id) ?? {};
+        k[c.dealer_id] = { price: Number(c.market_price), at: c.market_price_at };
+        market.set(c.product_id, k);
+      }
       if (c.price_per_kg == null) continue;
       const m = cost.get(c.product_id) ?? {};
       m[c.dealer_id] = Number(c.price_per_kg);
@@ -77,10 +92,14 @@ export class AdminOpsService {
             unit: p.unit,
             category: c?.name ?? "Other",
             sort: c?.sort ?? 99,
+            isActive: p.is_active as boolean,
             sellingPrice: Number(p.base_price_per_kg),
+            wasPrice: p.was_price == null ? null : Number(p.was_price),
             marginPct: p.margin_pct == null ? null : Number(p.margin_pct),
             overrides: over.get(p.id as string) ?? {},
             costs: cost.get(p.id as string) ?? {},
+            market: market.get(p.id as string) ?? {},
+            stock: listed.get(p.id as string) ?? {},
           };
         })
         .sort((a, b) => a.sort - b.sort || a.name.localeCompare(b.name)),
@@ -127,6 +146,51 @@ export class AdminOpsService {
     await db.from("price_history").insert({ product_id: input.productId, kind: "shop", dealer_id: input.dealerId, old_price: old, new_price: input.price, changed_by: adminId });
     await this.audit.log(adminId, "price.shop", input.productId, { dealerId: input.dealerId, from: old, to: input.price });
     await this.applyMargin(adminId, input.productId);
+    return { ok: true };
+  }
+
+  /** The live market (counter) price at one shop. The shop sets it from its app; the admin can correct it. */
+  async setMarketPrice(adminId: string, input: AdminMarketPriceInput) {
+    const db = this.supabase.admin;
+    const { data: existing } = await db.from("dealer_products").select("market_price").eq("dealer_id", input.dealerId).eq("product_id", input.productId).maybeSingle();
+    const old = existing?.market_price == null ? null : Number(existing.market_price);
+    if (old === input.price) return { ok: true };
+    const { error } = await db
+      .from("dealer_products")
+      .upsert({ dealer_id: input.dealerId, product_id: input.productId, market_price: input.price, market_price_at: input.price == null ? null : new Date().toISOString() }, { onConflict: "dealer_id,product_id" });
+    if (error) throw new BadRequestException(error.message);
+    if (input.price != null) await db.from("price_history").insert({ product_id: input.productId, kind: "market", dealer_id: input.dealerId, old_price: old, new_price: input.price, changed_by: adminId });
+    await this.audit.log(adminId, "price.market", input.productId, { dealerId: input.dealerId, from: old, to: input.price });
+    return { ok: true };
+  }
+
+  /** In or out of stock for a meat product at one shop, set by the admin. */
+  async setMeatStock(adminId: string, input: AdminMeatStockInput) {
+    const db = this.supabase.admin;
+    const { data: row } = await db.from("dealer_products").select("product_id").eq("dealer_id", input.dealerId).eq("product_id", input.productId).maybeSingle();
+    if (!row) throw new NotFoundException("This shop does not sell this product yet. Set its cost first.");
+    const { error } = await db.from("dealer_products").update({ out_of_stock_until: input.outOfStockUntil }).eq("dealer_id", input.dealerId).eq("product_id", input.productId);
+    if (error) throw new BadRequestException(error.message);
+    await this.audit.log(adminId, "stock.meat", input.productId, { dealerId: input.dealerId, outOfStockUntil: input.outOfStockUntil });
+    return { ok: true };
+  }
+
+  /** A meat product's unit, whether it is on sale, and its price before discount. */
+  async setMeatProduct(adminId: string, input: AdminMeatProductInput) {
+    const db = this.supabase.admin;
+    const { data: product } = await db.from("products").select("id, unit, is_active, was_price, base_price_per_kg").eq("id", input.productId).maybeSingle();
+    if (!product) throw new NotFoundException("Product not found");
+    const patch: Record<string, unknown> = {};
+    if (input.unit !== undefined) patch.unit = input.unit;
+    if (input.isActive !== undefined) patch.is_active = input.isActive;
+    if (input.wasPrice !== undefined) {
+      if (input.wasPrice != null && input.wasPrice <= Number(product.base_price_per_kg)) throw new BadRequestException("The price before discount must be above the selling price");
+      patch.was_price = input.wasPrice;
+    }
+    if (!Object.keys(patch).length) return { ok: true };
+    const { error } = await db.from("products").update(patch).eq("id", input.productId);
+    if (error) throw new BadRequestException(error.message);
+    await this.audit.log(adminId, "product.meat", input.productId, { from: { unit: product.unit, isActive: product.is_active, wasPrice: product.was_price == null ? null : Number(product.was_price) }, to: patch });
     return { ok: true };
   }
 
@@ -187,7 +251,7 @@ export class AdminOpsService {
       const c = p ? minCost.get(p.id) ?? null : null;
       return {
         id: r.id,
-        kind: r.kind as "sell" | "shop",
+        kind: r.kind as "sell" | "shop" | "market",
         product: p?.name ?? "—",
         pincode: r.pincode,
         shop: (r.dealers as unknown as { shop_name: string } | null)?.shop_name ?? null,

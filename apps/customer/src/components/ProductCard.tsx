@@ -10,6 +10,8 @@ import { Photo } from "@/components/Photo";
 type Props = {
   name: string;
   pricePerKg: number;
+  /** Price before discount: struck through beside the unit when above the price. */
+  wasPrice?: number | null;
   /** "kg" (default) or "piece" — changes the unit label under the price. */
   unit?: "kg" | "piece";
   /** Transparent PNG cut-out; shown whole (never cropped) on the gradient. */
@@ -28,7 +30,7 @@ const PAD = 12;
  * Product card: white melting into a soft ember glow, dark text, ember "Add".
  * The cut-out is the hero and bleeds to the card edges.
  */
-export function ProductCard({ name, pricePerKg, unit = "kg", image, onAdd, onPress, width, offerTag }: Props) {
+export function ProductCard({ name, pricePerKg, wasPrice, unit = "kg", image, onAdd, onPress, width, offerTag }: Props) {
   const { c, tone, productGradient, productBorder } = useTheme();
   const t = useT();
   const height = Math.round(width * 1.3);
@@ -72,6 +74,8 @@ export function ProductCard({ name, pricePerKg, unit = "kg", image, onAdd, onPre
               ₹ {pricePerKg}
             </AppText>
             <AppText variant="caption" muted numberOfLines={1} style={{ fontSize: 10, lineHeight: 13 }}>
+              {wasPrice != null && Number(wasPrice) > pricePerKg ? <AppText variant="caption" muted style={{ fontSize: 10, lineHeight: 13, textDecorationLine: "line-through" }}>₹{Number(wasPrice)}</AppText> : null}
+              {wasPrice != null && Number(wasPrice) > pricePerKg ? " " : ""}
               {t(unit === "piece" ? "perPiece" : "perKg")}
             </AppText>
           </View>

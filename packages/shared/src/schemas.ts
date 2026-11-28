@@ -176,6 +176,12 @@ export const stockSchema = z.object({
   outOfStockUntil: z.union([z.string().datetime({ offset: true }), z.literal("infinity"), z.null()]),
 });
 
+/** A meat shop updates its live market (counter) price for a product. */
+export const marketPriceSchema = z.object({
+  productId: z.string().uuid(),
+  price: z.number().positive().max(100000),
+});
+
 export const cancelOrderSchema = z.object({
   reason: z.enum(CANCEL_REASONS),
   note: z.string().max(200).optional(),
@@ -201,6 +207,7 @@ export type WeighItemInput = z.infer<typeof weighItemSchema>;
 export type ItemPhotoInput = z.infer<typeof itemPhotoSchema>;
 export type ShopStateInput = z.infer<typeof shopStateSchema>;
 export type StockInput = z.infer<typeof stockSchema>;
+export type MarketPriceInput = z.infer<typeof marketPriceSchema>;
 export type DeliverOrderInput = z.infer<typeof deliverOrderSchema>;
 
 // ───────────────────────── admin ─────────────────────────
@@ -365,6 +372,29 @@ export const adminMarginSchema = z.object({
   productId: z.string().uuid(),
   marginPct: z.number().positive().max(500).nullable(),
 });
+/** The live market (counter) price at one shop; null clears it. */
+export const adminMarketPriceSchema = z.object({
+  dealerId: z.string().uuid(),
+  productId: z.string().uuid(),
+  price: z.number().positive().max(100000).nullable(),
+});
+/** The admin switches a meat product in or out of stock at one shop. */
+export const adminMeatStockSchema = z.object({
+  dealerId: z.string().uuid(),
+  productId: z.string().uuid(),
+  outOfStockUntil: z.union([z.string().datetime({ offset: true }), z.literal("infinity"), z.null()]),
+});
+/** A meat product's own settings: sold per kg or per piece, on sale or not, and the price before discount. */
+export const adminMeatProductSchema = z.object({
+  productId: z.string().uuid(),
+  unit: z.enum(["kg", "piece"]).optional(),
+  isActive: z.boolean().optional(),
+  /** null removes the discount. */
+  wasPrice: z.number().positive().max(100000).nullable().optional(),
+});
+export type AdminMarketPriceInput = z.infer<typeof adminMarketPriceSchema>;
+export type AdminMeatStockInput = z.infer<typeof adminMeatStockSchema>;
+export type AdminMeatProductInput = z.infer<typeof adminMeatProductSchema>;
 export type AdminSellPriceInput = z.infer<typeof adminSellPriceSchema>;
 export type AdminShopPriceInput = z.infer<typeof adminShopPriceSchema>;
 export type AdminMarginInput = z.infer<typeof adminMarginSchema>;

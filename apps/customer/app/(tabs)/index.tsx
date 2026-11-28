@@ -318,6 +318,7 @@ export default function HomeScreen() {
                         width={cardWidth}
                         name={localName(item)}
                         pricePerKg={Number(item.base_price_per_kg)}
+                        wasPrice={item.was_price}
                         unit={item.unit}
                         image={productImage(item.name, item.image_path)}
                         onPress={() => router.push(`/product/${item.id}`)}

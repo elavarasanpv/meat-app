@@ -1,6 +1,6 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import { RIDER_MAX_ACTIVE_ORDERS, RIDER_OFFER_RADIUS_KM, haversineKm } from "@thanjozmart/shared";
-import type { DealerAcceptInput, DealerRejectInput, ItemPhotoInput, ItemUnavailableInput, ShopStateInput, StockInput, WeighItemInput } from "@thanjozmart/shared";
+import type { DealerAcceptInput, DealerRejectInput, ItemPhotoInput, ItemUnavailableInput, MarketPriceInput, ShopStateInput, StockInput, WeighItemInput } from "@thanjozmart/shared";
 import { DELIVERY_FEE, FREE_DELIVERY_ABOVE, NO_APP_CHARGE, PREP_LEAD_MIN, SCHEDULED_AFTER_MIN, appChargeBasis, appChargeFor, effectiveAppCharge } from "@thanjozmart/shared";
 import type { AppChargeMode, AppChargeRule } from "@thanjozmart/shared";
 import { SupabaseService } from "../supabase.service";
@@ -299,7 +299,7 @@ export class DealerService {
 
     // Out of stock for the rest of the day (12 h), so new orders skip this shop.
     const productId = item.product_id ?? item.master_product_id;
-    if (productId) await this.writeStock(dealer.id, productId, new Date(Date.now() + 12 * 3600_000).toISOString());
+    if (productId) await this.writeStock(dealer.id, dealer.store_type, productId, new Date(Date.now() + 12 * 3600_000).toISOString());
     return { orderId: input.orderId, estAmount };
   }
 
@@ -444,11 +444,11 @@ export class DealerService {
    */
   async setStock(profileId: string, input: StockInput) {
     const dealer = await this.resolveDealer(profileId);
-    await this.writeStock(dealer.id, input.productId, input.outOfStockUntil);
+    await this.writeStock(dealer.id, dealer.store_type, input.productId, input.outOfStockUntil);
     return { productId: input.productId, outOfStockUntil: input.outOfStockUntil };
   }
 
-  private async writeStock(dealerId: string, productId: string, outOfStockUntil: string | null) {
+  private async writeStock(dealerId: string, storeType: string, productId: string, outOfStockUntil: string | null) {
     const db = this.supabase.admin;
     const { data: listing } = await db
       .from("store_products")
@@ -456,10 +456,32 @@ export class DealerService {
       .eq("dealer_id", dealerId)
       .eq("master_product_id", productId)
       .maybeSingle();
+    // Only a meat shop has rows in dealer_products: a grocery shop never touches meat.
+    if (!listing && storeType !== "meat") throw new NotFoundException("Product not found");
     const { error } = listing
       ? await db.from("store_products").update({ out_of_stock_until: outOfStockUntil }).eq("dealer_id", dealerId).eq("master_product_id", productId)
       : await db.from("dealer_products").upsert({ dealer_id: dealerId, product_id: productId, out_of_stock_until: outOfStockUntil });
     if (error) throw new BadRequestException(error.message);
+  }
+
+  /**
+   * The meat shop's live market price for a product: what it sells for over
+   * the counter today. The admin sees it beside the cost; it does not change
+   * what the customer pays or what the shop is paid.
+   */
+  async setMarketPrice(profileId: string, input: MarketPriceInput) {
+    const dealer = await this.resolveDealer(profileId);
+    if (dealer.store_type !== "meat") throw new ForbiddenException("Only meat shops set a market price");
+    const db = this.supabase.admin;
+    const { data: row } = await db.from("dealer_products").select("market_price").eq("dealer_id", dealer.id).eq("product_id", input.productId).maybeSingle();
+    if (!row) throw new NotFoundException("Product not found");
+    const old = row.market_price == null ? null : Number(row.market_price);
+    const at = new Date().toISOString();
+    if (old === input.price) return { productId: input.productId, marketPrice: input.price, marketPriceAt: at };
+    const { error } = await db.from("dealer_products").update({ market_price: input.price, market_price_at: at }).eq("dealer_id", dealer.id).eq("product_id", input.productId);
+    if (error) throw new BadRequestException(error.message);
+    await db.from("price_history").insert({ product_id: input.productId, kind: "market", dealer_id: dealer.id, old_price: old, new_price: input.price, changed_by: profileId });
+    return { productId: input.productId, marketPrice: input.price, marketPriceAt: at };
   }
 
   // ───────────────────────── helpers ─────────────────────────

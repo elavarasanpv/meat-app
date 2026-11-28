@@ -62,6 +62,8 @@ export default function ProductDetailScreen() {
   }
 
   const price = Number(product.base_price_per_kg);
+  // Price before discount, only when it really is above what the customer pays.
+  const was = product.was_price != null && Number(product.was_price) > price ? Number(product.was_price) : null;
   const step = isKg ? 0.5 : 1;
   const min = isKg ? 0.5 : 1;
   const estimate = Math.round(price * qty);
@@ -142,7 +144,16 @@ export default function ProductDetailScreen() {
             </View>
             <View style={{ alignItems: "flex-end" }}>
               <AppText variant="price" color={c.price} style={{ fontSize: 20, lineHeight: 24 }}>₹ {price}</AppText>
-              <AppText variant="caption" muted>{t(isKg ? "perKg" : "perPiece")}</AppText>
+              <AppText variant="caption" muted>
+                {was != null ? <AppText variant="caption" muted style={{ textDecorationLine: "line-through" }}>₹{was}</AppText> : null}
+                {was != null ? " " : ""}
+                {t(isKg ? "perKg" : "perPiece")}
+              </AppText>
+              {was != null ? (
+                <View style={{ marginTop: 4, paddingHorizontal: 8, paddingVertical: 2, borderRadius: radius.pill, backgroundColor: c.tint }}>
+                  <AppText variant="caption" color={c.price} style={{ fontWeight: "700" }}>{t("percentOff", { n: Math.round(((was - price) / was) * 100) })}</AppText>
+                </View>
+              ) : null}
             </View>
           </View>
 

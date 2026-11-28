@@ -45,7 +45,7 @@ const STATUS: Record<string, { label: string; tone: "ok" | "warn" | "bad" | "inf
 const tone = (t: "ok" | "warn" | "bad" | "info") =>
   t === "ok" ? "bg-ok-bg text-ok" : t === "warn" ? "bg-warn-bg text-warn" : t === "bad" ? "bg-tint text-bad" : "bg-[#DFEAFB] text-[#2F6FD1]";
 
-type PriceChange = { id: number; kind: "sell" | "shop"; product: string; pincode: string | null; shop: string | null; from: number | null; to: number; by: string | null; at: string; profitNow: number | null; marginPctNow: number | null };
+type PriceChange = { id: number; kind: "sell" | "shop" | "market"; product: string; pincode: string | null; shop: string | null; from: number | null; to: number; by: string | null; at: string; profitNow: number | null; marginPctNow: number | null };
 
 export function Dashboard() {
   const me = useOutletContext<AdminMe>();
@@ -233,7 +233,7 @@ export function Dashboard() {
 
         <section className="card">
           <div className="flex items-start justify-between">
-            <div><div className="card-title">Price changes</div><div className="card-sub">selling and shop prices · latest first</div></div>
+            <div><div className="card-title">Price changes</div><div className="card-sub">selling, shop and market prices · latest first</div></div>
             <Link to="/pricing" className="text-[11px] font-bold text-primary">Pricing</Link>
           </div>
           <div className="mt-2 divide-y divide-line">
@@ -243,7 +243,7 @@ export function Dashboard() {
               const dirCls = c.kind === "sell" ? (up ? "text-ok" : "text-bad") : up ? "text-bad" : "text-ok";
               return (
                 <div key={c.id} className="flex items-center gap-2 py-1.5 text-[12px]">
-                  <Chip tone={c.kind === "sell" ? "info" : "warn"}>{c.kind === "sell" ? "Selling" : "Shop"}</Chip>
+                  <Chip tone={c.kind === "sell" ? "info" : c.kind === "market" ? "mute" : "warn"}>{c.kind === "sell" ? "Selling" : c.kind === "market" ? "Market" : "Shop"}</Chip>
                   <span className="min-w-0 flex-1 truncate">
                     <b>{c.product}</b>
                     <span className="text-muted"> {c.kind === "sell" ? (c.pincode ? `· ${c.pincode}` : "· default") : c.shop ? `· ${c.shop}` : ""}</span>
