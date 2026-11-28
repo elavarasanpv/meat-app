@@ -20,7 +20,7 @@ import { formatQty, lineTotal, qtyStep, useCart, type CartItem } from "@/store/c
 import { useVertical } from "@/store/vertical";
 import { radius, useTheme } from "@/theme";
 import { Photo } from "@/components/Photo";
-import { BasketPerks, FreeLines } from "@/components/GroceryOffers";
+import { BasketPerks, FreeLines, OFFER_LOOK } from "@/components/GroceryOffers";
 
 /**
  * Grocery basket (GroceryCart design): the slot box with the lines inside it,
@@ -106,6 +106,7 @@ export function GroceryCart({ bill, onBack, cta, address }: { bill: ReturnType<t
 
           {items.map((item, i) => {
             const img = groceryThumb(item.imagePath);
+            const deal = bill.shopOffers?.priced?.find((p) => p.masterProductId === item.productId);
             const step = qtyStep(item.unit, item.step);
             const min = item.minQty ?? step;
             const dec = () => {
@@ -123,6 +124,14 @@ export function GroceryCart({ bill, onBack, cta, address }: { bill: ReturnType<t
                   <AppText variant="caption" muted numberOfLines={1} style={{ marginTop: 2 }}>
                     {item.unit === "kg" ? `${formatQty(item.qty, item.unit)} · ₹${item.price} /${t("unitKg")}` : `${item.qty} × ₹${item.price}`}
                   </AppText>
+                  {deal ? (
+                    <View style={{ flexDirection: "row", marginTop: 5 }}>
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 8, paddingVertical: 2, borderRadius: radius.pill, backgroundColor: OFFER_LOOK.price.colors[0] }}>
+                        <Icon name="check" color="#FFFFFF" size={11} strokeWidth={3} />
+                        <AppText variant="label" color="#FFFFFF" style={{ fontSize: 11 }}>{deal.pct != null ? t("go_offerApplied", { n: deal.pct }) : t("go_offerPrice")}</AppText>
+                      </View>
+                    </View>
+                  ) : null}
                 </View>
                 <View style={{ alignItems: "flex-end", gap: 6 }}>
                   <View style={{ flexDirection: "row", alignItems: "center", height: 32, borderRadius: radius.pill, backgroundColor: c.primary }}>
@@ -189,6 +198,9 @@ export function GroceryCart({ bill, onBack, cta, address }: { bill: ReturnType<t
             <AppText variant="subtitle">{t("billSummary")}</AppText>
           </View>
           <Row label={t("itemTotal")} value={`₹${bill.itemTotal}`} />
+          {(bill.shopOffers?.priceSaved ?? 0) > 0 ? (
+            <AppText variant="caption" color={c.successText} style={{ marginTop: -4, fontSize: 12 }}>{t("go_offerSaved", { n: bill.shopOffers!.priceSaved! })}</AppText>
+          ) : null}
           {bill.discount > 0 && bill.shopOffers?.coupon ? (
             <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 10 }}>
               <AppText variant="caption" color={c.successText} style={{ fontSize: 13, flex: 1 }}>{t("go_couponLine", { n: bill.shopOffers.coupon.pct })}</AppText>

@@ -599,7 +599,7 @@ export class GroceryOffersService implements OnModuleInit, OnModuleDestroy {
 
   /** The cart preview: what the offers would do to this basket at this address. */
   async quote(customerId: string, addressId: string, items: { masterProductId: string; qty: number }[]) {
-    const empty = { free: [], giftHint: null, coupon: null, earns: null, earnHint: null, saved: 0 };
+    const empty = { free: [], giftHint: null, coupon: null, earns: null, earnHint: null, priced: [], priceSaved: 0, saved: 0 };
     if (!items.length) return empty;
     const { data: a } = await this.db.from("addresses").select("pincode, lat, lng").eq("id", addressId).eq("user_id", customerId).maybeSingle();
     if (!a) return empty;
@@ -655,7 +655,14 @@ export class GroceryOffersService implements OnModuleInit, OnModuleDestroy {
     }
     if (earns) earnHint = null;
     const priceSaved = rows.reduce((s, r) => s + (r.was_price != null ? Math.round((Number(r.was_price) - Number(r.selling)) * Number(r.qty)) : 0), 0);
-    return { free, giftHint, coupon, earns, earnHint, saved: priceSaved + free.reduce((s, f) => s + f.value, 0) + (coupon?.discount ?? 0) };
+    // Lines already at an offer price, so the cart can say so.
+    const offerIds = [...new Set(rows.filter((r) => r.offer_id).map((r) => r.offer_id!))];
+    const { data: pcts } = offerIds.length ? await this.db.from("shop_offers").select("id, pct").in("id", offerIds) : { data: [] };
+    const pctOf = new Map((pcts ?? []).map((o) => [o.id as string, num(o.pct)]));
+    const priced = rows
+      .filter((r) => r.offer_id && r.was_price != null && Number(r.was_price) > Number(r.selling))
+      .map((r) => ({ masterProductId: r.master, pct: pctOf.get(r.offer_id!) ?? null, wasPrice: Number(r.was_price), price: Number(r.selling) }));
+    return { free, giftHint, coupon, earns, earnHint, priced, priceSaved, saved: priceSaved + free.reduce((s, f) => s + f.value, 0) + (coupon?.discount ?? 0) };
   }
 
   private async usualPrices(gifts: OfferRow[]) {

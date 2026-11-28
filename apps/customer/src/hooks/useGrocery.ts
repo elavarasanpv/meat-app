@@ -232,6 +232,10 @@ export type GroceryQuote = {
   coupon: { id: string; pct: number; maxDiscount: number; discount: number; expiresAt: string } | null;
   earns: { pct: number; maxDiscount: number; validDays: number } | null;
   earnHint: { need: number; pct: number; maxDiscount: number } | null;
+  /** Lines already at an offer price (missing from older servers). */
+  priced?: { masterProductId: string; pct: number | null; wasPrice: number; price: number }[];
+  /** What those offer prices save, already inside the item prices. */
+  priceSaved?: number;
   saved: number;
 };
 
