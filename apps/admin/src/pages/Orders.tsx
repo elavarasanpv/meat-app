@@ -31,7 +31,7 @@ type Detail = {
   payment: string;
   paymentStatus: string;
   amount: number;
-  bill: { items: number; delivery: number | null; total: number; shopItems: number | null; appCharge: number | null; appChargeBasis: string | null; shopGets: number | null };
+  bill: { items: number; delivery: number | null; total: number; shopItems: number | null; appCharge: number | null; appChargeBasis: string | null; shopGets: number | null; priceGap?: number | null; appEarns?: number | null };
   cancelReason: string | null;
   createdAt: string;
   readyBy: string | null;
@@ -280,6 +280,17 @@ function OrderDrawer({ id, onClose }: { id: string; onClose: () => void }) {
                     value={o.bill.appCharge == null ? (["PLACED", "DEALER_ASSIGNED"].includes(o.status) ? "set on accept" : "—") : o.bill.appCharge > 0 ? `− ${inr(o.bill.appCharge)}` : inr(0)}
                   />
                   <BillRow label="Shop gets" value={inr(o.bill.shopGets ?? 0)} strong />
+                </div>
+              )}
+              {o.bill.appEarns != null && (
+                <div className="rounded-xl border border-line bg-[#E8E5FA] px-3 py-2 text-[12.5px] sm:col-span-2">
+                  <div className="mb-1 text-[11px] font-bold uppercase tracking-wide text-muted">Thanjoz Mart earns on this order</div>
+                  <BillRow label="Price difference (customer price − shop price)" value={inr(o.bill.priceGap ?? 0)} />
+                  <BillRow
+                    label={`App charge from the shop${o.bill.appChargeBasis ? ` (${o.bill.appChargeBasis} per order rule)` : ""}`}
+                    value={o.bill.appCharge == null ? (["PLACED", "DEALER_ASSIGNED"].includes(o.status) ? "set on accept" : "none") : inr(o.bill.appCharge)}
+                  />
+                  <BillRow label="Total earned (delivery fee not counted)" value={inr(o.bill.appEarns)} strong />
                 </div>
               )}
             </div>

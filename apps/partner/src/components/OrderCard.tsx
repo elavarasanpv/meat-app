@@ -183,7 +183,8 @@ export function OrderCard({ o, compact, noDetails }: { o: DealerOrder; compact?:
       ) : null}
       <View style={{ gap: 8, borderTopWidth: 1, borderTopColor: c.border, paddingTop: 10 }}>
         {compact ? null : items.map((it) => <ItemRow key={it.id} it={it} />)}
-        {appCharge > 0 ? (
+        {/* Grocery orders always say what goes to the app, even when it is nothing */}
+        {!meat ? (
           <View style={{ gap: 4 }}>
             <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 10 }}>
               <Txt size={13} muted style={{ flex: 1 }}>{t("itemsYourPrice")}</Txt>
@@ -191,7 +192,7 @@ export function OrderCard({ o, compact, noDetails }: { o: DealerOrder; compact?:
             </View>
             <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 10 }}>
               <Txt size={13} muted style={{ flex: 1 }}>{t("appCharge")}{o.app_charge_basis ? ` (${o.app_charge_basis})` : ""}</Txt>
-              <Txt size={13}>− ₹{appCharge}</Txt>
+              <Txt size={13}>{appCharge > 0 ? `− ₹${appCharge}` : "₹0"}</Txt>
             </View>
           </View>
         ) : null}

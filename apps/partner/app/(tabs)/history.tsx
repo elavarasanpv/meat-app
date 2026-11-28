@@ -46,6 +46,7 @@ export default function HistoryScreen() {
                     <Txt bold size={15} color={bad ? c.muted : c.primary}>₹{r.shop_amount}</Txt>
                   </View>
                   <Txt size={12} muted numberOfLines={1}>{names}</Txt>
+                  {r.app_charge ? <Txt size={12} muted>{t("appCharge")} − ₹{r.app_charge}</Txt> : null}
                   <Txt size={12} color={tone} numberOfLines={1}>{t(`st_${r.status}` as TKey) ?? r.status} · {when(r.created_at)}</Txt>
                 </View>
               </View>

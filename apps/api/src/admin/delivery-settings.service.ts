@@ -33,15 +33,29 @@ export class DeliverySettingsService {
   }
 
   async get() {
-    const [v, r, d] = await Promise.all([
+    const [v, r, d, paid] = await Promise.all([
       this.db.from("verticals").select("type, label, is_active, first_order_free, app_charge_mode, app_charge_value").order("sort"),
       this.db.from("delivery_fee_rules").select(RULE).is("zone_id", null).order("pincode", { nullsFirst: true }),
       this.db.from("dealers").select("id, shop_name, store_type, app_charge_mode, app_charge_value").eq("is_active", true).order("shop_name"),
+      this.db.from("orders").select("dealer_id, status, app_charge").gt("app_charge", 0),
     ]);
     if (v.error) throw v.error;
     if (r.error) throw r.error;
     if (d.error) throw d.error;
+    if (paid.error) throw paid.error;
     const rules = ((r.data ?? []) as RuleRow[]).map(shape);
+    // App charge per shop: earned on delivered orders, pending on orders still on their way.
+    const DEAD = ["CANCELLED", "RETURNED", "REFUNDED", "DELIVERY_FAILED"];
+    const given = new Map<string, { earned: number; orders: number; pending: number }>();
+    for (const o of paid.data ?? []) {
+      if (!o.dealer_id || DEAD.includes(o.status as string)) continue;
+      const g = given.get(o.dealer_id as string) ?? { earned: 0, orders: 0, pending: 0 };
+      if (o.status === "DELIVERED") {
+        g.earned += Number(o.app_charge);
+        g.orders += 1;
+      } else g.pending += Number(o.app_charge);
+      given.set(o.dealer_id as string, g);
+    }
     return (v.data ?? []).map((x) => ({
       type: x.type as string,
       label: x.label as string,
@@ -53,7 +67,7 @@ export class DeliverySettingsService {
       // Every shop of this kind, with its own app charge when it has one (mode null = the default).
       shops: (d.data ?? [])
         .filter((s) => s.store_type === x.type)
-        .map((s) => ({ id: s.id as string, name: s.shop_name as string, mode: s.app_charge_mode as "none" | "percent" | "flat" | null, value: s.app_charge_value == null ? null : Number(s.app_charge_value) })),
+        .map((s) => ({ id: s.id as string, name: s.shop_name as string, mode: s.app_charge_mode as "none" | "percent" | "flat" | null, value: s.app_charge_value == null ? null : Number(s.app_charge_value), ...(given.get(s.id as string) ?? { earned: 0, orders: 0, pending: 0 }) })),
     }));
   }
 

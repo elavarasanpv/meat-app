@@ -16,6 +16,7 @@ export default function AccountScreen() {
   const lang = useLang((s) => s.lang);
   const toggle = useLang((s) => s.toggle);
   const signOut = useAuth((s) => s.signOut);
+  const charge = me.data?.app_charge;
 
   const Row = ({ icon, label, value, onPress, danger }: { icon: IconName; label: string; value?: string; onPress: () => void; danger?: boolean }) => (
     <Pressable onPress={onPress} style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 12, padding: 16, backgroundColor: pressed ? c.surface2 : c.surface })}>
@@ -41,6 +42,14 @@ export default function AccountScreen() {
             <Txt size={13} muted>{me.data?.is_open ? t("shopOpen") : t("shopClosed")}</Txt>
           </View>
         </View>
+
+        {charge ? (
+          <View style={{ padding: 16, borderRadius: 22, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, gap: 6 }}>
+            <Txt size={13} muted>{t("appCharge")}</Txt>
+            <Txt bold size={18}>{charge.mode === "percent" ? `${charge.basis} ${t("appChargePercent")}` : lang === "ta" ? `${t("appChargeFlat")} ${charge.basis}` : `${charge.basis} ${t("appChargeFlat")}`}</Txt>
+            <Txt size={13} muted>{t("appChargeNote")}</Txt>
+          </View>
+        ) : null}
 
         <View style={{ borderRadius: 22, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, overflow: "hidden" }}>
           <Row icon="bell" label={t("language")} value={lang === "ta" ? "தமிழ்" : "English"} onPress={toggle} />

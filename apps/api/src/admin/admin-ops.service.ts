@@ -319,6 +319,9 @@ export class AdminOpsService {
         appCharge,
         appChargeBasis: o.app_charge_basis as string | null,
         shopGets: shopItems == null ? null : shopItems - (appCharge ?? 0),
+        // What Thanjoz Mart keeps: the gap between the two prices, plus the app charge.
+        priceGap: shopItems == null ? null : itemsTotal - shopItems,
+        appEarns: shopItems == null ? null : itemsTotal - shopItems + (appCharge ?? 0),
       },
       cancelReason: o.cancel_reason,
       createdAt: o.created_at,

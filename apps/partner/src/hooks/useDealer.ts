@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, apiUpload } from "@/lib/api";
 import { supabase } from "@/lib/supabase";
 
-export type DealerMe = { id: string; shop_name: string; store_type?: "meat" | "grocery"; is_open: boolean; closed_until: string | null };
+export type DealerMe = { id: string; shop_name: string; store_type?: "meat" | "grocery"; is_open: boolean; closed_until: string | null; /** What the shop gives the app per order (null = nothing). */ app_charge?: { mode: "percent" | "flat"; value: number; basis: string } | null };
 
 export type DealerOrderItem = {
   id: string;
@@ -158,7 +158,7 @@ export function useShopState() {
   });
 }
 
-export type Summary = { newCount: number; inProgressCount: number; readyCount: number; todayOrders: number; todaySales: number };
+export type Summary = { newCount: number; inProgressCount: number; readyCount: number; todayOrders: number; todaySales: number; todayItems?: number; todayAppCharge?: number };
 
 export function useSummary(dealerId: string | undefined) {
   return useQuery<Summary>({ queryKey: ["dealer", "summary"], enabled: !!dealerId, refetchInterval: 30_000, queryFn: () => api("/dealer/summary") });

@@ -26,6 +26,7 @@ export default function HomeScreen() {
   const orders = useDealerOrders(me.data?.id);
   const shop = useShopState();
   const [open, setOpen] = useState(me.data?.is_open ?? false);
+  const grocery = me.data?.store_type === "grocery";
   useEffect(() => {
     if (me.data) setOpen(me.data.is_open);
   }, [me.data?.is_open]);
@@ -83,16 +84,31 @@ export default function HomeScreen() {
         </View>
 
         {/* Today */}
-        <View style={{ padding: 16, borderRadius: 22, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, flexDirection: "row" }}>
-          <View style={{ flex: 1, gap: 2 }}>
-            <Txt size={13} muted>{t("ordersToday")}</Txt>
-            <Txt bold size={26}>{s?.todayOrders ?? 0}</Txt>
+        <View style={{ padding: 16, borderRadius: 22, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, gap: 12 }}>
+          <View style={{ flexDirection: "row" }}>
+            <View style={{ flex: 1, gap: 2 }}>
+              <Txt size={13} muted>{t("ordersToday")}</Txt>
+              <Txt bold size={26}>{s?.todayOrders ?? 0}</Txt>
+            </View>
+            <View style={{ width: 1, backgroundColor: c.border, marginHorizontal: 14 }} />
+            <View style={{ flex: 1, gap: 2 }}>
+              <Txt size={13} muted>{t(grocery ? "youGetToday" : "salesToday")}</Txt>
+              <Txt bold size={26} color={c.primary}>₹{s?.todaySales ?? 0}</Txt>
+            </View>
           </View>
-          <View style={{ width: 1, backgroundColor: c.border, marginHorizontal: 14 }} />
-          <View style={{ flex: 1, gap: 2 }}>
-            <Txt size={13} muted>{t("salesToday")}</Txt>
-            <Txt bold size={26} color={c.primary}>₹{s?.todaySales ?? 0}</Txt>
-          </View>
+          {/* Grocery: how today's amount is made up, app charge included */}
+          {grocery ? (
+            <View style={{ gap: 6, borderTopWidth: 1, borderTopColor: c.border, paddingTop: 10 }}>
+              <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 10 }}>
+                <Txt size={14} muted style={{ flex: 1 }}>{t("itemsYourPrice")}</Txt>
+                <Txt size={14}>₹{s?.todayItems ?? s?.todaySales ?? 0}</Txt>
+              </View>
+              <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 10 }}>
+                <Txt size={14} muted style={{ flex: 1 }}>{t("appCharge")}</Txt>
+                <Txt size={14}>{s?.todayAppCharge ? `− ₹${s.todayAppCharge}` : "₹0"}</Txt>
+              </View>
+            </View>
+          ) : null}
         </View>
 
         {/* Latest order */}

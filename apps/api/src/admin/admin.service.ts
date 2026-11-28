@@ -32,7 +32,7 @@ export class AdminService {
     const [{ data: orders }, { data: riders }, { data: shops }, { data: recent }, { data: activeRows }] = await Promise.all([
       db
         .from("orders")
-        .select("id, status, est_amount, final_amount, created_at, dealer_id, ready_by, order_items(product_id, requested_kg, unavailable)")
+        .select("id, status, est_amount, final_amount, app_charge, created_at, dealer_id, ready_by, order_items(product_id, requested_kg, unavailable, shop_unit_price)")
         .gte("created_at", from.toISOString()),
       db.from("delivery_partners").select("id, is_online, cash_balance, profiles(full_name)").eq("is_active", true),
       db.from("dealers").select("id, shop_name, is_open, closed_until").eq("is_active", true),
@@ -56,10 +56,10 @@ export class AdminService {
       : { data: [] as { dealer_id: string; product_id: string; price_per_kg: number }[] };
     const cost = new Map((prices ?? []).map((p) => [`${p.dealer_id}:${p.product_id}`, Number(p.price_per_kg)]));
 
-    type Day = { date: string; orders: number; sales: number; cost: number };
+    type Day = { date: string; orders: number; sales: number; cost: number; appCharge: number };
     const days: Day[] = Array.from({ length: 7 }, (_, i) => {
       const d = new Date(from.getTime() + i * 86_400_000 + IST);
-      return { date: d.toISOString().slice(0, 10), orders: 0, sales: 0, cost: 0 };
+      return { date: d.toISOString().slice(0, 10), orders: 0, sales: 0, cost: 0, appCharge: 0 };
     });
     const stage: Record<string, number> = {};
     let late = 0;
@@ -78,9 +78,15 @@ export class AdminService {
       if (idx >= 0 && idx < 7 && !dead) {
         days[idx].orders += 1;
         days[idx].sales += Number(o.final_amount ?? o.est_amount);
-        for (const it of (o.order_items as { product_id: string; requested_kg: number; unavailable: boolean }[]) ?? []) {
-          if (!it.unavailable) days[idx].cost += Math.round((cost.get(`${o.dealer_id}:${it.product_id}`) ?? 0) * Number(it.requested_kg));
+        for (const it of (o.order_items as { product_id: string; requested_kg: number; unavailable: boolean; shop_unit_price: number | null }[]) ?? []) {
+          // grocery lines snapshot the shop price; meat reads the shop's current price
+          const each = it.shop_unit_price != null ? Number(it.shop_unit_price) : cost.get(`${o.dealer_id}:${it.product_id}`) ?? 0;
+          if (!it.unavailable) days[idx].cost += Math.round(each * Number(it.requested_kg));
         }
+        // The app charge comes off what the shop is paid, so it is ours.
+        const charge = Number(o.app_charge ?? 0);
+        days[idx].cost -= charge;
+        days[idx].appCharge += charge;
       }
       if (ACTIVE.includes(o.status)) {
         stage[o.status] = (stage[o.status] ?? 0) + 1;
@@ -99,6 +105,7 @@ export class AdminService {
         sales: today.sales,
         cost: today.cost,
         margin: today.sales - today.cost,
+        appCharge: today.appCharge,
         ordersVsYesterday: pct(today.orders, yesterday.orders),
         salesVsYesterday: pct(today.sales, yesterday.sales),
       },

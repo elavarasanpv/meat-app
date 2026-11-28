@@ -137,6 +137,7 @@ export class DealerService {
     const count = (s: string[]) => (active ?? []).filter((o) => s.includes(o.status)).length;
     let doneCount = 0;
     let sales = 0;
+    let appCharge = 0;
     for (const o of today ?? []) {
       if (["CANCELLED", "RETURNED", "REFUNDED", "DELIVERY_FAILED"].includes(o.status)) continue;
       doneCount += 1;
@@ -146,14 +147,17 @@ export class DealerService {
         const price = it.shop_unit_price != null ? Number(it.shop_unit_price) : shopPrice.get(it.product_id) ?? 0;
         sales += Math.round(price * Number(it.actual_kg ?? it.requested_kg));
       }
-      sales -= Number(o.app_charge ?? 0);
+      appCharge += Number(o.app_charge ?? 0);
     }
     return {
       newCount: count(["DEALER_ASSIGNED"]),
       inProgressCount: count(["ACCEPTED", "PACKING"]),
       readyCount: count(["PACKED", "RIDER_ASSIGNED"]),
       todayOrders: doneCount,
-      todaySales: sales,
+      // items at the shop's price, what the shop gives the app, and what is left
+      todayItems: sales,
+      todayAppCharge: appCharge,
+      todaySales: sales - appCharge,
     };
   }
 

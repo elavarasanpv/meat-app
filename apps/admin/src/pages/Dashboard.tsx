@@ -9,8 +9,8 @@ import { IconArrowUp, IconCheck, IconClock, IconMap, IconRider, IconShop, IconX 
 
 type Order = { id: string; displayId: string; status: string; amount: number; createdAt: string; customer: string | null; shop: string | null };
 type Dashboard = {
-  today: { orders: number; sales: number; cost: number; margin: number; ordersVsYesterday: number | null; salesVsYesterday: number | null };
-  days: { date: string; orders: number; sales: number; cost: number; margin: number }[];
+  today: { orders: number; sales: number; cost: number; margin: number; appCharge?: number; ordersVsYesterday: number | null; salesVsYesterday: number | null };
+  days: { date: string; orders: number; sales: number; cost: number; margin: number; appCharge?: number }[];
   week: { delivered: number; failed: number; cancelled: number; open: number };
   stage: Record<string, number>;
   attention: { late: number; unassigned: number };
@@ -56,6 +56,7 @@ export function Dashboard() {
   const weekOrders = days.reduce((s, x) => s + x.orders, 0);
   const weekSales = days.reduce((s, x) => s + x.sales, 0);
   const weekMargin = days.reduce((s, x) => s + x.margin, 0);
+  const weekAppCharge = days.reduce((s, x) => s + (x.appCharge ?? 0), 0);
   const closed = d ? d.week.delivered + d.week.failed + d.week.cancelled : 0;
   const successPct = closed ? (d!.week.delivered / closed) * 100 : 0;
   const maxShop = Math.max(1, ...(d?.shops.map((s) => s.todayOrders) ?? [1]));
@@ -206,6 +207,12 @@ export function Dashboard() {
             <Money label="Shop cost" value={weekSales - weekMargin} cls="bg-[#E3F3EA]" />
             <Money label="Your margin" value={weekMargin} cls="bg-[#E8E5FA]" />
             <Money label="Cash held" value={d?.onDuty.cashOutstanding ?? 0} cls="bg-[#FDE6DF]" />
+          </div>
+          <div className="mt-2 flex items-center justify-between rounded-xl border border-line px-3 py-2 text-[12px]">
+            <span>
+              <span className="font-bold">App charges from shops</span> <span className="text-muted">· inside your margin · today {inr(d?.today.appCharge ?? 0)}</span>
+            </span>
+            <span className="text-[14px] font-extrabold">{inr(weekAppCharge)}</span>
           </div>
           <div className="mt-3 card-title text-[13px]">Recent activity</div>
           <div className="mt-1 divide-y divide-line">

@@ -14,7 +14,7 @@ import { Btn, Chip, Empty, ErrorBox, Field, Modal, Segments, ago, inputCls, inr 
 
 type Rule = { id: string; verticalType: string; pincode: string | null; minOrder: number; fee: number; freeAbove: number | null; isActive: boolean; updatedAt: string | null };
 type ChargeMode = "none" | "percent" | "flat";
-type ShopCharge = { id: string; name: string; mode: ChargeMode | null; value: number | null };
+type ShopCharge = { id: string; name: string; mode: ChargeMode | null; value: number | null; earned?: number; orders?: number; pending?: number };
 type VerticalTerms = { type: string; label: string; isLive: boolean; firstOrderFree: boolean; defaultRule: Rule | null; pincodeRules: Rule[]; appCharge: { mode: ChargeMode; value: number }; shops: ShopCharge[] };
 type TestResult = {
   rule: "none" | "default" | "pincode";
@@ -346,6 +346,9 @@ function AppChargeCard({ v, onSaved }: { v: VerticalTerms; onSaved: () => void }
   const bad = chargeBad(mode, value);
   const changed = mode !== cur.mode || (mode !== "none" && Number(value) !== cur.value);
   const own = v.shops.filter((s) => s.mode != null).length;
+  const earned = v.shops.reduce((t, s) => t + (s.earned ?? 0), 0);
+  const earnedOrders = v.shops.reduce((t, s) => t + (s.orders ?? 0), 0);
+  const pending = v.shops.reduce((t, s) => t + (s.pending ?? 0), 0);
   return (
     <section className="card">
       <div className="mb-3">
@@ -353,6 +356,16 @@ function AppChargeCard({ v, onSaved }: { v: VerticalTerms; onSaved: () => void }
         <div className="card-sub">
           What each shop gives Thanjoz Mart per order. It is taken off the shop's amount; the customer pays the same. A percentage is of the items at the customer price
           (delivery not included). An order keeps the charge it was accepted with. Now: {chargeText(cur.mode, cur.value)}.
+        </div>
+      </div>
+      <div className="mb-3 grid grid-cols-2 gap-2">
+        <div className="rounded-xl bg-[#E8E5FA] p-3">
+          <div className="text-[10.5px] text-muted">Earned so far · {earnedOrders} delivered order{earnedOrders === 1 ? "" : "s"}</div>
+          <div className="text-[17px] font-extrabold">{inr(earned)}</div>
+        </div>
+        <div className="rounded-xl bg-[#FBF3D6] p-3">
+          <div className="text-[10.5px] text-muted">On orders not delivered yet</div>
+          <div className="text-[17px] font-extrabold">{inr(pending)}</div>
         </div>
       </div>
       <ChargeFields mode={mode} value={value} setMode={setMode} setValue={setValue} />
@@ -408,6 +421,10 @@ function ShopChargeRow({ shop, fallback, onSaved }: { shop: ShopCharge; fallback
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
         <span className="min-w-0 flex-1 font-extrabold">{shop.name}</span>
         {shop.mode == null ? <Chip tone="mute">default · {chargeText(fallback.mode, fallback.value)}</Chip> : <Chip tone="ok">own · {chargeText(shop.mode, shop.value ?? 0)}</Chip>}
+        <span className="text-muted">
+          earned {inr(shop.earned ?? 0)} · {shop.orders ?? 0} order{shop.orders === 1 ? "" : "s"}
+          {shop.pending ? ` · ${inr(shop.pending)} pending` : ""}
+        </span>
         <Btn onClick={() => setOpen(!open)}>{open ? "Close" : "Change"}</Btn>
       </div>
       {open && (

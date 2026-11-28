@@ -1,6 +1,6 @@
 import { BadRequestException, Body, Controller, Get, Headers, Param, Post } from "@nestjs/common";
 import { z } from "zod";
-import { dealerAcceptSchema, dealerRejectSchema, itemPhotoSchema, itemUnavailableSchema, shopStateSchema, stockSchema, weighItemSchema } from "@thanjozmart/shared";
+import { appChargeBasis, dealerAcceptSchema, dealerRejectSchema, itemPhotoSchema, itemUnavailableSchema, shopStateSchema, stockSchema, weighItemSchema } from "@thanjozmart/shared";
 import { SupabaseService } from "../supabase.service";
 import { requireUser } from "../auth";
 import { DealerService } from "./dealer.service";
@@ -22,7 +22,11 @@ export class DealerController {
   @Get("me")
   async me(@Headers("authorization") auth: string | undefined) {
     const user = await requireUser(this.supabase, auth);
-    return this.dealer.resolveDealer(user.id);
+    const d = await this.dealer.resolveDealer(user.id);
+    // What this shop gives the app per order, so the shop app can say it up front.
+    const rule = d.store_type === "grocery" ? await this.dealer.appChargeRule(d.id, "grocery") : null;
+    const charged = rule && rule.mode !== "none" && rule.value > 0;
+    return { ...d, app_charge: charged ? { mode: rule.mode, value: rule.value, basis: appChargeBasis(rule) } : null };
   }
 
   /** GET /dealer/orders — open orders for this shop, at shop prices. */
