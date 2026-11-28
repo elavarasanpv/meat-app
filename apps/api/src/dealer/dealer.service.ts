@@ -493,11 +493,15 @@ export class DealerService {
    */
   private async lockMeatCost(orderId: string, dealerId: string) {
     const db = this.supabase.admin;
-    const shopPrice = await this.shopPrices(dealerId);
+    const { data: rows } = await db.from("dealer_products").select("product_id, price_per_kg, market_price").eq("dealer_id", dealerId);
+    const at = new Map((rows ?? []).map((r) => [r.product_id as string, r]));
     const { data: lines } = await db.from("order_items").select("id, product_id").eq("order_id", orderId).is("shop_unit_price", null).not("product_id", "is", null);
     for (const l of lines ?? []) {
-      const price = shopPrice.get(l.product_id as string);
-      if (price) await db.from("order_items").update({ shop_unit_price: price }).eq("id", l.id);
+      const r = at.get(l.product_id as string);
+      const cost = r?.price_per_kg == null ? null : Number(r.price_per_kg);
+      // The shop's counter price today too, for the P&L's "customer saved against the market".
+      const market = r?.market_price == null ? null : Number(r.market_price);
+      if (cost) await db.from("order_items").update({ shop_unit_price: cost, market_unit_price: market }).eq("id", l.id);
     }
   }
 

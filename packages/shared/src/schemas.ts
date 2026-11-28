@@ -399,6 +399,8 @@ export const adminExpenseSchema = z.object({
   category: z.enum(EXPENSE_CATEGORIES),
   amount: z.number().positive().max(10000000),
   note: z.string().trim().max(200).optional().nullable(),
+  /** Meat only, grocery only, or shared (null). */
+  vertical: z.enum(["meat", "grocery"]).optional().nullable(),
 });
 export type AdminExpenseInput = z.infer<typeof adminExpenseSchema>;
 export type AdminMarketPriceInput = z.infer<typeof adminMarketPriceSchema>;
