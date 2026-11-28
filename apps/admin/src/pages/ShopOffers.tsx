@@ -22,6 +22,8 @@ type ShopOffer = {
   pct: number | null;
   buyQty: number | null;
   mix?: boolean;
+  freeProductId?: string | null;
+  freeProduct?: { name: string; nameTa: string | null; imagePath: string | null } | null;
   color?: ShopOfferColor | null;
   freeQty: number | null;
   minOrder: number | null;
@@ -78,7 +80,7 @@ const terms = (o: ShopOffer) => {
     return o.scope === "category"
       ? `${o.pct}% off the MRP on every product of the shop in ${coverText(o)}, where that makes it cheaper. ${app(o) ? "Thanjoz Mart pays the cut." : "The shop takes the cut."}`
       : `${o.pct}% off the MRP on ${coverText(o)}. ${app(o) ? "Thanjoz Mart pays the cut." : "The shop takes the cut."}`;
-  if (o.kind === "bogo" && isMany(o)) return `On ${o.scope === "category" ? `every product in ${coverText(o)}` : coverText(o)}: ${o.mix ? `every ${o.buyQty} bought, in any mix, ${o.freeQty} more of the lowest-priced one free.` : `every ${o.buyQty} bought of one product, ${o.freeQty} more of it free.`} ${app(o) ? "Thanjoz Mart pays the shop for the free ones." : "The shop gives the free ones."}`;
+  if (o.kind === "bogo" && isMany(o)) return `On ${o.scope === "category" ? `every product in ${coverText(o)}` : coverText(o)}: ${o.mix ? `every ${o.buyQty} bought, in any mix, ${o.freeProduct ? `${o.freeQty} × ${o.freeProduct.name} free.` : `${o.freeQty} more of the lowest-priced one free.`}` : `every ${o.buyQty} bought of one product, ${o.freeQty} more of it free.`} ${app(o) ? "Thanjoz Mart pays the shop for the free ones." : "The shop gives the free ones."}`;
   if (o.kind === "price") return o.priceNow ? `${inr(o.priceNow.usual)} → ${inr(o.priceNow.offer)} for the customer · shop gets ${inr(o.priceNow.shopGets)} (usually ${inr(o.priceNow.shopUsual)})` : "The product is not on sale in this shop now";
   if (o.kind === "bogo") return `Every ${o.buyQty} bought, ${o.freeQty} more free. ${app(o) ? "Thanjoz Mart pays the shop for the free ones." : "The shop gives the free ones."}`;
   if (o.kind === "free_gift") return `${o.freeQty} free on orders of ${inr(o.minOrder ?? 0)} or more. ${app(o) ? "Thanjoz Mart pays the shop for the gift." : "The shop gives the gift."}`;
@@ -270,6 +272,7 @@ function Editor({ offer, shops, onClose, onSaved }: { offer: ShopOffer | null; s
   const [find, setFind] = useState("");
   const [paidBy, setPaidBy] = useState<"shop" | "app">(offer?.paidBy ?? "shop");
   const [mix, setMix] = useState(offer?.mix ?? false);
+  const [freeProductId, setFreeProductId] = useState(offer?.freeProductId ?? "");
   const [color, setColor] = useState<ShopOfferColor | null>(offer?.color ?? null);
   const [banner, setBanner] = useState<File | null>(null);
   const [noBanner, setNoBanner] = useState(false);
@@ -348,6 +351,7 @@ function Editor({ offer, shops, onClose, onSaved }: { offer: ShopOffer | null; s
         pct: kind === "price" || kind === "next_order" ? num(pct) : null,
         buyQty: kind === "bogo" ? num(buyQty) : null,
         mix: kind === "bogo" && sc !== "product" && mix,
+        freeProductId: kind === "bogo" && sc !== "product" && mix ? freeProductId || null : null,
         color,
         freeQty: kind === "bogo" || kind === "free_gift" ? num(freeQty) : null,
         minOrder: kind === "free_gift" || kind === "next_order" ? num(minOrder) : null,
@@ -367,7 +371,7 @@ function Editor({ offer, shops, onClose, onSaved }: { offer: ShopOffer | null; s
       onClose();
     },
   });
-  const ready = !!dealerId && (!needsProduct || (sc === "product" ? !!picked : covered.length > 0)) && !preview?.bad && !spread?.bad && till >= from;
+  const ready = !!dealerId && (!needsProduct || (sc === "product" ? !!picked : covered.length > 0)) && !preview?.bad && !spread?.bad && till >= from && (!(kind === "bogo" && sc !== "product" && mix) || onSale.some((l) => l.master_product_id === freeProductId));
   const numCls = `${inputCls} w-28`;
 
   return (
@@ -557,7 +561,7 @@ function Editor({ offer, shops, onClose, onSaved }: { offer: ShopOffer | null; s
               <input className={numCls} inputMode="numeric" value={freeQty} onChange={(e) => setFreeQty(e.target.value.replace(/\D/g, ""))} />
             </Field>
             {sc !== "product" && (
-              <Field label="How to count" hint={mix ? `Any ${buyQty || "…"} of these products together bring ${freeQty || "…"} free: more of the lowest-priced one in the basket.` : `${buyQty || "…"} of the same product bring ${freeQty || "…"} more of that product free.`}>
+              <Field label="How to count" hint={mix ? `Any ${buyQty || "…"} of these products together bring ${freeQty || "…"} of the free item you choose below.` : `${buyQty || "…"} of the same product bring ${freeQty || "…"} more of that product free.`}>
                 <Segments
                   value={mix ? "any" : "same"}
                   onChange={(v) => setMix(v === "any")}
@@ -569,6 +573,20 @@ function Editor({ offer, shops, onClose, onSaved }: { offer: ShopOffer | null; s
               </Field>
             )}
           </div>
+        )}
+        {kind === "bogo" && sc !== "product" && mix && (
+          <Field label="The free item" hint={!dealerId ? "Choose the shop first." : "The customer gets this product free, whichever of the offer's products they mix."}>
+            <Select
+              value={onSale.some((l) => l.master_product_id === freeProductId) ? freeProductId : ""}
+              onChange={setFreeProductId}
+              options={onSale.map((l) => ({
+                value: l.master_product_id,
+                label: `${l.product.name}${l.product.pack_size ? ` · ${l.product.pack_size}` : ""}`,
+                note: `Customer ${inr(l.selling_price)} · shop ${inr(l.shop_price)}`,
+              }))}
+              placeholder="Choose the product given free"
+            />
+          </Field>
         )}
         {kind === "free_gift" && (
           <div className="flex flex-wrap gap-3">

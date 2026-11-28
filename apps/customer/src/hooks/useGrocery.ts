@@ -194,6 +194,10 @@ export type GroceryOffer = {
   banner_path?: string | null;
   /** Buy-and-get-free that counts any mix of its products together. */
   mix?: boolean | null;
+  /** Any-mix offers: the product given free. */
+  free_product_id?: string | null;
+  free_name?: string | null;
+  free_name_ta?: string | null;
   /** The card colour the offer chose; empty wears the kind's own. */
   color?: string | null;
   /** Many-product offers: the products it really covers at this address. */

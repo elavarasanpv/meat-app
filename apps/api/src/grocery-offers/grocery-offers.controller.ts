@@ -17,7 +17,7 @@ type Upload = { buffer: Buffer; mimetype?: string; size: number } | undefined;
 const activeBody = z.object({ active: z.boolean() });
 const quoteBody = z.object({
   addressId: z.string().uuid(),
-  items: z.array(z.object({ masterProductId: z.string().uuid(), qty: z.coerce.number().int().min(1).max(99) })).max(100),
+  items: z.array(z.object({ masterProductId: z.string().uuid(), qty: z.coerce.number().positive().max(99) })).max(100),
 });
 
 /** The shop's own offers (grocery shops). */

@@ -20,6 +20,9 @@ type OfferRow = {
   buy_qty: number | null;
   free_qty: number | null;
   mix: boolean | null;
+  /** Any-mix offers: the product given free. */
+  free_product_id: string | null;
+  free_product?: { name: string; name_ta: string | null; image_path: string | null } | null;
   color: string | null;
   min_order: number | null;
   max_discount: number | null;
@@ -44,7 +47,7 @@ type Cover = { scope: "product" | "products" | "category"; face: string | null; 
 type Line = { masterProductId: string; qty: number; price: number };
 
 const COLS =
-  "id, dealer_id, kind, master_product_id, scope, product_ids, category_id, catalog_categories(name, name_ta), pct, buy_qty, free_qty, mix, color, min_order, max_discount, valid_days, starts_at, ends_at, is_active, status, reject_reason, reviewed_at, pushed_at, created_at, banner_path, paid_by, master_products(name, name_ta, image_path, pack_size, mrp), dealers(shop_name)";
+  "id, dealer_id, kind, master_product_id, scope, product_ids, category_id, catalog_categories(name, name_ta), pct, buy_qty, free_qty, mix, free_product_id, color, min_order, max_discount, valid_days, starts_at, ends_at, is_active, status, reject_reason, reviewed_at, pushed_at, created_at, banner_path, paid_by, master_products!shop_offers_master_product_id_fkey(name, name_ta, image_path, pack_size, mrp), free_product:master_products!shop_offers_free_product_id_fkey(name, name_ta, image_path), dealers(shop_name)";
 const DEAD = '("CANCELLED","REFUNDED","RETURNED","DELIVERY_FAILED")';
 const SWEEP_MS = 5 * 60_000;
 const IST = 5.5 * 3600_000;
@@ -52,6 +55,8 @@ const num = (v: unknown) => (v == null ? null : Number(v));
 /** Does this offer cover this product? (The SQL twin is shop_offer_covers.) */
 const covers = (o: OfferRow, masterId: string) =>
   o.scope === "products" ? (o.product_ids ?? []).includes(masterId) : o.scope === "category" ? !!o.inCategory?.has(masterId) : o.master_product_id === masterId;
+/** The product an offer hands over whatever is bought: a free gift, or an any-mix offer's free product. */
+const handsOver = (o: OfferRow) => (o.kind === "free_gift" ? o.master_product_id : o.kind === "bogo" && o.mix ? o.free_product_id : null);
 /** What the offer is on, for a notification: the product, the category, or "selected items". */
 const coverLabel = (o: OfferRow) =>
   o.scope === "category" && o.catalog_categories
@@ -130,6 +135,8 @@ export class GroceryOffersService implements OnModuleInit, OnModuleDestroy {
       buyQty: o.buy_qty,
       freeQty: o.free_qty,
       mix: o.kind === "bogo" && o.scope !== "product" && !!o.mix,
+      freeProductId: o.free_product_id,
+      freeProduct: o.free_product ? { name: o.free_product.name, nameTa: o.free_product.name_ta, imagePath: o.free_product.image_path } : null,
       color: o.color,
       minOrder: num(o.min_order),
       maxDiscount: num(o.max_discount),
@@ -274,6 +281,10 @@ export class GroceryOffersService implements OnModuleInit, OnModuleDestroy {
         .gt("ends_at", input.startsAt);
       if ((clash ?? []).some((c) => c.id !== id)) throw new BadRequestException("This product already has an offer like this for those dates");
     }
+    if (input.kind === "bogo" && scope !== "product" && input.mix && input.freeProductId) {
+      const { data: gift } = await this.db.from("store_products").select("is_active").eq("dealer_id", dealerId).eq("master_product_id", input.freeProductId).maybeSingle();
+      if (!gift?.is_active) throw new BadRequestException("The free item is not on sale in the shop's list");
+    }
     // One chosen product is simply a one-product offer.
     if (scope === "products" && rows.length === 1) return { scope: "product", face: rows[0].master_product_id, productIds: null, categoryId: null };
     return {
@@ -297,6 +308,7 @@ export class GroceryOffersService implements OnModuleInit, OnModuleDestroy {
       free_qty: k === "bogo" || k === "free_gift" ? input.freeQty : null,
       // Any-mix only means something when the offer is on more than one product.
       mix: k === "bogo" && cover.scope !== "product" && !!input.mix,
+      free_product_id: k === "bogo" && cover.scope !== "product" && input.mix ? input.freeProductId ?? null : null,
       color: input.color ?? null,
       min_order: k === "free_gift" || k === "next_order" ? input.minOrder : null,
       max_discount: k === "next_order" ? input.maxDiscount : null,
@@ -523,13 +535,13 @@ export class GroceryOffersService implements OnModuleInit, OnModuleDestroy {
 
   /** Gift items the shop can actually hand over now (listed, on, in stock). */
   private async giftable(rows: OfferRow[]) {
-    const gifts = rows.filter((o) => o.kind === "free_gift");
+    const gifts = rows.filter((o) => handsOver(o));
     if (!gifts.length) return new Set<string>();
     const { data } = await this.db
       .from("store_products")
       .select("dealer_id, master_product_id, is_active, out_of_stock_until")
       .in("dealer_id", [...new Set(gifts.map((g) => g.dealer_id))])
-      .in("master_product_id", [...new Set(gifts.map((g) => g.master_product_id!))]);
+      .in("master_product_id", [...new Set(gifts.map((g) => handsOver(g)!))]);
     const now = Date.now();
     return new Set((data ?? []).filter((l) => l.is_active && (!l.out_of_stock_until || new Date(l.out_of_stock_until).getTime() <= now)).map((l) => `${l.dealer_id}:${l.master_product_id}`));
   }
@@ -568,10 +580,12 @@ export class GroceryOffersService implements OnModuleInit, OnModuleDestroy {
       if (n > 0) free.push({ offer: b, masterProductId: l.masterProductId, qty: n, reason: "bogo" });
     }
     for (const g of mixed.values()) {
-      const n = bogoFreeUnits(g.lines.reduce((s, l) => s + l.qty, 0), g.offer.buy_qty!, g.offer.free_qty!);
-      // The free ones are more of the lowest-priced product of the mix.
+      // a loose item (0.5 kg of sugar) still counts as one of the items bought
+      const n = bogoFreeUnits(g.lines.reduce((s, l) => s + Math.max(1, Math.floor(l.qty)), 0), g.offer.buy_qty!, g.offer.free_qty!);
+      // The free one is the product the offer names; without it (or when the shop is out of it), more of the lowest-priced product of the mix.
+      const named = g.offer.free_product_id && giftOk.has(`${dealerId}:${g.offer.free_product_id}`) ? g.offer.free_product_id : null;
       const cheapest = [...g.lines].sort((a, b) => a.price - b.price)[0];
-      if (n > 0) free.push({ offer: g.offer, masterProductId: cheapest.masterProductId, qty: n, reason: "bogo" });
+      if (n > 0) free.push({ offer: g.offer, masterProductId: named ?? cheapest.masterProductId, qty: n, reason: "bogo" });
     }
     const gifts = mine.filter((o) => o.kind === "free_gift" && giftOk.has(`${dealerId}:${o.master_product_id}`)).sort((a, b) => Number(a.min_order) - Number(b.min_order));
     const reached = gifts.filter((g) => sub >= Number(g.min_order)).pop();
@@ -614,9 +628,9 @@ export class GroceryOffersService implements OnModuleInit, OnModuleDestroy {
     let earnHint: { need: number; pct: number; maxDiscount: number } | null = null;
     let coupon: { id: string; pct: number; maxDiscount: number; discount: number; expiresAt: string } | null = null;
     const priceOf = new Map(rows.map((r) => [`${r.dealer}:${r.master}`, Number(r.selling)]));
-    const usual = await this.usualPrices(free.length ? [] : offers.filter((o) => o.kind === "free_gift"));
+    const usual = await this.usualPrices(free.length ? [] : offers.filter((o) => handsOver(o)));
     const plans = dealers.map((d) => ({ d, p: this.plan(d, byDealer.get(d)!, offers, giftOk) }));
-    // An offer on many products gives away the one that was bought, not the offer's face product.
+    // A buy-and-get-free line gives the product it names, or the one that was bought: not the offer's face product.
     const boughtIds = [...new Set(plans.flatMap((x) => x.p.free.filter((f) => f.reason === "bogo").map((f) => f.masterProductId)))];
     const { data: bought } = boughtIds.length
       ? await this.db.from("master_products").select("id, name, name_ta, image_path").in("id", boughtIds)
@@ -650,7 +664,7 @@ export class GroceryOffersService implements OnModuleInit, OnModuleDestroy {
       .from("store_products")
       .select("dealer_id, master_product_id, selling_price")
       .in("dealer_id", [...new Set(gifts.map((g) => g.dealer_id))])
-      .in("master_product_id", [...new Set(gifts.map((g) => g.master_product_id!))]);
+      .in("master_product_id", [...new Set(gifts.map((g) => handsOver(g)!))]);
     return new Map((data ?? []).map((l) => [`${l.dealer_id}:${l.master_product_id}`, Number(l.selling_price)]));
   }
 

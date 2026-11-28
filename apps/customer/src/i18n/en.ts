@@ -584,5 +584,6 @@ export const en = {
   go_stkGift: "FREE",
   go_stkNext: "NEXT",
   go_mixNote: "Mix any of these. For every {buy} you buy, {free} more of the lowest-priced one comes free.",
+  go_mixNoteItem: "Mix any of these. For every {buy} you buy, you get {free} × {name} free.",
   go_sameNote: "For every {buy} you buy of one product, {free} more of it comes free.",
 };

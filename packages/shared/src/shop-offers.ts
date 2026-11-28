@@ -49,6 +49,8 @@ export const shopOfferSchema = z
     freeQty: z.coerce.number().int().min(1).max(10).nullable().optional(),
     /** Buy-and-get-free on many products: count any mix of them together, not each product on its own. */
     mix: z.boolean().optional(),
+    /** Any-mix offers: the product given free. (A same-product offer gives more of that product.) */
+    freeProductId: id.nullable().optional(),
     /** The card colour; empty means the kind's own colour. */
     color: z.enum(SHOP_OFFER_COLOR_KEYS).nullable().optional(),
     minOrder: rupees.nullable().optional(),
@@ -80,6 +82,7 @@ export const shopOfferSchema = z
       covers();
       need(o.buyQty, "buyQty", "How many must they buy?");
       need(o.freeQty, "freeQty", "How many do they get free?");
+      if (o.mix && o.scope && o.scope !== "product") need(o.freeProductId, "freeProductId", "Choose the free item");
     }
     if (o.kind === "free_gift") {
       need(o.masterProductId, "masterProductId", "Choose the free item");

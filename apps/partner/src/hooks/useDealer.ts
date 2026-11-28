@@ -319,6 +319,9 @@ export type ShopOffer = {
   buyQty: number | null;
   /** Buy-and-get-free on many products: any mix counts, not each product on its own. */
   mix?: boolean;
+  /** Any-mix offers: the product given free. */
+  freeProductId?: string | null;
+  freeProduct?: { name: string; nameTa: string | null; imagePath: string | null } | null;
   /** The card colour; null wears the kind's own colour. */
   color?: string | null;
   freeQty: number | null;
@@ -350,6 +353,7 @@ export type ShopOfferInput = {
   buyQty?: number | null;
   freeQty?: number | null;
   mix?: boolean;
+  freeProductId?: string | null;
   color?: string | null;
   minOrder?: number | null;
   maxDiscount?: number | null;

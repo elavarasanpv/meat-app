@@ -258,11 +258,15 @@ export function FreeLines({ quote }: { quote?: GroceryQuote }) {
               <AppText variant="bodyBold" style={{ fontSize: 14, lineHeight: 18 }}>{localName({ name: f.name, name_ta: f.nameTa })}</AppText>
               <AppText variant="caption" color={c.successText} style={{ marginTop: 2 }}>{f.qty} × {t(f.reason === "gift" ? "go_freeGift" : "go_freeBogo")}</AppText>
             </View>
-            <View style={{ alignItems: "flex-end", gap: 3 }}>
+            <View style={{ alignItems: "flex-end", gap: 6 }}>
               <View style={{ paddingHorizontal: 9, paddingVertical: 3, borderRadius: 9, backgroundColor: c.success }}>
                 <AppText variant="label" color="#FFFFFF" style={{ fontSize: 11 }}>{t("free")}</AppText>
               </View>
-              {f.value > 0 ? <AppText variant="caption" muted style={{ fontSize: 11, textDecorationLine: "line-through" }}>₹{f.value}</AppText> : null}
+              {/* priced like any other line: what it would have cost, struck, then ₹0 */}
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                {f.value > 0 ? <AppText variant="caption" muted style={{ fontSize: 11, textDecorationLine: "line-through" }}>₹{f.value}</AppText> : null}
+                <AppText variant="bodyBold" color={c.successText} style={{ fontSize: 14 }}>₹0</AppText>
+              </View>
             </View>
           </View>
         );

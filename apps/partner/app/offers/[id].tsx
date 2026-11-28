@@ -25,7 +25,7 @@ const whole = (s: string) => {
 const digits = (s: string) => s.replace(/[^0-9]/g, "");
 const show = (n: number | null | undefined) => (n == null ? "" : String(Number(n)));
 
-type Errors = Partial<Record<"product" | "pct" | "buy" | "free" | "minOrder" | "maxDiscount" | "validDays", string>>;
+type Errors = Partial<Record<"product" | "pct" | "buy" | "free" | "freeItem" | "minOrder" | "maxDiscount" | "validDays", string>>;
 const SCOPES: { key: OfferScope; label: TKey }[] = [{ key: "product", label: "offerOne" }, { key: "products", label: "offerMany" }, { key: "category", label: "offerCat" }];
 /** A price offer on one listing: the % is off the MRP; the shop's amount drops by the same rupees as the customer's price. */
 const priceAt = (l: MyListing, pct: number) => {
@@ -78,6 +78,10 @@ export default function OfferForm() {
   const [pct, setPct] = useState("");
   const [buy, setBuy] = useState("1");
   const [mix, setMix] = useState(false);
+  /** Any-mix offers: the product the customer gets free. */
+  const [freeId, setFreeId] = useState<string | null>(null);
+  const [pickingFree, setPickingFree] = useState(false);
+  const [qFree, setQFree] = useState("");
   const [color, setColor] = useState<ShopOfferColor | null>(null);
   const [free, setFree] = useState("1");
   const [minOrder, setMinOrder] = useState("");
@@ -105,6 +109,7 @@ export default function OfferForm() {
     setPct(show(existing.pct));
     if (existing.buyQty) setBuy(show(existing.buyQty));
     setMix(!!existing.mix);
+    setFreeId(existing.freeProductId ?? null);
     setColor(existing.color ? shopOfferColorKey(existing.kind, existing.color) : null);
     if (existing.freeQty) setFree(show(existing.freeQty));
     setMinOrder(show(existing.minOrder));
@@ -121,6 +126,13 @@ export default function OfferForm() {
     const rows = s ? active.filter((l) => `${l.product.name} ${l.product.name_ta ?? ""} ${l.product.brand ?? ""}`.toLowerCase().includes(s)) : active;
     return rows.slice(0, 8);
   }, [active, q]);
+
+  const freeItem = freeId ? active.find((l) => l.master_product_id === freeId) : undefined;
+  const freeFound = useMemo(() => {
+    const s = qFree.trim().toLowerCase();
+    const rows = s ? active.filter((l) => `${l.product.name} ${l.product.name_ta ?? ""} ${l.product.brand ?? ""}`.toLowerCase().includes(s)) : active;
+    return rows.slice(0, 8);
+  }, [active, qFree]);
 
   const needsProduct = kind !== "next_order";
   // Price and buy-get-free offers can cover one product, several, or a whole category.
@@ -205,6 +217,7 @@ export default function OfferForm() {
       const f = whole(free);
       if (!b || b > 10) e.buy = t("offerErrQty");
       if (!f || f > 10) e.free = t("offerErrQty");
+      if (sc !== "product" && mix && !freeItem) e.freeItem = t("offerErrFreeItem");
     }
     if (kind === "free_gift") {
       const f = whole(free);
@@ -252,6 +265,7 @@ export default function OfferForm() {
       pct: kind === "price" || kind === "next_order" ? p : null,
       buyQty: kind === "bogo" ? whole(buy) : null,
       mix: kind === "bogo" && sc !== "product" && mix,
+      freeProductId: kind === "bogo" && sc !== "product" && mix ? freeItem?.master_product_id ?? null : null,
       color,
       freeQty: kind === "bogo" || kind === "free_gift" ? whole(free) : null,
       minOrder: kind === "free_gift" || kind === "next_order" ? whole(minOrder) : null,
@@ -484,6 +498,44 @@ export default function OfferForm() {
                     <Chip label={t("offerCountAny")} selected={mix} onPress={() => setMix(true)} />
                   </View>
                   <Txt size={13} muted>{t(mix ? "offerCountAnyHint" : "offerCountSameHint")}</Txt>
+                </View>
+              ) : null}
+              {kind === "bogo" && sc !== "product" && mix ? (
+                <View style={{ gap: 8 }}>
+                  <Txt bold size={14}>{t("offerFreeItem")}</Txt>
+                  {freeItem && !pickingFree ? (
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+                      <Thumb l={freeItem} />
+                      <View style={{ flex: 1 }}>
+                        <Txt bold size={15}>{nameOf(freeItem)}</Txt>
+                        <Txt size={13} muted>{[freeItem.product.pack_size, `₹${Number(freeItem.selling_price)}`].filter(Boolean).join(" · ")}</Txt>
+                      </View>
+                      <Pressable onPress={() => setPickingFree(true)} hitSlop={8} accessibilityRole="button"><Txt bold size={14} color={c.primary}>{t("offerChange")}</Txt></Pressable>
+                    </View>
+                  ) : (
+                    <View style={{ gap: 8 }}>
+                      <TextInput
+                        allowFontScaling={false}
+                        value={qFree}
+                        onChangeText={setQFree}
+                        placeholder={t("offerSearch")}
+                        placeholderTextColor={c.muted}
+                        style={{ minHeight: 48, paddingHorizontal: 14, borderRadius: 14, borderWidth: 1.5, borderColor: err("freeItem") ? c.danger : c.border, backgroundColor: c.ground, fontFamily: "Manrope_500Medium", fontSize: 15, color: c.ink }}
+                      />
+                      {freeFound.map((l) => (
+                        <Pressable key={l.master_product_id} onPress={() => { setFreeId(l.master_product_id); setPickingFree(false); setQFree(""); setErrors({}); }}
+                          style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 12, padding: 8, borderRadius: 14, backgroundColor: pressed ? c.surface2 : c.surface })}>
+                          <Thumb l={l} />
+                          <View style={{ flex: 1 }}>
+                            <Txt bold size={14}>{nameOf(l)}</Txt>
+                            <Txt size={12} muted>{[l.product.pack_size, `₹${Number(l.selling_price)}`].filter(Boolean).join(" · ")}</Txt>
+                          </View>
+                        </Pressable>
+                      ))}
+                      {listings.isSuccess && !freeFound.length ? <Txt size={13} muted>{t("stockNoMatch")}</Txt> : null}
+                    </View>
+                  )}
+                  {err("freeItem") ? <Txt size={13} color={c.danger}>{err("freeItem")}</Txt> : null}
                 </View>
               ) : null}
               {kind === "free_gift" ? (

@@ -14,7 +14,7 @@ import { ErrorState, ListSkeleton } from "@/components/States";
 import { useGroceryCatalog, useGroceryOffers } from "@/hooks/useGrocery";
 import { useGroceryBasket } from "@/hooks/useGroceryBasket";
 import { useHomePincode } from "@/hooks/useOffers";
-import { useT } from "@/i18n";
+import { useLocalName, useT } from "@/i18n";
 import { groceryThumb } from "@/lib/images";
 import { queryState } from "@/lib/network";
 import { Accent, useTheme, withAccent } from "@/theme";
@@ -30,6 +30,7 @@ export default function GroceryOfferScreen() {
   const theme = useTheme();
   const c = withAccent(theme.c, "grocery", theme.dark);
   const t = useT();
+  const localName = useLocalName();
   const router = useRouter();
   const words = useOfferWords();
   const { width } = useWindowDimensions();
@@ -67,7 +68,7 @@ export default function GroceryOfferScreen() {
             <View style={{ flex: 1, gap: 2 }}>
               <AppText variant="title" color="#FFFFFF" style={{ fontSize: 18, lineHeight: 22 }}>{w.headline}</AppText>
               <AppText variant="label" color="rgba(255,255,255,0.94)" style={{ fontSize: 12, lineHeight: 16 }}>{w.cover}</AppText>
-              {offer?.kind === "bogo" ? <AppText variant="caption" color="rgba(255,255,255,0.94)" style={{ fontSize: 12, lineHeight: 16, marginTop: 2 }}>{t(offer.mix ? "go_mixNote" : "go_sameNote", { buy: offer.buy_qty ?? 0, free: offer.free_qty ?? 0 })}</AppText> : null}
+              {offer?.kind === "bogo" ? <AppText variant="caption" color="rgba(255,255,255,0.94)" style={{ fontSize: 12, lineHeight: 16, marginTop: 2 }}>{offer.mix && offer.free_name ? t("go_mixNoteItem", { buy: offer.buy_qty ?? 0, free: offer.free_qty ?? 0, name: localName({ name: offer.free_name, name_ta: offer.free_name_ta }) }) : t(offer.mix ? "go_mixNote" : "go_sameNote", { buy: offer.buy_qty ?? 0, free: offer.free_qty ?? 0 })}</AppText> : null}
             </View>
             {/* The offer's own picture when it has one, else a sticker that says the deal. */}
             {banner ? (
