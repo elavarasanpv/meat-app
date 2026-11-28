@@ -81,7 +81,8 @@ function OfferCard({ offer: o, width }: { offer: GroceryOffer; width: number }) 
   const many = offerIsMany(o);
   // The offer's own picture first; else a product's photo (for a many-product offer, one of them).
   const banner = groceryThumb(o.banner_path);
-  const img = banner ?? groceryThumb(o.image_path);
+  // buy-and-get-free wears its sticker unless the shop added a picture of its own
+  const img = banner ?? (o.kind === "bogo" ? null : groceryThumb(o.image_path));
   const name = o.name ? `${localName({ name: o.name, name_ta: o.name_ta })}${o.pack_size ? ` (${o.pack_size})` : ""}` : "";
   const headline = words.headline;
   const sub =
