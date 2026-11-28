@@ -408,6 +408,25 @@ export type AdminSellPriceInput = z.infer<typeof adminSellPriceSchema>;
 export type AdminShopPriceInput = z.infer<typeof adminShopPriceSchema>;
 export type AdminMarginInput = z.infer<typeof adminMarginSchema>;
 
+/** Automatic customer pushes: salary day, weekend, and "we miss you" after a quiet spell. */
+export const AUTO_PUSH_KINDS = ["salary_day", "weekend", "inactive", "reorder"] as const;
+export const AUTO_PUSH_AUDIENCES = ["all", "ordered", "never_ordered"] as const;
+export const autoPushSchema = z.object({
+  enabled: z.boolean(),
+  title: z.string().trim().min(3).max(60),
+  body: z.string().trim().min(3).max(160),
+  titleTa: z.string().trim().max(80).optional().nullable(),
+  bodyTa: z.string().trim().max(220).optional().nullable(),
+  sendAt: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Pick a time"),
+  dayOfMonth: z.number().int().min(1).max(31),
+  weekday: z.number().int().min(0).max(6),
+  inactiveDays: z.number().int().min(2).max(90),
+  audience: z.enum(AUTO_PUSH_AUDIENCES),
+  pincodes: z.array(z.string().regex(/^\d{6}$/, "A pincode has 6 digits")).max(50),
+});
+export type AutoPushInput = z.infer<typeof autoPushSchema>;
+export const autoPushTestSchema = z.object({ phone: z.string().regex(/^\d{10}$/, "Type a 10-digit phone number") });
+
 /** A promo push from the admin: "Sunday special", a new offer, a notice to shops or riders. */
 export const BROADCAST_AUDIENCES = ["customers", "shops", "riders", "all"] as const;
 export const adminBroadcastSchema = z.object({

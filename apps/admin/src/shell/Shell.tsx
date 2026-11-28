@@ -24,6 +24,7 @@ import {
   IconSearch,
   IconSettings,
   IconSliders,
+  IconCalendar,
   IconShop,
   IconTag,
   IconStar,
@@ -59,10 +60,11 @@ const SECTIONS: { title: string; items: NavItem[] }[] = [
     ],
   },
   {
-    title: "Offers",
+    title: "Offers & messages",
     items: [
       { to: "/offers", label: "App offers & coupons", short: "App offers", hint: "Banner offers and coupon codes you run", Icon: IconTag },
       { to: "/shop-offers", label: "Grocery shop offers", short: "Shop offers", hint: "Approve offers made by grocery shops", Icon: IconShop },
+      { to: "/auto-notifications", label: "Auto notifications", short: "Auto pushes", hint: "Salary day, weekend and we-miss-you pushes", Icon: IconCalendar },
     ],
   },
   { title: "Money", items: [{ to: "/pnl", label: "Profit & loss", short: "Profit", hint: "What came in, what went out, what is left", Icon: IconArrowUp }] },

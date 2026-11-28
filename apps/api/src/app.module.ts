@@ -9,9 +9,10 @@ import { OffersModule } from "./offers/offers.module";
 import { VoiceModule } from "./voice/voice.module";
 import { CatalogModule } from "./catalog/catalog.module";
 import { GroceryOffersModule } from "./grocery-offers/grocery-offers.module";
+import { AutoPushModule } from "./auto-push/auto-push.module";
 
 @Module({
-  imports: [OrdersModule, RiderModule, DealerModule, AdminModule, SupportModule, OffersModule, VoiceModule, CatalogModule, GroceryOffersModule],
+  imports: [OrdersModule, RiderModule, DealerModule, AdminModule, SupportModule, OffersModule, VoiceModule, CatalogModule, GroceryOffersModule, AutoPushModule],
   controllers: [HealthController],
 })
 export class AppModule {}

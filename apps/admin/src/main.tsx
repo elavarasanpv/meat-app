@@ -14,6 +14,7 @@ import { Riders } from "./pages/Riders";
 import { Cash } from "./pages/Cash";
 import { Notifications } from "./pages/Notifications";
 import { Settings } from "./pages/Settings";
+import { AutoPushesPage } from "./pages/AutoPushes";
 import { Support } from "./pages/Support";
 import { Offers } from "./pages/Offers";
 import { ShopOffers } from "./pages/ShopOffers";
@@ -55,6 +56,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
               <Route path="/ratings" element={<RatingsPage />} />
               <Route path="/notifications" element={<Notifications />} />
               <Route path="/settings" element={<Settings />} />
+              <Route path="/auto-notifications" element={<AutoPushesPage />} />
             </Route>
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />

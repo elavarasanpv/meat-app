@@ -18,6 +18,8 @@ export function PushBridge() {
       if (data.kind === "promo") return data.offerId ? router.push(`/offer/${String(data.offerId)}`) : router.push("/(tabs)");
       // a shop's grocery offer: that product, the offer's products, or grocery Home
       if (data.kind === "grocery_offer") return data.productId ? router.push(`/grocery/item/${String(data.productId)}`) : data.list && data.offerId ? router.push(`/grocery/offer/${String(data.offerId)}`) : router.push("/(tabs)");
+      // "order again": the Orders list, where last week's order has its Order again button
+      if (data.kind === "reorder") return router.push("/(tabs)/orders");
       if (data.orderId) router.push(`/order/${String(data.orderId)}`);
     };
     const sub = Notifications.addNotificationResponseReceivedListener((r) => open(r.notification.request.content.data));
