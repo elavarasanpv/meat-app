@@ -337,34 +337,38 @@ export function PricingPage() {
                           )}
                         </div>
                         {!pincode && (
-                          <div className="mt-1.5 flex items-center justify-end gap-1.5">
-                            {p.wasPrice != null && p.wasPrice > p.sellingPrice && <Chip tone="ok">{Math.round(((p.wasPrice - p.sellingPrice) / p.wasPrice) * 100)}% off</Chip>}
-                            {p.wasPrice != null && p.wasPrice <= p.sellingPrice && <span className="text-[10.5px] font-bold text-bad">not shown: below selling price</span>}
-                            {p.wasPrice != null && (
-                              <button
-                                type="button"
-                                title="Remove the discount"
-                                aria-label={`Remove the discount on ${p.name}`}
-                                className="rounded-full bg-surface-2 px-2 py-0.5 text-[10.5px] font-extrabold text-muted hover:text-ink"
-                                onClick={() => {
+                          <div className="mt-2 flex flex-col items-end gap-1">
+                            <div className="flex items-center justify-end gap-1.5">
+                              <span className="text-right text-[10.5px] font-extrabold uppercase leading-tight tracking-wide text-muted" title="A higher price shown crossed out, so customers see a discount. It does not change what they pay.">
+                                Price before offer ₹
+                              </span>
+                              <PriceCell
+                                label={`Price before offer for ${p.name}`}
+                                value={p.wasPrice}
+                                placeholder="no offer"
+                                saving={savingKey === `w-${p.id}` && (product.isPending || q.isFetching)}
+                                onSave={(v) => {
                                   setSavingKey(`w-${p.id}`);
-                                  product.mutate({ productId: p.id, wasPrice: null });
+                                  product.mutate({ productId: p.id, wasPrice: v });
                                 }}
-                              >
-                                remove
-                              </button>
+                              />
+                            </div>
+                            {p.wasPrice == null ? (
+                              <span className="text-right text-[10.5px] font-semibold leading-snug text-muted">No offer. Type a higher price to show a discount.</span>
+                            ) : p.wasPrice > p.sellingPrice ? (
+                              <div className="flex flex-wrap items-center justify-end gap-1.5 rounded-lg bg-ok/10 px-2 py-1 text-[11px] font-bold">
+                                <span className="text-muted">Customers see</span>
+                                <span className="text-muted line-through">₹{p.wasPrice}</span>
+                                <span className="text-ink">₹{p.sellingPrice}</span>
+                                <Chip tone="ok">{Math.round(((p.wasPrice - p.sellingPrice) / p.wasPrice) * 100)}% off</Chip>
+                                <RemoveOffer name={p.name} onClick={() => { setSavingKey(`w-${p.id}`); product.mutate({ productId: p.id, wasPrice: null }); }} />
+                              </div>
+                            ) : (
+                              <div className="flex flex-wrap items-center justify-end gap-1.5 text-[10.5px] font-bold text-bad">
+                                <span>Not shown: must be above ₹{p.sellingPrice}</span>
+                                <RemoveOffer name={p.name} onClick={() => { setSavingKey(`w-${p.id}`); product.mutate({ productId: p.id, wasPrice: null }); }} />
+                              </div>
                             )}
-                            <span className="text-[10.5px] font-extrabold uppercase tracking-wide text-muted" title="The price before discount. Customers see it struck through next to the selling price.">Was ₹</span>
-                            <PriceCell
-                              label={`Price before discount for ${p.name}`}
-                              value={p.wasPrice}
-                              placeholder="none"
-                              saving={savingKey === `w-${p.id}` && (product.isPending || q.isFetching)}
-                              onSave={(v) => {
-                                setSavingKey(`w-${p.id}`);
-                                product.mutate({ productId: p.id, wasPrice: v });
-                              }}
-                            />
                           </div>
                         )}
                       </td>
@@ -434,11 +438,25 @@ export function PricingPage() {
           {d && !d.products.length && <Empty>No products.</Empty>}
         </section>
         <div className="mt-2 text-[11px] text-muted">
-          Market price is for your reference only: it does not change what customers pay or what the shop is paid, and profit never uses it. "Our benefit vs market" is market − cost; "Customer saves" is market − selling price. "Was ₹" is the price before discount, shown struck through to customers when it is above the selling price.
+          Market price is for your reference only: it does not change what customers pay or what the shop is paid, and profit never uses it. "Our benefit vs market" is market − cost; "Customer saves" is market − selling price. "Price before offer" is a higher price shown crossed out next to the selling price, so customers see a discount. It does not change what they pay or your profit.
           {" "}New orders use the new price at once; already-placed orders keep the price they were placed at. Profit uses the cheapest shop when several stock a product.
           In % mode the selling price follows the shop cost: highest shop cost plus the margin, rounded up to the rupee, recomputed whenever a cost changes. Typing a ₹ price switches back to fixed.
         </div>
       </div>
     </div>
+  );
+}
+
+function RemoveOffer({ name, onClick }: { name: string; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      title="Remove the offer"
+      aria-label={`Remove the offer on ${name}`}
+      className="rounded-full bg-surface px-2 py-0.5 text-[10.5px] font-extrabold text-muted ring-1 ring-line hover:text-ink"
+      onClick={onClick}
+    >
+      remove
+    </button>
   );
 }
