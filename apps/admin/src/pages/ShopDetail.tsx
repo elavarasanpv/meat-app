@@ -15,7 +15,7 @@ type Stats = {
   isOpen: boolean;
   since: string;
   pincodes: string[];
-  totals: { orders: number; delivered: number; cancelled: number; failed: number; sales: number; paidToShop: number; margin: number };
+  totals: { orders: number; delivered: number; cancelled: number; failed: number; sales: number; paidToShop: number; appCharges?: number; margin: number };
   offers: { offered: number; accepted: number; declined: number; missed: number; acceptRate: number | null; avgAcceptSecs: number | null };
   prep: { avgMinutes: number | null; fastest: number | null; slowest: number | null; onTimePct: number | null; counted: number };
   days: { date: string; orders: number; sales: number }[];
@@ -128,7 +128,7 @@ export function ShopDetail({ id, onClose, onEdit }: { id: string; onClose: () =>
               </div>
             </Section>
             <div className="text-[11px] text-muted">
-              Paid to the shop for delivered orders: {inr(d.totals.paidToShop)}. Shop on Thanjoz Mart since {new Date(d.since).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}.
+              Paid to the shop for delivered orders: {inr(d.totals.paidToShop)}{d.totals.appCharges ? ` (after ${inr(d.totals.appCharges)} app charge)` : ""}. Shop on Thanjoz Mart since {new Date(d.since).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}.
             </div>
           </>
         )}

@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { Image, Pressable, ScrollView, TextInput, View } from "react-native";
+import { useRouter } from "expo-router";
 import { Icon } from "@/components/Icon";
 import { useSetStock, useStock, type StockRow } from "@/hooks/useDealer";
 import { usePullRefresh } from "@/hooks/usePullRefresh";
 import { useLang, useT, type TKey } from "@/i18n";
 import { categoryImage, productImage, subcategoryImage } from "@/lib/images";
-import { Txt, useC } from "@/ui";
+import { Btn, Txt, useC } from "@/ui";
 
 /** 12 h keeps "out today" true through the evening, back on by morning. */
 const OUT_TODAY_MS = 12 * 3600_000;
@@ -31,8 +32,8 @@ function StockSwitch({ value, onChange }: { value: State; onChange: (s: State) =
       {opts.map((o) => {
         const on = value === o.key;
         return (
-          <Pressable key={o.key} onPress={() => onChange(o.key)} accessibilityRole="button" accessibilityState={{ selected: on }} style={{ flex: 1, height: 36, borderRadius: 11, alignItems: "center", justifyContent: "center", backgroundColor: on ? c.surface : "transparent", borderWidth: on ? 1.5 : 0, borderColor: o.color }}>
-            <Txt bold size={12} color={on ? o.color : c.muted} numberOfLines={1}>{t(o.label)}</Txt>
+          <Pressable key={o.key} onPress={() => onChange(o.key)} accessibilityRole="button" accessibilityState={{ selected: on }} style={{ flex: 1, minHeight: 36, paddingVertical: 6, paddingHorizontal: 4, borderRadius: 11, alignItems: "center", justifyContent: "center", backgroundColor: on ? c.surface : "transparent", borderWidth: on ? 1.5 : 0, borderColor: o.color }}>
+            <Txt bold size={12} color={on ? o.color : c.muted} style={{ textAlign: "center" }}>{t(o.label)}</Txt>
           </Pressable>
         );
       })}
@@ -40,32 +41,41 @@ function StockSwitch({ value, onChange }: { value: State; onChange: (s: State) =
   );
 }
 
-function Row({ row, onChange }: { row: StockRow; onChange: (s: State) => void }) {
+function Row({ row, onChange, onOpen }: { row: StockRow; onChange: (s: State) => void; onOpen?: () => void }) {
   const c = useC();
+  const t = useT();
   const lang = useLang((s) => s.lang);
   const state = stateOf(row.out_of_stock_until);
   const name = lang === "ta" && row.name_ta ? row.name_ta : row.name;
   const img = productImage(row.name, row.image_path);
   return (
-    <View style={{ padding: 12, gap: 10, opacity: state === "in" ? 1 : 0.85 }}>
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+    <View style={{ padding: 12, gap: 10, opacity: state === "in" && !row.hidden ? 1 : 0.85 }}>
+      <Pressable onPress={onOpen} disabled={!onOpen} accessibilityRole={onOpen ? "button" : undefined} style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
         <View style={{ width: 52, height: 52, borderRadius: 14, backgroundColor: c.tintSoft, alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
           {img ? <Image source={img} resizeMode="contain" style={{ width: 46, height: 46, opacity: state === "in" ? 1 : 0.5 }} /> : null}
         </View>
         <View style={{ flex: 1 }}>
           <Txt bold size={15}>{name}</Txt>
           {row.detail ? <Txt size={12} muted>{row.detail}</Txt> : null}
+          {row.prices ? (
+            <Txt size={13} muted>
+              {row.prices.mrp != null ? `${t("mrp")} ₹${row.prices.mrp} · ` : ""}{t("pCustomer")} <Txt bold size={13}>₹{row.prices.selling}</Txt> · {t("pYou")} <Txt bold size={13}>₹{row.prices.shop}</Txt>
+            </Txt>
+          ) : null}
+          {row.hidden ? <Txt bold size={12} color={c.danger}>{t("pHidden")}</Txt> : null}
           {state !== "in" ? <Txt size={12} color={state === "today" ? c.warning : c.danger}>{state === "today" ? "⏸" : "⛔"}</Txt> : null}
         </View>
-      </View>
+        {onOpen ? <Icon name="chevronRight" color={c.muted} size={20} /> : null}
+      </Pressable>
       <StockSwitch value={state} onChange={onChange} />
     </View>
   );
 }
 
 /** Products grouped by category, then sub-category (Chicken → Broiler / Country), each with its picture and stock switch. */
-export function StockScreen({ dealerId }: { dealerId: string }) {
+export function StockScreen({ dealerId, canEdit }: { dealerId: string; canEdit?: boolean }) {
   const c = useC();
+  const router = useRouter();
   const t = useT();
   const refresh = usePullRefresh();
   const lang = useLang((s) => s.lang);
@@ -103,7 +113,7 @@ export function StockScreen({ dealerId }: { dealerId: string }) {
       {rows.map((row, i) => (
         <View key={row.product_id}>
           {i > 0 ? <View style={{ height: 1, backgroundColor: c.border, marginHorizontal: 12 }} /> : null}
-          <Row row={row} onChange={(s) => change(row, s)} />
+          <Row row={row} onChange={(s) => change(row, s)} onOpen={canEdit && row.prices ? () => router.push(`/product/${row.product_id}`) : undefined} />
         </View>
       ))}
     </View>
@@ -111,6 +121,7 @@ export function StockScreen({ dealerId }: { dealerId: string }) {
 
   return (
     <View style={{ flex: 1 }}>
+      {canEdit ? <Btn label={t("addProduct")} icon="box" onPress={() => router.push("/product/new")} style={{ marginHorizontal: 16, marginTop: 4, marginBottom: 10 }} /> : null}
       {/* A short list (a meat shop) is quicker to scroll than to search. */}
       {all.length > 8 ? (
         <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginHorizontal: 16, marginTop: 4, marginBottom: 8, paddingHorizontal: 14, height: 50, borderRadius: 16, borderWidth: 1.5, borderColor: c.border, backgroundColor: c.surface }}>

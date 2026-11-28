@@ -1,5 +1,5 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from "@nestjs/common";
-import type { DeliveryRuleInput, DeliveryTestInput } from "@thanjozmart/shared";
+import type { AppChargeDefaultInput, AppChargeShopInput, DeliveryRuleInput, DeliveryTestInput } from "@thanjozmart/shared";
 import { SupabaseService } from "../supabase.service";
 
 const RULE = "id, vertical_type, pincode, min_order, fee, free_above, is_active, updated_at";
@@ -33,12 +33,14 @@ export class DeliverySettingsService {
   }
 
   async get() {
-    const [v, r] = await Promise.all([
-      this.db.from("verticals").select("type, label, is_active, first_order_free").order("sort"),
+    const [v, r, d] = await Promise.all([
+      this.db.from("verticals").select("type, label, is_active, first_order_free, app_charge_mode, app_charge_value").order("sort"),
       this.db.from("delivery_fee_rules").select(RULE).is("zone_id", null).order("pincode", { nullsFirst: true }),
+      this.db.from("dealers").select("id, shop_name, store_type, app_charge_mode, app_charge_value").eq("is_active", true).order("shop_name"),
     ]);
     if (v.error) throw v.error;
     if (r.error) throw r.error;
+    if (d.error) throw d.error;
     const rules = ((r.data ?? []) as RuleRow[]).map(shape);
     return (v.data ?? []).map((x) => ({
       type: x.type as string,
@@ -47,6 +49,11 @@ export class DeliverySettingsService {
       firstOrderFree: x.first_order_free as boolean,
       defaultRule: rules.find((q) => q.verticalType === x.type && q.pincode == null) ?? null,
       pincodeRules: rules.filter((q) => q.verticalType === x.type && q.pincode != null),
+      appCharge: { mode: x.app_charge_mode as "none" | "percent" | "flat", value: Number(x.app_charge_value) },
+      // Every shop of this kind, with its own app charge when it has one (mode null = the default).
+      shops: (d.data ?? [])
+        .filter((s) => s.store_type === x.type)
+        .map((s) => ({ id: s.id as string, name: s.shop_name as string, mode: s.app_charge_mode as "none" | "percent" | "flat" | null, value: s.app_charge_value == null ? null : Number(s.app_charge_value) })),
     }));
   }
 
@@ -93,6 +100,26 @@ export class DeliverySettingsService {
     if (error) throw error;
     if (!data) throw new NotFoundException("Unknown vertical");
     return { verticalType, on };
+  }
+
+  /** The app charge every shop of this kind gives per order, unless it has its own. */
+  async setAppChargeDefault(input: AppChargeDefaultInput) {
+    const value = input.mode === "none" ? 0 : input.value;
+    const { data, error } = await this.db.from("verticals").update({ app_charge_mode: input.mode, app_charge_value: value }).eq("type", input.verticalType).select("type").maybeSingle();
+    if (error) throw new BadRequestException(error.message);
+    if (!data) throw new NotFoundException("Unknown vertical");
+    return { verticalType: input.verticalType, mode: input.mode, value };
+  }
+
+  /** One shop's own app charge; mode null puts it back on the default. */
+  async setShopAppCharge(dealerId: string, input: AppChargeShopInput) {
+    const mode = input.mode;
+    const value = mode == null ? null : mode === "none" ? 0 : input.value ?? null;
+    if (mode && mode !== "none" && value == null) throw new BadRequestException("Enter the charge");
+    const { data, error } = await this.db.from("dealers").update({ app_charge_mode: mode, app_charge_value: value }).eq("id", dealerId).select("id, shop_name").maybeSingle();
+    if (error) throw new BadRequestException(error.message);
+    if (!data) throw new NotFoundException("Shop not found");
+    return { id: data.id as string, name: data.shop_name as string, mode, value };
   }
 
   /** What a basket of this amount pays at this pincode, and which rule decided it. */

@@ -10,7 +10,7 @@ export default function StockTab() {
   return (
     <View style={{ flex: 1 }}>
       <Header title={t("tabStock")} sub={t("stockHint")} />
-      {me.data ? <StockScreen dealerId={me.data.id} /> : null}
+      {me.data ? <StockScreen dealerId={me.data.id} canEdit={me.data.store_type === "grocery"} /> : null}
     </View>
   );
 }

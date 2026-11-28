@@ -1,7 +1,8 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import { RIDER_MAX_ACTIVE_ORDERS, RIDER_OFFER_RADIUS_KM, haversineKm } from "@thanjozmart/shared";
 import type { DealerAcceptInput, DealerRejectInput, ItemPhotoInput, ItemUnavailableInput, ShopStateInput, StockInput, WeighItemInput } from "@thanjozmart/shared";
-import { DELIVERY_FEE, FREE_DELIVERY_ABOVE, PREP_LEAD_MIN, SCHEDULED_AFTER_MIN } from "@thanjozmart/shared";
+import { DELIVERY_FEE, FREE_DELIVERY_ABOVE, NO_APP_CHARGE, PREP_LEAD_MIN, SCHEDULED_AFTER_MIN, appChargeBasis, appChargeFor, effectiveAppCharge } from "@thanjozmart/shared";
+import type { AppChargeMode, AppChargeRule } from "@thanjozmart/shared";
 import { SupabaseService } from "../supabase.service";
 import { withProductShapes } from "../orders/item-shape";
 import { PushService } from "../push/push.service";
@@ -27,12 +28,23 @@ export class DealerService {
   async resolveDealer(profileId: string) {
     const { data } = await this.supabase.admin
       .from("dealers")
-      .select("id, profile_id, shop_name, is_open, closed_until, lat, lng")
+      .select("id, profile_id, shop_name, store_type, is_open, closed_until, lat, lng")
       .eq("profile_id", profileId)
       .eq("is_active", true)
       .maybeSingle();
     if (!data) throw new ForbiddenException("Not a dealer");
     return data;
+  }
+
+  /** The app charge rule for this shop: its own value, else the vertical's default. */
+  async appChargeRule(dealerId: string, vertical: string): Promise<AppChargeRule> {
+    const db = this.supabase.admin;
+    const [{ data: shop }, { data: v }] = await Promise.all([
+      db.from("dealers").select("app_charge_mode, app_charge_value").eq("id", dealerId).maybeSingle(),
+      db.from("verticals").select("app_charge_mode, app_charge_value").eq("type", vertical).maybeSingle(),
+    ]);
+    const fallback = v ? { mode: v.app_charge_mode as AppChargeMode, value: Number(v.app_charge_value) } : NO_APP_CHARGE;
+    return effectiveAppCharge(shop, fallback);
   }
 
   /** The dealer's open orders with items, priced at the SHOP price. */
@@ -49,7 +61,7 @@ export class DealerService {
     const { data: orders, error } = await db
       .from("orders")
       .select(
-        "id, display_id, status, vertical_type, ready_by, est_amount, created_at, items_added_at, rider_id, delivery_slots(starts_at, ends_at), order_items(id, product_id, master_product_id, requested_kg, actual_kg, size, notes, unavailable, unit_price_per_kg, shop_unit_price, products(name, name_ta, unit, image_path), master_products(name, name_ta, unit, image_path, brand, pack_size, mrp))",
+        "id, display_id, status, vertical_type, ready_by, est_amount, app_charge, app_charge_basis, created_at, items_added_at, rider_id, delivery_slots(starts_at, ends_at), order_items(id, product_id, master_product_id, requested_kg, actual_kg, size, notes, unavailable, unit_price_per_kg, shop_unit_price, products(name, name_ta, unit, image_path), master_products(name, name_ta, unit, image_path, brand, pack_size, mrp))",
       )
       .or(this.visibleTo(dealerId, offered))
       .order("created_at", { ascending: false });
@@ -78,17 +90,33 @@ export class DealerService {
       }),
     );
 
-    return (orders ?? []).map(({ rider_id, ...o }) => ({
-      ...o,
-      rider: rider_id ? riderOf.get(rider_id) ?? null : null,
-      accept_deadline: deadlines.get(o.id) ?? null,
-      order_items: withProductShapes(o.order_items as Record<string, unknown>[]).map((it) => ({
+    // Grocery offers not yet accepted show what the app charge will be under today's rule
+    // (orders accepted before the charge existed have none).
+    const groceryRule = (orders ?? []).some((o) => o.vertical_type === "grocery" && o.status === "DEALER_ASSIGNED") ? await this.appChargeRule(dealerId, "grocery") : null;
+
+    return (orders ?? []).map(({ rider_id, ...o }) => {
+      const items = withProductShapes(o.order_items as Record<string, unknown>[]).map((it) => ({
         ...it,
         // grocery lines snapshot the shop price; meat reads the current dealer_products price
         shop_price_per_kg: it.shop_unit_price != null ? Number(it.shop_unit_price) : shopPrice.get(it.product_id as string) ?? Number(it.unit_price_per_kg),
         photo_path: photoOf.get(it.id as string) ?? null,
-      })),
-    }));
+      }));
+      let appCharge = o.app_charge == null ? null : Number(o.app_charge);
+      let basis = o.app_charge_basis as string | null;
+      if (appCharge == null && o.vertical_type === "grocery" && o.status === "DEALER_ASSIGNED" && groceryRule) {
+        const t = lineTotals(items);
+        appCharge = appChargeFor(groceryRule, t.items, t.shop);
+        basis = appChargeBasis(groceryRule) || null;
+      }
+      return {
+        ...o,
+        app_charge: appCharge ?? 0,
+        app_charge_basis: basis,
+        rider: rider_id ? riderOf.get(rider_id) ?? null : null,
+        accept_deadline: deadlines.get(o.id) ?? null,
+        order_items: items,
+      };
+    });
   }
 
   /** Today at a glance: counts per stage and today's sales at shop prices. */
@@ -101,7 +129,7 @@ export class DealerService {
       db.from("orders").select("status").or(this.visibleTo(dealerId, (pending ?? []).map((p) => p.order_id as string))),
       db
         .from("orders")
-        .select("status, order_items(product_id, requested_kg, actual_kg, unavailable)")
+        .select("status, app_charge, order_items(product_id, requested_kg, actual_kg, unavailable, shop_unit_price)")
         .eq("dealer_id", dealerId)
         .gte("created_at", dayStart.toISOString()),
     ]);
@@ -112,10 +140,13 @@ export class DealerService {
     for (const o of today ?? []) {
       if (["CANCELLED", "RETURNED", "REFUNDED", "DELIVERY_FAILED"].includes(o.status)) continue;
       doneCount += 1;
-      for (const it of o.order_items as { product_id: string; requested_kg: number; actual_kg: number | null; unavailable: boolean }[]) {
+      for (const it of o.order_items as { product_id: string; requested_kg: number; actual_kg: number | null; unavailable: boolean; shop_unit_price: number | null }[]) {
         if (it.unavailable) continue;
-        sales += Math.round((shopPrice.get(it.product_id) ?? 0) * Number(it.actual_kg ?? it.requested_kg));
+        // grocery lines carry their shop price; meat reads the shop's current price
+        const price = it.shop_unit_price != null ? Number(it.shop_unit_price) : shopPrice.get(it.product_id) ?? 0;
+        sales += Math.round(price * Number(it.actual_kg ?? it.requested_kg));
       }
+      sales -= Number(o.app_charge ?? 0);
     }
     return {
       newCount: count(["DEALER_ASSIGNED"]),
@@ -131,7 +162,7 @@ export class DealerService {
     const db = this.supabase.admin;
     const { data, error } = await db
       .from("orders")
-      .select("id, display_id, status, created_at, order_items(product_id, requested_kg, actual_kg, unavailable, shop_unit_price, products(name, name_ta), master_products(name, name_ta))")
+      .select("id, display_id, status, created_at, app_charge, order_items(product_id, requested_kg, actual_kg, unavailable, shop_unit_price, products(name, name_ta), master_products(name, name_ta))")
       .eq("dealer_id", dealerId)
       .not("status", "in", `(${SHOP_ACTIVE.join(",")})`)
       .order("created_at", { ascending: false })
@@ -143,7 +174,8 @@ export class DealerService {
       const shopAmount = items
         .filter((i) => !i.unavailable)
         .reduce((s, i) => s + Math.round((i.shop_unit_price != null ? Number(i.shop_unit_price) : shopPrice.get(i.product_id) ?? 0) * Number(i.actual_kg ?? i.requested_kg)), 0);
-      return { id: o.id, display_id: o.display_id, status: o.status, created_at: o.created_at, shop_amount: shopAmount, items: items.map((i) => i.products) };
+      const appCharge = Number(o.app_charge ?? 0);
+      return { id: o.id, display_id: o.display_id, status: o.status, created_at: o.created_at, shop_amount: shopAmount - appCharge, app_charge: appCharge, items: items.map((i) => i.products) };
     });
   }
 
@@ -195,7 +227,15 @@ export class DealerService {
     // one is on the way while the shop packs.
     if (o?.vertical_type === "grocery") {
       const amount = Number(o.est_amount);
-      await db.from("orders").update({ final_amount: amount }).eq("id", input.orderId);
+      // The app charge is fixed now, from today's rule, so a later change never moves it.
+      const { data: lines } = await db.from("order_items").select("requested_kg, actual_kg, unavailable, unit_price_per_kg, shop_unit_price").eq("order_id", input.orderId);
+      const rule = await this.appChargeRule(dealer.id, "grocery");
+      const t = lineTotals((lines ?? []).map((l) => ({ ...l, shop_price_per_kg: l.shop_unit_price ?? l.unit_price_per_kg })));
+      const appCharge = appChargeFor(rule, t.items, t.shop);
+      await db
+        .from("orders")
+        .update({ final_amount: amount, app_charge: appCharge, app_charge_basis: appChargeBasis(rule) || null })
+        .eq("id", input.orderId);
       await this.orders.transition({ orderId: input.orderId, to: "PACKED", actorId: profileId, note: "grocery: ready for a rider" });
       void this.ringRiders(input.orderId, dealer.id, amount);
     }
@@ -441,4 +481,17 @@ export class DealerService {
 /** The fee fixed on the order when it was placed; orders from before that was saved use the old flat rule. */
 function savedFee(fee: number | string | null | undefined, itemsTotal: number): number {
   return fee == null ? (itemsTotal >= FREE_DELIVERY_ABOVE ? 0 : DELIVERY_FEE) : Number(fee);
+}
+
+/** Items at the customer price and at the shop price, rounded per line like the shop app shows them. */
+function lineTotals(items: Record<string, unknown>[]) {
+  let total = 0;
+  let shop = 0;
+  for (const it of items) {
+    if (it.unavailable) continue;
+    const qty = Number(it.actual_kg ?? it.requested_kg);
+    total += Math.round(Number(it.unit_price_per_kg) * qty);
+    shop += Math.round(Number(it.shop_price_per_kg) * qty);
+  }
+  return { items: total, shop };
 }

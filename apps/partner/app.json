@@ -47,6 +47,14 @@
           "cameraPermission": "Thanjoz Mart uses the camera for scale photos of packed orders and doorstep photos on deliveries."
         }
       ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Thanjoz Mart lets you choose a photo for the products you sell.",
+          "cameraPermission": "Thanjoz Mart uses the camera for scale photos of packed orders and doorstep photos on deliveries.",
+          "microphonePermission": false
+        }
+      ],
       "expo-task-manager",
       [
         "expo-notifications",

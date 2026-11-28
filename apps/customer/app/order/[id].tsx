@@ -333,15 +333,16 @@ export default function OrderDetailScreen() {
               {o.order_items.map((it) => {
                 const unit = it.products?.unit ?? "kg";
                 const qty = Number(it.actual_kg ?? it.requested_kg);
+                const pack = (it.products as { pack_size?: string | null } | null)?.pack_size;
                 return (
                   <View key={it.id} style={{ flexDirection: "row", justifyContent: "space-between", gap: 12 }}>
                     <View style={{ flex: 1 }}>
-                      <AppText variant="bodyBold" numberOfLines={1} style={{ fontSize: 13 }}>
+                      <AppText variant="bodyBold" style={{ fontSize: 13 }}>
                         {it.products ? localName(it.products) : "—"}
                       </AppText>
-                      <AppText variant="caption" muted numberOfLines={1}>
+                      <AppText variant="caption" muted>
                         {unit === "kg" ? `${qty} kg` : `${qty} × `}
-                        {unit === "kg" ? "" : t("perPiece").replace("/", "")}
+                        {unit === "kg" ? "" : pack || t("perPiece").replace("/", "")}
                         {it.size ? ` · ${t(it.size === "small" ? "sizeSmall" : it.size === "medium" ? "sizeMedium" : "sizeLarge")}` : ""}
                       </AppText>
                     </View>
@@ -349,6 +350,12 @@ export default function OrderDetailScreen() {
                   </View>
                 );
               })}
+              {o.delivery_fee != null ? (
+                <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 12 }}>
+                  <AppText variant="caption" muted>{t("deliveryFee")}</AppText>
+                  <AppText variant="bodyBold" style={{ fontSize: 13 }}>{Number(o.delivery_fee) > 0 ? `₹ ${Number(o.delivery_fee)}` : t("freeDeliveryShort")}</AppText>
+                </View>
+              ) : null}
               <View style={{ height: 1, backgroundColor: c.border }} />
               <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
                 <AppText variant="bodyBold" style={{ flex: 1 }}>{t("toPay")} · {t(o.payment_mode === "cod" ? "payCod" : "payUpi")}</AppText>

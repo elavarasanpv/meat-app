@@ -276,7 +276,7 @@ export class AdminOpsService {
     const { data: o, error } = await db
       .from("orders")
       .select(
-        "id, display_id, status, payment_mode, payment_status, est_amount, final_amount, cancel_reason, created_at, ready_by, dealer_id, rider_id, profiles!orders_customer_id_fkey(full_name, phone), addresses(address_text, landmark, pincode, lat, lng, receiver_name, receiver_phone), dealers(id, shop_name, profiles(full_name, phone)), delivery_partners(id, vehicle, profiles(full_name, phone)), order_items(id, requested_kg, cut, size, unavailable, unit_price_per_kg, products(name, unit), master_products(name, unit))",
+        "id, display_id, status, vertical_type, payment_mode, payment_status, est_amount, final_amount, delivery_fee, app_charge, app_charge_basis, cancel_reason, created_at, ready_by, dealer_id, rider_id, profiles!orders_customer_id_fkey(full_name, phone), addresses(address_text, landmark, pincode, lat, lng, receiver_name, receiver_phone), dealers(id, shop_name, profiles(full_name, phone)), delivery_partners(id, vehicle, profiles(full_name, phone)), order_items(id, requested_kg, actual_kg, cut, size, unavailable, unit_price_per_kg, shop_unit_price, products(name, unit), master_products(name, unit))",
       )
       .eq("id", id)
       .maybeSingle();
@@ -298,6 +298,12 @@ export class AdminOpsService {
     const shop = o.dealers as unknown as { id: string; shop_name: string; profiles: Name } | null;
     const rider = o.delivery_partners as unknown as { id: string; vehicle: string | null; profiles: Name } | null;
     const cust = o.profiles as unknown as Name;
+    // The bill: what the customer pays, and what the shop gets after the app charge.
+    const lines = (o.order_items as unknown as { requested_kg: number; actual_kg: number | null; unavailable: boolean; unit_price_per_kg: number; shop_unit_price: number | null }[]).filter((i) => !i.unavailable);
+    const qty = (i: { requested_kg: number; actual_kg: number | null }) => Number(i.actual_kg ?? i.requested_kg);
+    const itemsTotal = lines.reduce((t, i) => t + Math.round(Number(i.unit_price_per_kg) * qty(i)), 0);
+    const shopItems = lines.every((i) => i.shop_unit_price != null) ? lines.reduce((t, i) => t + Math.round(Number(i.shop_unit_price) * qty(i)), 0) : null;
+    const appCharge = o.app_charge == null ? null : Number(o.app_charge);
     return {
       id: o.id,
       displayId: o.display_id,
@@ -305,6 +311,15 @@ export class AdminOpsService {
       payment: o.payment_mode,
       paymentStatus: o.payment_status,
       amount: Number(o.final_amount ?? o.est_amount),
+      bill: {
+        items: itemsTotal,
+        delivery: o.delivery_fee == null ? null : Number(o.delivery_fee),
+        total: Number(o.final_amount ?? o.est_amount),
+        shopItems,
+        appCharge,
+        appChargeBasis: o.app_charge_basis as string | null,
+        shopGets: shopItems == null ? null : shopItems - (appCharge ?? 0),
+      },
       cancelReason: o.cancel_reason,
       createdAt: o.created_at,
       readyBy: o.ready_by,
@@ -603,7 +618,7 @@ export class AdminOpsService {
       db.from("dealers").select("id, shop_name, is_open, is_active, closed_until, created_at, profiles(full_name, phone), dealer_pincodes(pincode)").eq("id", id).maybeSingle(),
       db
         .from("orders")
-        .select("id, display_id, status, est_amount, final_amount, created_at, ready_by, profiles!orders_customer_id_fkey(full_name), order_items(product_id, master_product_id, requested_kg, unavailable, shop_unit_price, products(name, unit), master_products(name, unit)), order_status_history(to_status, created_at)")
+        .select("id, display_id, status, est_amount, final_amount, app_charge, created_at, ready_by, profiles!orders_customer_id_fkey(full_name), order_items(product_id, master_product_id, requested_kg, unavailable, shop_unit_price, products(name, unit), master_products(name, unit)), order_status_history(to_status, created_at)")
         .eq("dealer_id", id)
         .gte("created_at", from)
         .order("created_at", { ascending: false }),
@@ -614,7 +629,7 @@ export class AdminOpsService {
     const cost = new Map((prices ?? []).map((p) => [p.product_id, Number(p.price_per_kg ?? 0)]));
 
     const days = Array.from({ length: DAYS }, (_, i) => ({ date: new Date(today0 - (DAYS - 1 - i) * 86_400_000 + IST).toISOString().slice(0, 10), orders: 0, sales: 0 }));
-    let delivered = 0, cancelled = 0, failed = 0, sales = 0, spend = 0;
+    let delivered = 0, cancelled = 0, failed = 0, sales = 0, spend = 0, appCharges = 0;
     const prep: number[] = [];
     let onTime = 0, timed = 0;
     const products = new Map<string, { name: string; unit: string; qty: number; orders: number }>();
@@ -634,6 +649,9 @@ export class AdminOpsService {
           if (it.unavailable) continue;
           spend += (it.shop_unit_price != null ? Number(it.shop_unit_price) : cost.get(it.product_id ?? "") ?? 0) * Number(it.requested_kg);
         }
+        // The app charge stays with Thanjoz Mart: the shop is paid that much less.
+        spend -= Number(o.app_charge ?? 0);
+        appCharges += Number(o.app_charge ?? 0);
       }
       if (o.status === "CANCELLED" || o.status === "REFUNDED") cancelled += 1;
       if (o.status === "DELIVERY_FAILED" || o.status === "RETURNED") failed += 1;
@@ -678,6 +696,7 @@ export class AdminOpsService {
         failed,
         sales: Math.round(sales),
         paidToShop: Math.round(spend),
+        appCharges: Math.round(appCharges),
         margin: Math.round(sales - spend),
       },
       offers: {

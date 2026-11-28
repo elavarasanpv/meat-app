@@ -33,7 +33,7 @@ function categoryOptions(cats: Category[]) {
   }
   return out;
 }
-type Master = {
+export type Master = {
   id: string;
   category_id: string | null;
   barcode: string | null;
@@ -281,16 +281,6 @@ function MasterTab({ status }: { status: "approved" | "pending" }) {
       refresh();
     },
   });
-  const save = useMutation({
-    mutationFn: (m: Partial<Master>) => {
-      const body = { name: m.name, nameTa: m.name_ta ?? null, brand: m.brand ?? null, packSize: m.pack_size ?? null, unit: m.unit ?? "piece", mrp: m.mrp ?? null, description: m.description ?? null, descriptionTa: m.description_ta ?? null, barcode: m.barcode || null, categoryId: m.category_id ?? null, cardBg: m.card_bg ?? "green" };
-      return m.id ? api(`/admin/catalog/master/${m.id}`, { method: "PATCH", body }) : api("/admin/catalog/master", { method: "POST", body: { ...body, verticalType: VERTICAL } });
-    },
-    onSuccess: () => {
-      setEditing(null);
-      refresh();
-    },
-  });
   const merge = useMutation({
     mutationFn: ({ id, targetId }: { id: string; targetId: string }) => api(`/admin/catalog/master/${id}/merge`, { method: "POST", body: { targetId } }),
     onSuccess: () => {
@@ -427,76 +417,93 @@ function MasterTab({ status }: { status: "approved" | "pending" }) {
           </table>
         </div>
       )}
-      {editing && (
-        <Modal pad title={editing.id ? "Edit product" : "New product"} sub="Name and MRP are what customers see; the barcode is what shops scan." onClose={() => setEditing(null)}>
-          <div className="space-y-3">
-            {editing.id ? (
-              <ImageField path={editing.image_path} endpoint={`/admin/catalog/master/${editing.id}/image`} onChange={(p) => { setEditing({ ...editing, image_path: p }); refresh(); }} />
-            ) : (
-              <div className="text-[11.5px] text-muted">Save the product first, then add its photo.</div>
-            )}
-            <CardBgPicker value={editing.card_bg ?? "green"} photo={imageUrl(editing.image_path, true)} name={editing.name ?? ""} onChange={(v) => setEditing({ ...editing, card_bg: v })} />
-            <Field label="Name (English)">
-              <input className={inputCls} value={editing.name ?? ""} onChange={(e) => setEditing({ ...editing, name: e.target.value })} placeholder="Aachi Chilli Powder" />
-            </Field>
-            <Field label="Name (Tamil)">
-              <input className={inputCls} value={editing.name_ta ?? ""} onChange={(e) => setEditing({ ...editing, name_ta: e.target.value })} />
-            </Field>
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Brand">
-                <input className={inputCls} value={editing.brand ?? ""} onChange={(e) => setEditing({ ...editing, brand: e.target.value })} />
-              </Field>
-              <Field label="Pack size">
-                <PackSize value={editing.pack_size ?? null} onChange={(v) => setEditing({ ...editing, pack_size: v })} />
-              </Field>
-              <Field label="Unit">
-                <Select
-                  label="Unit"
-                  value={editing.unit ?? "pack"}
-                  onChange={(v) => setEditing({ ...editing, unit: v })}
-                  options={[
-                    { value: "pack", label: "Pack" },
-                    { value: "piece", label: "Piece" },
-                    { value: "kg", label: "Per kg", note: "Loose" },
-                  ]}
-                />
-              </Field>
-              <Field label="MRP" hint="Leave blank for loose items.">
-                <input className={inputCls} type="number" value={editing.mrp ?? ""} onChange={(e) => setEditing({ ...editing, mrp: e.target.value === "" ? null : Number(e.target.value) })} />
-              </Field>
-              <Field label="Barcode">
-                <input className={inputCls} value={editing.barcode ?? ""} onChange={(e) => setEditing({ ...editing, barcode: e.target.value.replace(/\D/g, "") })} placeholder="8901234567890" />
-              </Field>
-              <Field label="Category">
-                <Select
-                  label="Category"
-                  value={editing.category_id ?? "none"}
-                  onChange={(v) => setEditing({ ...editing, category_id: v === "none" ? null : v })}
-                  options={[{ value: "none", label: "No category" }, ...categoryOptions(cats.data ?? [])]}
-                />
-              </Field>
-            </div>
-            <Field label="Description" hint="Shown on the product page. Keep it to two or three lines.">
-              <textarea className={`${inputCls} h-20 resize-none`} value={editing.description ?? ""} onChange={(e) => setEditing({ ...editing, description: e.target.value })} placeholder="Old-crop Thanjavur ponni, double boiled. Cooks fluffy." />
-            </Field>
-            <Field label="Description (Tamil)">
-              <textarea className={`${inputCls} h-20 resize-none`} value={editing.description_ta ?? ""} onChange={(e) => setEditing({ ...editing, description_ta: e.target.value })} />
-            </Field>
-            <ErrorBox error={save.error} />
-            <div className="flex justify-end gap-2">
-              <Btn kind="ghost" onClick={() => setEditing(null)}>
-                Cancel
-              </Btn>
-              <Btn kind="primary" busy={save.isPending} disabled={!editing.name || editing.name.trim().length < 2} onClick={() => save.mutate(editing)}>
-                Save
-              </Btn>
-            </div>
-          </div>
-        </Modal>
-      )}
+      {editing && <ProductEditor initial={editing} onClose={() => setEditing(null)} onChanged={refresh} />}
       {selling && <SellModal product={selling} onClose={() => setSelling(null)} onDone={() => { setSelling(null); refresh(); }} />}
       {merging && <MergeModal source={merging} onClose={() => setMerging(null)} onMerge={(targetId) => merge.mutate({ id: merging.id, targetId })} busy={merge.isPending} />}
     </section>
+  );
+}
+
+/** Add or edit a product's details and photo. Also opened from a shop's product list. */
+export function ProductEditor({ initial, onClose, onChanged }: { initial: Partial<Master>; onClose: () => void; onChanged: () => void }) {
+  const [editing, setEditing] = useState<Partial<Master>>(initial);
+  const cats = useQuery({ queryKey: ["catalog", "categories"], queryFn: () => api<Category[]>(`/admin/catalog/categories?vertical=${VERTICAL}`) });
+  const save = useMutation({
+    mutationFn: (m: Partial<Master>) => {
+      const body = { name: m.name, nameTa: m.name_ta ?? null, brand: m.brand ?? null, packSize: m.pack_size ?? null, unit: m.unit ?? "piece", mrp: m.mrp ?? null, description: m.description ?? null, descriptionTa: m.description_ta ?? null, barcode: m.barcode || null, categoryId: m.category_id ?? null, cardBg: m.card_bg ?? "green" };
+      return m.id ? api(`/admin/catalog/master/${m.id}`, { method: "PATCH", body }) : api("/admin/catalog/master", { method: "POST", body: { ...body, verticalType: VERTICAL } });
+    },
+    onSuccess: () => {
+      onChanged();
+      onClose();
+    },
+  });
+  return (
+    <Modal pad title={editing.id ? "Edit product" : "New product"} sub="Name and MRP are what customers see; the barcode is what shops scan." onClose={onClose}>
+      <div className="space-y-3">
+        {editing.id ? (
+          <ImageField path={editing.image_path} endpoint={`/admin/catalog/master/${editing.id}/image`} onChange={(p) => { setEditing({ ...editing, image_path: p }); onChanged(); }} />
+        ) : (
+          <div className="text-[11.5px] text-muted">Save the product first, then add its photo.</div>
+        )}
+        <CardBgPicker value={editing.card_bg ?? "green"} photo={imageUrl(editing.image_path, true)} name={editing.name ?? ""} onChange={(v) => setEditing({ ...editing, card_bg: v })} />
+        <Field label="Name (English)">
+          <input className={inputCls} value={editing.name ?? ""} onChange={(e) => setEditing({ ...editing, name: e.target.value })} placeholder="Aachi Chilli Powder" />
+        </Field>
+        <Field label="Name (Tamil)">
+          <input className={inputCls} value={editing.name_ta ?? ""} onChange={(e) => setEditing({ ...editing, name_ta: e.target.value })} />
+        </Field>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Brand">
+            <input className={inputCls} value={editing.brand ?? ""} onChange={(e) => setEditing({ ...editing, brand: e.target.value })} />
+          </Field>
+          <Field label="Pack size">
+            <PackSize value={editing.pack_size ?? null} onChange={(v) => setEditing({ ...editing, pack_size: v })} />
+          </Field>
+          <Field label="Unit">
+            <Select
+              label="Unit"
+              value={editing.unit ?? "pack"}
+              onChange={(v) => setEditing({ ...editing, unit: v })}
+              options={[
+                { value: "pack", label: "Pack" },
+                { value: "piece", label: "Piece" },
+                { value: "kg", label: "Per kg", note: "Loose" },
+              ]}
+            />
+          </Field>
+          <Field label="MRP" hint="Leave blank for loose items.">
+            <input className={inputCls} type="number" value={editing.mrp ?? ""} onChange={(e) => setEditing({ ...editing, mrp: e.target.value === "" ? null : Number(e.target.value) })} />
+          </Field>
+          <Field label="Barcode">
+            <input className={inputCls} value={editing.barcode ?? ""} onChange={(e) => setEditing({ ...editing, barcode: e.target.value.replace(/\D/g, "") })} placeholder="8901234567890" />
+          </Field>
+          <Field label="Category">
+            <Select
+              label="Category"
+              value={editing.category_id ?? "none"}
+              onChange={(v) => setEditing({ ...editing, category_id: v === "none" ? null : v })}
+              options={[{ value: "none", label: "No category" }, ...categoryOptions(cats.data ?? [])]}
+            />
+          </Field>
+        </div>
+        <Field label="Description" hint="Shown on the product page. Keep it to two or three lines.">
+          <textarea className={`${inputCls} h-20 resize-none`} value={editing.description ?? ""} onChange={(e) => setEditing({ ...editing, description: e.target.value })} placeholder="Old-crop Thanjavur ponni, double boiled. Cooks fluffy." />
+        </Field>
+        <Field label="Description (Tamil)">
+          <textarea className={`${inputCls} h-20 resize-none`} value={editing.description_ta ?? ""} onChange={(e) => setEditing({ ...editing, description_ta: e.target.value })} />
+        </Field>
+        <ErrorBox error={save.error} />
+        <div className="flex justify-end gap-2">
+          <Btn kind="ghost" onClick={onClose}>
+            Cancel
+          </Btn>
+          <Btn kind="primary" busy={save.isPending} disabled={!editing.name || editing.name.trim().length < 2} onClick={() => save.mutate(editing)}>
+            Save
+          </Btn>
+        </div>
+      </div>
+    </Modal>
   );
 }
 

@@ -451,10 +451,13 @@ export const storeListingPatchSchema = z.object({
 /** Admin sets (locks) the customer price; null hands it back to the shop. */
 export const adminStoreSellingSchema = z.object({ sellingPrice: money.nullable() });
 
-/** Shop adds its own item: a pending master row (scope store) + its listing in one call. */
+/** Shop adds its own item: a master row it owns (scope store, live at once) + its listing in one call. */
 export const customProductSchema = z.object({
   name: z.string().trim().min(2).max(120),
   nameTa: z.string().trim().max(120).nullable().optional(),
+  brand: z.string().trim().max(80).nullable().optional(),
+  description: z.string().trim().max(600).nullable().optional(),
+  descriptionTa: z.string().trim().max(600).nullable().optional(),
   categoryId: z.string().uuid().nullable().optional(),
   barcode: barcode.nullable().optional(),
   unit: catalogUnitSchema,
@@ -467,6 +470,22 @@ export const customProductSchema = z.object({
   priceMode: z.enum(["same", "custom"]).optional(),
 });
 export type CustomProductInput = z.infer<typeof customProductSchema>;
+
+/** Shop edits an item it added itself: details, MRP and both prices in one save. */
+export const ownProductPatchSchema = z.object({
+  name: z.string().trim().min(2).max(120).optional(),
+  nameTa: z.string().trim().max(120).nullable().optional(),
+  brand: z.string().trim().max(80).nullable().optional(),
+  description: z.string().trim().max(600).nullable().optional(),
+  descriptionTa: z.string().trim().max(600).nullable().optional(),
+  categoryId: z.string().uuid().nullable().optional(),
+  unit: catalogUnitSchema.optional(),
+  packSize: z.string().trim().max(40).nullable().optional(),
+  mrp: money.nullable().optional(),
+  shopPrice: money.optional(),
+  sellingPrice: money.optional(),
+});
+export type OwnProductPatchInput = z.infer<typeof ownProductPatchSchema>;
 
 export const importRowDecisionSchema = z.object({
   action: z.enum(["confirm", "new", "reject"]),
@@ -491,5 +510,19 @@ export const deliveryTestSchema = z.object({
   firstOrder: z.boolean().optional(),
 });
 export type DeliveryTestInput = z.infer<typeof deliveryTestSchema>;
+/** App charge rule: the default for a vertical, or one shop's own (mode null = use the default). */
+const appChargeRuleFields = {
+  mode: z.enum(["none", "percent", "flat"]),
+  value: z.number().min(0).max(10_000),
+};
+const percentMax = (d: { mode: string | null; value?: number | null }) => d.mode !== "percent" || (d.value ?? 0) <= 100;
+export const appChargeDefaultSchema = z
+  .object({ verticalType: verticalSchema, ...appChargeRuleFields })
+  .refine(percentMax, { message: "A percentage can't be more than 100", path: ["value"] });
+export type AppChargeDefaultInput = z.infer<typeof appChargeDefaultSchema>;
+export const appChargeShopSchema = z
+  .object({ mode: appChargeRuleFields.mode.nullable(), value: appChargeRuleFields.value.nullable().optional() })
+  .refine(percentMax, { message: "A percentage can't be more than 100", path: ["value"] });
+export type AppChargeShopInput = z.infer<typeof appChargeShopSchema>;
 export const verticalToggleSchema = z.object({ isActive: z.boolean() });
 export const adminStoreTypeSchema = z.object({ storeType: verticalSchema });

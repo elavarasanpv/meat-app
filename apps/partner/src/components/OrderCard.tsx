@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Linking, Pressable, View } from "react-native";
+import { ActivityIndicator, Linking, Pressable, View } from "react-native";
 import { useRouter, type Href } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { DEALER_REJECT_REASONS, PREP_LEAD_MIN, SCHEDULED_AFTER_MIN } from "@thanjozmart/shared";
@@ -141,6 +141,7 @@ export function OrderCard({ o, compact, noDetails }: { o: DealerOrder; compact?:
   const packed = usePacked();
   const slotLabel = useSlotLabel();
   const [mode, setMode] = useState<"none" | "ready" | "reject">("none");
+  const [readyPick, setReadyPick] = useState<number | null>(null);
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
     const h = setInterval(() => setNow(Date.now()), 30_000);
@@ -156,7 +157,10 @@ export function OrderCard({ o, compact, noDetails }: { o: DealerOrder; compact?:
   const waiting = o.status === "ACCEPTED" && meat && remindAt != null && now < remindAt && !!o.ready_by && new Date(o.ready_by).getTime() >= slotStart!;
 
   const items = o.order_items.filter((i) => !i.unavailable);
-  const shopTotal = items.reduce((s, i) => s + Math.round(i.shop_price_per_kg * i.requested_kg), 0);
+  const itemsTotal = items.reduce((s, i) => s + Math.round(i.shop_price_per_kg * i.requested_kg), 0);
+  // The app charge comes off what the shop gets; the customer pays the same.
+  const appCharge = Math.min(Number(o.app_charge ?? 0), itemsTotal);
+  const shopTotal = itemsTotal - appCharge;
   const isNew = o.status === "DEALER_ASSIGNED";
   const late = !!o.ready_by && (o.status === "ACCEPTED" || o.status === "PACKING") && readyState(o.ready_by, Date.now()).phase === "late";
   const tap = () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
@@ -179,9 +183,21 @@ export function OrderCard({ o, compact, noDetails }: { o: DealerOrder; compact?:
       ) : null}
       <View style={{ gap: 8, borderTopWidth: 1, borderTopColor: c.border, paddingTop: 10 }}>
         {compact ? null : items.map((it) => <ItemRow key={it.id} it={it} />)}
-        <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+        {appCharge > 0 ? (
+          <View style={{ gap: 4 }}>
+            <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 10 }}>
+              <Txt size={13} muted style={{ flex: 1 }}>{t("itemsYourPrice")}</Txt>
+              <Txt size={13}>₹{itemsTotal}</Txt>
+            </View>
+            <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 10 }}>
+              <Txt size={13} muted style={{ flex: 1 }}>{t("appCharge")}{o.app_charge_basis ? ` (${o.app_charge_basis})` : ""}</Txt>
+              <Txt size={13}>− ₹{appCharge}</Txt>
+            </View>
+          </View>
+        ) : null}
+        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
           <Txt size={13} muted>{items.length} {t(items.length === 1 ? "item" : "items")}</Txt>
-          <Txt bold size={16} color={c.primary}>{t("yourAmount")} ₹{shopTotal}</Txt>
+          <Txt bold size={16} color={c.primary} style={{ flexShrink: 1, textAlign: "right" }}>{t("yourAmount")} ₹{shopTotal}</Txt>
         </View>
         {noDetails ? null : (
           <Pressable
@@ -199,10 +215,22 @@ export function OrderCard({ o, compact, noDetails }: { o: DealerOrder; compact?:
         mode === "ready" ? (
           <View style={{ gap: 10 }}>
             <Txt bold size={15}>{t("readyIn")}</Txt>
-            <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
+            <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
               {READY_CHOICES.map((m) => (
-                <Chip key={m} label={`${m} ${t("min")}`} onPress={() => { tap(); accept.mutate({ orderId: o.id, readyMinutes: m }); }} />
+                <Chip
+                  key={m}
+                  label={`${m} ${t("min")}`}
+                  selected={accept.isPending && readyPick === m}
+                  onPress={() => {
+                    // One tap is enough; further taps while it sends are ignored.
+                    if (accept.isPending) return;
+                    tap();
+                    setReadyPick(m);
+                    accept.mutate({ orderId: o.id, readyMinutes: m });
+                  }}
+                />
               ))}
+              {accept.isPending ? <ActivityIndicator color={c.primary} /> : null}
             </View>
           </View>
         ) : mode === "reject" ? (

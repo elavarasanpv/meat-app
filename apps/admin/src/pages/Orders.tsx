@@ -31,6 +31,7 @@ type Detail = {
   payment: string;
   paymentStatus: string;
   amount: number;
+  bill: { items: number; delivery: number | null; total: number; shopItems: number | null; appCharge: number | null; appChargeBasis: string | null; shopGets: number | null };
   cancelReason: string | null;
   createdAt: string;
   readyBy: string | null;
@@ -263,6 +264,25 @@ function OrderDrawer({ id, onClose }: { id: string; onClose: () => void }) {
                 </div>
               ))}
             </div>
+            <div className="mt-2 grid gap-2 sm:grid-cols-2">
+              <div className="rounded-xl border border-line bg-surface px-3 py-2 text-[12.5px]">
+                <div className="mb-1 text-[11px] font-bold uppercase tracking-wide text-muted">Customer pays</div>
+                <BillRow label="Items" value={inr(o.bill.items)} />
+                {o.bill.delivery != null && <BillRow label="Delivery" value={o.bill.delivery > 0 ? inr(o.bill.delivery) : "Free"} />}
+                <BillRow label="Total" value={inr(o.bill.total)} strong />
+              </div>
+              {o.bill.shopItems != null && (
+                <div className="rounded-xl border border-line bg-surface px-3 py-2 text-[12.5px]">
+                  <div className="mb-1 text-[11px] font-bold uppercase tracking-wide text-muted">Shop gets</div>
+                  <BillRow label="Items at shop price" value={inr(o.bill.shopItems)} />
+                  <BillRow
+                    label={`App charge${o.bill.appChargeBasis ? ` (${o.bill.appChargeBasis})` : ""}`}
+                    value={o.bill.appCharge == null ? (["PLACED", "DEALER_ASSIGNED"].includes(o.status) ? "set on accept" : "—") : o.bill.appCharge > 0 ? `− ${inr(o.bill.appCharge)}` : inr(0)}
+                  />
+                  <BillRow label="Shop gets" value={inr(o.bill.shopGets ?? 0)} strong />
+                </div>
+              )}
+            </div>
           </Section>
 
           {o.photos.some((p) => p.url) && (
@@ -336,6 +356,15 @@ function Person({ title, name, phone, extra, empty, children }: { title: string;
         <div className="mt-0.5 text-[12.5px] text-muted">{empty ?? "—"}</div>
       )}
       {children}
+    </div>
+  );
+}
+
+function BillRow({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
+  return (
+    <div className={`flex justify-between gap-3 py-0.5 ${strong ? "mt-1 border-t border-line pt-1.5 font-extrabold" : ""}`}>
+      <span className={strong ? "" : "text-muted"}>{label}</span>
+      <span className="tabular-nums">{value}</span>
     </div>
   );
 }

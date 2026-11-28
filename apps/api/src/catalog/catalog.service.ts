@@ -1,8 +1,9 @@
-import { BadRequestException, ConflictException, Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import type {
   CatalogCategoryInput,
   CustomProductInput,
   MasterProductInput,
+  OwnProductPatchInput,
 } from "@thanjozmart/shared";
 import { SupabaseService } from "../supabase.service";
 import { mapRows, normaliseUnit, parseCsv } from "./csv";
@@ -500,20 +501,96 @@ export class CatalogService {
         barcode: input.barcode ?? null,
         name: input.name,
         name_ta: input.nameTa ?? null,
+        brand: input.brand ?? null,
+        description: input.description ?? null,
+        description_ta: input.descriptionTa ?? null,
         pack_size: input.packSize ?? null,
         unit: input.unit,
         min_qty: input.minQty ?? (input.unit === "kg" ? 0.25 : 1),
         qty_step: input.qtyStep ?? (input.unit === "kg" ? 0.25 : 1),
         mrp: input.mrp ?? null,
         scope: "store",
-        status: "pending",
+        status: "approved", // no review step: the shop's own item is live at once, the admin can still edit it
         owner_dealer_id: dealerId,
       })
       .select(MASTER_COLS)
       .single();
     if (error) throw error;
-    const listing = await this.listProduct(dealerId, { masterProductId: m.id, shopPrice: input.shopPrice, sellingPrice: input.sellingPrice, priceMode: input.priceMode }, actor);
-    return { product: m as Master, listing };
+    try {
+      const listing = await this.listProduct(dealerId, { masterProductId: m.id, shopPrice: input.shopPrice, sellingPrice: input.sellingPrice, priceMode: input.priceMode }, actor);
+      return { product: m as Master, listing };
+    } catch (e) {
+      // Bad prices: don't leave a product nobody sells behind.
+      await this.db.from("master_products").delete().eq("id", m.id);
+      throw e;
+    }
+  }
+
+  /** The master row, only if this shop added it itself. Catalogue items are ours to edit, not the shop's. */
+  private async ownedMaster(dealerId: string, masterId: string) {
+    const { data } = await this.db.from("master_products").select(MASTER_COLS).eq("id", masterId).maybeSingle();
+    const m = data as Master | null;
+    if (!m) throw new NotFoundException("Product not found");
+    if (m.scope !== "store" || m.owner_dealer_id !== dealerId) throw new ForbiddenException("This product is from the Thanjoz Mart catalogue. You can change your prices and stock only.");
+    return m;
+  }
+
+  /** Shop edits its own item. Details, MRP and both prices are checked together and saved in one go. */
+  async updateOwnProduct(dealerId: string, masterId: string, input: OwnProductPatchInput, actor: Actor) {
+    const m = await this.ownedMaster(dealerId, masterId);
+    const { data: cur } = await this.db.from("store_products").select(LISTING_COLS).eq("dealer_id", dealerId).eq("master_product_id", masterId).maybeSingle();
+    if (!cur) throw new NotFoundException("Not on this shop's catalog");
+    const current = cur as Listing;
+
+    const mrp = input.mrp !== undefined ? input.mrp : m.mrp;
+    const locked = current.selling_set_by === "admin";
+    if (locked && input.sellingPrice !== undefined && money(input.sellingPrice) !== current.selling_price) {
+      throw new BadRequestException("The customer price is set by Thanjoz Mart. You can change your shop price only.");
+    }
+    const shop = input.shopPrice ?? current.shop_price;
+    const selling = locked ? current.selling_price : (input.sellingPrice ?? current.selling_price);
+    const p = this.resolvePrices({ shop, selling, mode: money(selling) === money(shop) ? "same" : "custom", mrp });
+
+    const patch: Record<string, unknown> = {};
+    if (input.name !== undefined) patch.name = input.name;
+    if (input.nameTa !== undefined) patch.name_ta = input.nameTa;
+    if (input.brand !== undefined) patch.brand = input.brand;
+    if (input.description !== undefined) patch.description = input.description;
+    if (input.descriptionTa !== undefined) patch.description_ta = input.descriptionTa;
+    if (input.categoryId !== undefined) patch.category_id = input.categoryId;
+    if (input.packSize !== undefined) patch.pack_size = input.packSize;
+    if (input.unit !== undefined && input.unit !== m.unit) {
+      patch.unit = input.unit;
+      patch.min_qty = input.unit === "kg" ? 0.25 : 1;
+      patch.qty_step = input.unit === "kg" ? 0.25 : 1;
+    }
+    if (input.mrp !== undefined) patch.mrp = input.mrp;
+    if (Object.keys(patch).length) {
+      const { error } = await this.db.from("master_products").update(patch).eq("id", masterId);
+      if (error) throw new BadRequestException(error.message);
+    }
+    const { data: listing, error } = await this.db
+      .from("store_products")
+      .update({ mrp, shop_price: p.shop, selling_price: p.selling, price_mode: p.mode })
+      .eq("dealer_id", dealerId)
+      .eq("master_product_id", masterId)
+      .select(LISTING_COLS)
+      .single();
+    if (error) throw new BadRequestException(error.message);
+    if (p.shop !== current.shop_price) await this.logPrice(dealerId, masterId, "shop", current.shop_price, p.shop, actor);
+    if (p.selling !== current.selling_price) await this.logPrice(dealerId, masterId, "sell", current.selling_price, p.selling, actor);
+    return listing;
+  }
+
+  /** Shop sets (or clears) the photo of an item it added itself. */
+  async setOwnImage(dealerId: string, masterId: string, stored: { path: string } | null, images: { remove(p: string | null | undefined): Promise<void> }) {
+    await this.ownedMaster(dealerId, masterId);
+    return this.setMasterImage(masterId, stored, images);
+  }
+
+  /** Check before the upload is stored, so a refused photo leaves no files. */
+  async assertOwned(dealerId: string, masterId: string) {
+    await this.ownedMaster(dealerId, masterId);
   }
 
   private async logPrice(dealerId: string, masterId: string, kind: "shop" | "sell", oldPrice: number | null, newPrice: number, actor: Actor) {

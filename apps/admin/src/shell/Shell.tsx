@@ -41,7 +41,7 @@ const SECTIONS: { title: string; items: { to: string; label: string; Icon: typeo
       { to: "/support", label: "Support", Icon: IconChat },
       { to: "/offers", label: "Offers", Icon: IconTag },
       { to: "/pricing", label: "Pricing", Icon: IconCash },
-      { to: "/delivery", label: "Delivery fees", Icon: IconDeliveryFee },
+      { to: "/delivery", label: "Delivery & charges", Icon: IconDeliveryFee },
       { to: "/catalog", label: "Catalog", Icon: IconPackage },
       { to: "/ratings", label: "Ratings", Icon: IconStar },
     ],

@@ -1,9 +1,10 @@
-import { BadRequestException, Body, Controller, ForbiddenException, Get, Headers, Param, Patch, Post, Query, UploadedFile, UseInterceptors } from "@nestjs/common";
+import { BadRequestException, Body, Controller, Delete, ForbiddenException, Get, Headers, Param, Patch, Post, Query, UploadedFile, UseInterceptors } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
 import type { ZodTypeAny, z } from "zod";
-import { customProductSchema, importRowDecisionSchema, storeListingPatchSchema, storeListingSchema } from "@thanjozmart/shared";
+import { customProductSchema, importRowDecisionSchema, ownProductPatchSchema, storeListingPatchSchema, storeListingSchema } from "@thanjozmart/shared";
 import { SupabaseService } from "../supabase.service";
 import { requireUser } from "../auth";
+import { ImagesService } from "../images/images.service";
 import { CatalogService } from "./catalog.service";
 
 type Upload = { buffer: Buffer; originalname?: string; mimetype?: string; size: number };
@@ -21,6 +22,7 @@ export class CatalogDealerController {
   constructor(
     private readonly supabase: SupabaseService,
     private readonly catalog: CatalogService,
+    private readonly images: ImagesService,
   ) {}
 
   /** Same rule as DealerService.resolveDealer (active shop owned by the caller),
@@ -44,6 +46,36 @@ export class CatalogDealerController {
   async search(@Headers("authorization") auth: string | undefined, @Query("q") q?: string, @Query("barcode") barcode?: string) {
     const s = await this.shop(auth);
     return this.catalog.searchForDealer(s.dealerId, s.vertical, q, barcode);
+  }
+
+  /** GET /dealer/catalog/categories — the category tree to file a product under. */
+  @Get("categories")
+  async categories(@Headers("authorization") auth: string | undefined) {
+    const s = await this.shop(auth);
+    return (await this.catalog.categories(s.vertical)).filter((c) => c.is_active);
+  }
+
+  /** PATCH /dealer/catalog/:masterId/product — details, MRP and prices of an item I added myself. */
+  @Patch(":masterId/product")
+  async patchOwn(@Headers("authorization") auth: string | undefined, @Param("masterId") masterId: string, @Body() body: unknown) {
+    const s = await this.shop(auth);
+    return this.catalog.updateOwnProduct(s.dealerId, masterId, parse(ownProductPatchSchema, body), s.user);
+  }
+
+  /** POST /dealer/catalog/:masterId/image — photo of an item I added myself. The app sends it under 1 MB. */
+  @Post(":masterId/image")
+  @UseInterceptors(FileInterceptor("file", { limits: { fileSize: 1_000_000 } }))
+  async ownImage(@Headers("authorization") auth: string | undefined, @Param("masterId") masterId: string, @UploadedFile() file: Upload | undefined) {
+    const s = await this.shop(auth);
+    if (!file?.buffer?.length) throw new BadRequestException("No file");
+    await this.catalog.assertOwned(s.dealerId, masterId);
+    return this.catalog.setOwnImage(s.dealerId, masterId, await this.images.store("master", masterId, file), this.images);
+  }
+
+  @Delete(":masterId/image")
+  async clearOwnImage(@Headers("authorization") auth: string | undefined, @Param("masterId") masterId: string) {
+    const s = await this.shop(auth);
+    return this.catalog.setOwnImage(s.dealerId, masterId, null, this.images);
   }
 
   /** POST /dealer/catalog/list — list a master product at my price. */

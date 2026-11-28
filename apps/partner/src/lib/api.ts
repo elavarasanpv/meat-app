@@ -16,7 +16,7 @@ export class ApiError extends Error {
 }
 
 /** Call the NestJS API with the current session token. */
-export async function api<T>(path: string, init: { method?: "GET" | "POST"; body?: unknown } = {}): Promise<T> {
+export async function api<T>(path: string, init: { method?: "GET" | "POST" | "PATCH" | "DELETE"; body?: unknown } = {}): Promise<T> {
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token;
   const res = await fetch(baseUrl() + path, {
@@ -27,6 +27,27 @@ export async function api<T>(path: string, init: { method?: "GET" | "POST"; body
     },
     body: init.body === undefined ? undefined : JSON.stringify(init.body),
   });
+  const text = await res.text();
+  if (!res.ok) {
+    let message = text;
+    try {
+      message = (JSON.parse(text) as { message?: string }).message ?? text;
+    } catch {
+      /* raw text */
+    }
+    throw new ApiError(message || `HTTP ${res.status}`, res.status);
+  }
+  return (text ? JSON.parse(text) : null) as T;
+}
+
+/** Send one file (a product photo) as a multipart form, field name "file". */
+export async function apiUpload<T>(path: string, file: { uri: string; name: string; type: string }): Promise<T> {
+  const { data } = await supabase.auth.getSession();
+  const token = data.session?.access_token;
+  const form = new FormData();
+  // React Native's FormData takes a { uri, name, type } file part.
+  form.append("file", file as unknown as Blob);
+  const res = await fetch(baseUrl() + path, { method: "POST", headers: token ? { Authorization: `Bearer ${token}` } : {}, body: form });
   const text = await res.text();
   if (!res.ok) {
     let message = text;

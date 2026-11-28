@@ -13,7 +13,9 @@ import { Btn, Chip, Empty, ErrorBox, Field, Modal, Segments, ago, inputCls, inr 
  */
 
 type Rule = { id: string; verticalType: string; pincode: string | null; minOrder: number; fee: number; freeAbove: number | null; isActive: boolean; updatedAt: string | null };
-type VerticalTerms = { type: string; label: string; isLive: boolean; firstOrderFree: boolean; defaultRule: Rule | null; pincodeRules: Rule[] };
+type ChargeMode = "none" | "percent" | "flat";
+type ShopCharge = { id: string; name: string; mode: ChargeMode | null; value: number | null };
+type VerticalTerms = { type: string; label: string; isLive: boolean; firstOrderFree: boolean; defaultRule: Rule | null; pincodeRules: Rule[]; appCharge: { mode: ChargeMode; value: number }; shops: ShopCharge[] };
 type TestResult = {
   rule: "none" | "default" | "pincode";
   rulePincode: string | null;
@@ -40,7 +42,7 @@ export function DeliveryPage() {
   const v = list.find((x) => x.type === tab) ?? list[0];
   return (
     <div className="pb-6">
-      <PageHeader title="Delivery & minimum order" sub="What customers pay for delivery and the smallest order they can place. Orders already placed keep their fee." />
+      <PageHeader title="Delivery & charges" sub="What customers pay for delivery, the smallest order they can place, and what grocery shops give the app per order. Orders already placed keep their fee." />
       <div className="space-y-4 px-4 pt-4 md:px-6">
         <ErrorBox error={q.error} />
         {list.length > 1 && <div className="flex"><Segments value={v?.type ?? tab} onChange={setTab} items={list.map((x) => ({ id: x.type, label: x.label }))} /></div>}
@@ -112,6 +114,8 @@ function VerticalPanel({ v }: { v: VerticalTerms }) {
             </ul>
           )}
         </section>
+
+        {v.type === "grocery" && <AppChargeCard v={v} onSaved={refresh} />}
 
         <section className="card">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -292,5 +296,132 @@ function Row({ label, value, strong }: { label: string; value: string; strong?: 
       <span className="text-muted">{label}</span>
       <span className={`text-right ${strong ? "font-extrabold" : "font-bold"}`}>{value}</span>
     </div>
+  );
+}
+
+const chargeText = (mode: ChargeMode, value: number) => (mode === "percent" ? `${value}% of the items` : mode === "flat" ? `${inr(value)} per order` : "no charge");
+const SAMPLE = 300;
+const sampleCharge = (mode: ChargeMode, value: number) => Math.round(mode === "percent" ? (SAMPLE * value) / 100 : mode === "flat" ? value : 0);
+
+/** Mode switch plus the amount box, shared by the default and each shop. */
+function ChargeFields({ mode, value, setMode, setValue }: { mode: ChargeMode; value: string; setMode: (m: ChargeMode) => void; setValue: (v: string) => void }) {
+  return (
+    <div className="flex flex-wrap items-end gap-3">
+      <Segments<ChargeMode> value={mode} onChange={setMode} items={[{ id: "none", label: "No charge" }, { id: "percent", label: "Percent" }, { id: "flat", label: "₹ per order" }]} />
+      {mode !== "none" && (
+        <div className="w-36">
+          <Field label={mode === "percent" ? "Percent (%)" : "Amount (₹)"}>
+            <input className={inputCls} type="number" min={0} max={mode === "percent" ? 100 : undefined} step="any" inputMode="decimal" value={value} onChange={(e) => setValue(e.target.value)} />
+          </Field>
+        </div>
+      )}
+    </div>
+  );
+}
+const chargeBad = (mode: ChargeMode, value: string) => {
+  if (mode === "none") return null;
+  const n = Number(value);
+  if (value.trim() === "" || !Number.isFinite(n) || n < 0) return "Enter the charge (0 or more).";
+  if (mode === "percent" && n > 100) return "A percentage can't be more than 100.";
+  return null;
+};
+
+/**
+ * App charge: what a shop gives Thanjoz Mart for each order. It comes off the
+ * shop's amount; the customer pays the same. Saved on the order when the shop
+ * accepts, so a change here only affects orders accepted after it.
+ */
+function AppChargeCard({ v, onSaved }: { v: VerticalTerms; onSaved: () => void }) {
+  const cur = v.appCharge;
+  const [mode, setMode] = useState<ChargeMode>(cur.mode);
+  const [value, setValue] = useState(cur.mode === "none" ? "" : String(cur.value));
+  useEffect(() => {
+    setMode(cur.mode);
+    setValue(cur.mode === "none" ? "" : String(cur.value));
+  }, [cur.mode, cur.value]);
+  const save = useMutation({
+    mutationFn: () => api("/admin/delivery/app-charge", { method: "PATCH", body: { verticalType: v.type, mode, value: mode === "none" ? 0 : Number(value) } }),
+    onSuccess: onSaved,
+  });
+  const bad = chargeBad(mode, value);
+  const changed = mode !== cur.mode || (mode !== "none" && Number(value) !== cur.value);
+  const own = v.shops.filter((s) => s.mode != null).length;
+  return (
+    <section className="card">
+      <div className="mb-3">
+        <div className="card-title">App charge · paid by the shop</div>
+        <div className="card-sub">
+          What each shop gives Thanjoz Mart per order. It is taken off the shop's amount; the customer pays the same. A percentage is of the items at the customer price
+          (delivery not included). An order keeps the charge it was accepted with. Now: {chargeText(cur.mode, cur.value)}.
+        </div>
+      </div>
+      <ChargeFields mode={mode} value={value} setMode={setMode} setValue={setValue} />
+      {!bad && mode !== "none" && (
+        <div className="mt-2 text-[12px] text-muted">
+          Example: on a {inr(SAMPLE)} order the shop gives {inr(sampleCharge(mode, Number(value)))}.
+        </div>
+      )}
+      <ErrorBox error={bad && changed ? new Error(bad) : save.error} />
+      <div className="mt-3 flex flex-wrap items-center justify-end gap-2">
+        {changed && <Btn onClick={() => { setMode(cur.mode); setValue(cur.mode === "none" ? "" : String(cur.value)); }}>Undo</Btn>}
+        <Btn kind="primary" busy={save.isPending} disabled={!changed || !!bad} onClick={() => save.mutate()}>
+          Save
+        </Btn>
+      </div>
+
+      <div className="mt-5 border-t border-line pt-4">
+        <div className="card-title text-[13px]">Shops</div>
+        <div className="card-sub">A shop with its own charge uses it instead of the default.{own ? ` ${own} shop${own > 1 ? "s have" : " has"} its own.` : ""}</div>
+        {v.shops.length === 0 ? (
+          <Empty>No {v.label.toLowerCase()} shops yet.</Empty>
+        ) : (
+          <ul className="mt-2 divide-y divide-line">
+            {v.shops.map((s) => (
+              <ShopChargeRow key={s.id} shop={s} fallback={cur} onSaved={onSaved} />
+            ))}
+          </ul>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function ShopChargeRow({ shop, fallback, onSaved }: { shop: ShopCharge; fallback: { mode: ChargeMode; value: number }; onSaved: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [useDefault, setUseDefault] = useState(shop.mode == null);
+  const [mode, setMode] = useState<ChargeMode>(shop.mode ?? fallback.mode);
+  const [value, setValue] = useState(String(shop.value ?? (fallback.mode === "none" ? "" : fallback.value)));
+  const save = useMutation({
+    mutationFn: () =>
+      api(`/admin/delivery/app-charge/shops/${shop.id}`, {
+        method: "PATCH",
+        body: useDefault ? { mode: null, value: null } : { mode, value: mode === "none" ? 0 : Number(value) },
+      }),
+    onSuccess: () => {
+      setOpen(false);
+      onSaved();
+    },
+  });
+  const bad = useDefault ? null : chargeBad(mode, value);
+  return (
+    <li className="py-2.5 text-[12.5px]">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+        <span className="min-w-0 flex-1 font-extrabold">{shop.name}</span>
+        {shop.mode == null ? <Chip tone="mute">default · {chargeText(fallback.mode, fallback.value)}</Chip> : <Chip tone="ok">own · {chargeText(shop.mode, shop.value ?? 0)}</Chip>}
+        <Btn onClick={() => setOpen(!open)}>{open ? "Close" : "Change"}</Btn>
+      </div>
+      {open && (
+        <div className="mt-2 space-y-2 rounded-lg bg-surface p-3">
+          <Segments<"default" | "own"> value={useDefault ? "default" : "own"} onChange={(x) => setUseDefault(x === "default")} items={[{ id: "default", label: "Use the default" }, { id: "own", label: "Own charge" }]} />
+          {!useDefault && <ChargeFields mode={mode} value={value} setMode={setMode} setValue={setValue} />}
+          <ErrorBox error={bad ? new Error(bad) : save.error} />
+          <div className="flex justify-end">
+            <Btn kind="primary" busy={save.isPending} disabled={!!bad} onClick={() => save.mutate()}>
+              Save
+            </Btn>
+          </div>
+        </div>
+      )}
+    </li>
   );
 }

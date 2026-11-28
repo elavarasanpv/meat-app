@@ -37,7 +37,7 @@ export type OrderSummary = {
   order_items: { id: string; product_id: string | null; master_product_id: string | null; requested_kg: number; unit_price_per_kg: number; size: string | null; unavailable: boolean; products: { name: string; name_ta: string | null; unit: "kg" | "piece"; image_path: string | null; base_price_per_kg: number; is_active: boolean; min_qty?: number; qty_step?: number } | null }[];
 };
 
-type MasterEmbed = { name: string; name_ta: string | null; unit: "piece" | "pack" | "kg"; image_path?: string | null; is_active?: boolean; status?: string; min_qty?: number; qty_step?: number } | null;
+type MasterEmbed = { name: string; name_ta: string | null; unit: "piece" | "pack" | "kg"; pack_size?: string | null; image_path?: string | null; is_active?: boolean; status?: string; min_qty?: number; qty_step?: number } | null;
 /**
  * Grocery lines embed master_products instead of products. Present them in the
  * products shape so the order screens render both the same way.
@@ -48,13 +48,15 @@ function normaliseItems<T extends { order_items: ({ products?: unknown; master_p
     order_items: o.order_items.map(({ master_products, ...it }) =>
       it.products || !master_products
         ? it
-        : { ...it, products: { name: master_products.name, name_ta: master_products.name_ta, unit: master_products.unit === "kg" ? "kg" : "piece", image_path: master_products.image_path ?? null, base_price_per_kg: Number(it.unit_price_per_kg ?? 0), is_active: master_products.is_active !== false && master_products.status !== "rejected", min_qty: master_products.min_qty == null ? undefined : Number(master_products.min_qty), qty_step: master_products.qty_step == null ? undefined : Number(master_products.qty_step) } },
+        : { ...it, products: { name: master_products.name, name_ta: master_products.name_ta, unit: master_products.unit === "kg" ? "kg" : "piece", pack_size: master_products.pack_size ?? null, image_path: master_products.image_path ?? null, base_price_per_kg: Number(it.unit_price_per_kg ?? 0), is_active: master_products.is_active !== false && master_products.status !== "rejected", min_qty: master_products.min_qty == null ? undefined : Number(master_products.min_qty), qty_step: master_products.qty_step == null ? undefined : Number(master_products.qty_step) } },
     ),
   };
 }
 
 export type OrderDetail = Omit<OrderSummary, "order_items"> & {
   rider_id: string | null;
+  /** Delivery charge saved when the order was placed (null on very old orders). */
+  delivery_fee: number | null;
   arrived_at: string | null;
   cancel_reason: string | null;
   pickup_lat: number | null;
@@ -310,10 +312,10 @@ export function useOrder(id: string | undefined) {
     queryFn: async () => {
       // PostgREST rejects whitespace in select and duplicate embeds, so build it compact.
       const select = [
-        "id,display_id,status,vertical_type,dealer_id,est_amount,final_amount,payment_mode,created_at,rider_id,arrived_at,cancel_reason,pickup_lat,pickup_lng",
+        "id,display_id,status,vertical_type,dealer_id,est_amount,final_amount,delivery_fee,payment_mode,created_at,rider_id,arrived_at,cancel_reason,pickup_lat,pickup_lng",
         "delivery_slots(starts_at,ends_at)",
         "addresses(label,address_text,landmark,lat,lng)",
-        "order_items(id,requested_kg,actual_kg,unit_price_per_kg,size,notes,products(name,name_ta,unit),master_products(name,name_ta,unit))",
+        "order_items(id,requested_kg,actual_kg,unit_price_per_kg,size,notes,products(name,name_ta,unit),master_products(name,name_ta,unit,pack_size))",
         "order_status_history(to_status,created_at)",
       ].join(",");
       const { data, error } = await supabase.from("orders").select(select).eq("id", id!).single();

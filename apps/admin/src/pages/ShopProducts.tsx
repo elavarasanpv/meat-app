@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
 import { imageUrl } from "../ui/ImageField";
 import { Btn, Chip, Empty, ErrorBox, Modal, inputCls, inr } from "../ui/kit";
+import { ProductEditor, type Master } from "./Catalog";
 
 type Listing = {
   master_product_id: string;
@@ -14,7 +15,7 @@ type Listing = {
   out_of_stock_until: string | null;
   is_active: boolean;
   platform_margin: number;
-  product: { name: string; name_ta: string | null; brand: string | null; pack_size: string | null; unit: string; image_path: string | null };
+  product: Master & { owner_dealer_id: string | null };
 };
 
 const inStock = (l: Listing) => !l.out_of_stock_until || new Date(l.out_of_stock_until).getTime() <= Date.now();
@@ -26,6 +27,7 @@ export function ShopProducts({ id, name, onClose }: { id: string; name: string; 
   const key = ["admin", "shop-products", id];
   const list = useQuery<Listing[]>({ queryKey: key, queryFn: () => api(`/admin/catalog/stores/${id}/products`) });
   const [editing, setEditing] = useState<string | null>(null);
+  const [details, setDetails] = useState<Master | null>(null);
   const patch = useMutation({
     mutationFn: ({ masterId, body }: { masterId: string; body: Record<string, unknown> }) => api(`/admin/catalog/stores/${id}/products/${masterId}`, { method: "PATCH", body }),
     onSuccess: () => {
@@ -79,9 +81,10 @@ export function ShopProducts({ id, name, onClose }: { id: string; name: string; 
                         </button>
                       </td>
                       <td className="whitespace-nowrap px-3 py-2 text-right">
-                        <Btn onClick={() => setEditing(l.master_product_id)}>Edit prices</Btn>
+                        <Btn onClick={() => setEditing(l.master_product_id)}>Prices</Btn>
+                        <Btn onClick={() => setDetails(l.product)}>Details</Btn>
                         <Btn kind="ghost" busy={patch.isPending} onClick={() => patch.mutate({ masterId: l.master_product_id, body: { isActive: false } })}>
-                          Remove
+                          Hide
                         </Btn>
                       </td>
                     </tr>
@@ -98,13 +101,14 @@ export function ShopProducts({ id, name, onClose }: { id: string; name: string; 
         )}
         {removed.length > 0 && (
           <div className="rounded-xl border border-line p-3">
-            <div className="mb-2 text-[12px] font-extrabold">Removed ({removed.length})</div>
+            <div className="mb-2 text-[12px] font-extrabold">Hidden ({removed.length})</div>
             <div className="divide-y divide-line">
               {removed.map((l) => (
                 <div key={l.master_product_id} className="flex items-center gap-3 py-2">
                   <div className="min-w-0 flex-1 opacity-60"><Product l={l} /></div>
+                  <Btn onClick={() => setDetails(l.product)}>Details</Btn>
                   <Btn busy={patch.isPending} onClick={() => patch.mutate({ masterId: l.master_product_id, body: { isActive: true } })}>
-                    Add back
+                    Show again
                   </Btn>
                 </div>
               ))}
@@ -112,6 +116,16 @@ export function ShopProducts({ id, name, onClose }: { id: string; name: string; 
           </div>
         )}
       </div>
+      {details && (
+        <ProductEditor
+          initial={details}
+          onClose={() => setDetails(null)}
+          onChanged={() => {
+            void qc.invalidateQueries({ queryKey: key });
+            void qc.invalidateQueries({ queryKey: ["catalog", "master"] });
+          }}
+        />
+      )}
     </Modal>
   );
 }
@@ -124,7 +138,10 @@ function Product({ l }: { l: Listing }) {
         {img ? <img src={img} alt="" className="h-full w-full object-contain" /> : <span className="text-[11px] font-bold text-muted">{l.product.name.charAt(0)}</span>}
       </div>
       <div className="min-w-0">
-        <div className="font-bold">{l.product.name}</div>
+        <div className="font-bold">
+          {l.product.name}
+          {l.product.scope === "store" ? <span className="ml-1.5 rounded bg-surface-2 px-1.5 py-0.5 text-[10px] font-bold text-muted">Shop's own</span> : null}
+        </div>
         <div className="text-[11px] text-muted">{[l.product.brand, l.product.pack_size, l.product.unit === "kg" ? "per kg" : null].filter(Boolean).join(" · ")}</div>
       </div>
     </div>

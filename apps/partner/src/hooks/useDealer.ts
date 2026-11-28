@@ -1,9 +1,9 @@
 import { useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { api } from "@/lib/api";
+import { api, apiUpload } from "@/lib/api";
 import { supabase } from "@/lib/supabase";
 
-export type DealerMe = { id: string; shop_name: string; is_open: boolean; closed_until: string | null };
+export type DealerMe = { id: string; shop_name: string; store_type?: "meat" | "grocery"; is_open: boolean; closed_until: string | null };
 
 export type DealerOrderItem = {
   id: string;
@@ -37,6 +37,10 @@ export type DealerOrder = {
   created_at: string;
   delivery_slots: { starts_at: string; ends_at: string } | null;
   order_items: DealerOrderItem[];
+  /** What the shop gives Thanjoz Mart for this order (grocery; a preview until accepted). */
+  app_charge?: number;
+  /** The rule behind it, e.g. "3%" or "₹10". */
+  app_charge_basis?: string | null;
 };
 
 const STAGE: Record<DealerOrder["status"], number> = { DEALER_ASSIGNED: 0, ACCEPTED: 1, PACKING: 2, PACKED: 3, RIDER_ASSIGNED: 4 };
@@ -160,7 +164,7 @@ export function useSummary(dealerId: string | undefined) {
   return useQuery<Summary>({ queryKey: ["dealer", "summary"], enabled: !!dealerId, refetchInterval: 30_000, queryFn: () => api("/dealer/summary") });
 }
 
-export type HistoryRow = { id: string; display_id: string; status: string; created_at: string; shop_amount: number; items: { name: string; name_ta: string | null }[] };
+export type HistoryRow = { id: string; display_id: string; status: string; created_at: string; shop_amount: number; app_charge?: number; items: { name: string; name_ta: string | null }[] };
 
 export function useHistory(dealerId: string | undefined) {
   return useQuery<HistoryRow[]>({ queryKey: ["dealer", "history"], enabled: !!dealerId, queryFn: () => api("/dealer/history") });
@@ -168,7 +172,11 @@ export function useHistory(dealerId: string | undefined) {
 
 type Group = { name: string; name_ta: string | null; sort: number; image_path?: string | null };
 /** `product_id` is the meat product, or the master product for a grocery shop. `detail` is the brand and pack size of a grocery item. */
-export type StockRow = { product_id: string; name: string; name_ta: string | null; unit: string; image_path: string | null; out_of_stock_until: string | null; category: Group; subcategory: Group | null; detail?: string };
+export type StockRow = { product_id: string; name: string; name_ta: string | null; unit: string; image_path: string | null; out_of_stock_until: string | null; category: Group; subcategory: Group | null; detail?: string;
+  /** Grocery listings only: the three prices, and whether the shop has hidden it from customers. */
+  prices?: { mrp: number | null; selling: number; shop: number };
+  hidden?: boolean;
+};
 
 const OTHER: Group = { name: "Other", name_ta: null, sort: 99 };
 const byGroup = (a: StockRow, b: StockRow) => a.category.sort - b.category.sort || (a.subcategory?.sort ?? 0) - (b.subcategory?.sort ?? 0) || a.name.localeCompare(b.name);
@@ -190,9 +198,8 @@ export function useStock(dealerId: string | undefined) {
           .eq("dealer_id", dealerId!),
         supabase
           .from("store_products")
-          .select("master_product_id, out_of_stock_until, master_products(name, name_ta, unit, brand, pack_size, image_path, catalog_categories(name, name_ta, sort, image_path, parent:parent_id(name, name_ta, sort, image_path)))")
-          .eq("dealer_id", dealerId!)
-          .eq("is_active", true),
+          .select("master_product_id, out_of_stock_until, shop_price, selling_price, mrp, is_active, master_products(name, name_ta, unit, brand, pack_size, image_path, catalog_categories(name, name_ta, sort, image_path, parent:parent_id(name, name_ta, sort, image_path)))")
+          .eq("dealer_id", dealerId!),
       ]);
       if (meat.error) throw meat.error;
       if (grocery.error) throw grocery.error;
@@ -224,6 +231,8 @@ export function useStock(dealerId: string | undefined) {
           category: cat?.parent ?? cat ?? OTHER,
           subcategory: cat?.parent ? cat : null,
           detail: [p.brand, p.pack_size].filter(Boolean).join(" · ") || undefined,
+          prices: { mrp: r.mrp == null ? null : Number(r.mrp), selling: Number(r.selling_price), shop: Number(r.shop_price) },
+          hidden: !r.is_active,
         }];
       });
       return [...meatRows, ...groceryRows].sort(byGroup);
@@ -237,4 +246,54 @@ export function useSetStock() {
     mutationFn: (p: { productId: string; outOfStockUntil: string | null }) => api("/dealer/stock", { method: "POST", body: p }),
     onSettled: () => qc.invalidateQueries({ queryKey: ["dealer", "stock"] }),
   });
+}
+
+// ───────────── grocery shop: its own products and prices ─────────────
+export type CatalogCategory = { id: string; parent_id: string | null; name: string; name_ta: string | null; sort: number };
+export type MyListing = {
+  master_product_id: string;
+  shop_price: number;
+  selling_price: number;
+  mrp: number | null;
+  selling_set_by: "store" | "admin";
+  is_active: boolean;
+  product: {
+    id: string; name: string; name_ta: string | null; brand: string | null; pack_size: string | null; unit: "piece" | "pack" | "kg";
+    category_id: string | null; image_path: string | null; description: string | null; description_ta: string | null;
+    scope: "shared" | "store"; owner_dealer_id: string | null;
+  };
+};
+export type ProductDetails = {
+  name: string; nameTa: string | null; brand: string | null; description: string | null; descriptionTa: string | null;
+  categoryId: string | null; unit: "piece" | "pack" | "kg"; packSize: string | null; mrp: number; shopPrice: number; sellingPrice: number;
+};
+
+/** The shop's listings with full product details, for the edit form. */
+export function useMyListings(enabled = true) {
+  return useQuery<MyListing[]>({ queryKey: ["dealer", "catalog"], enabled, queryFn: () => api("/dealer/catalog") });
+}
+
+export function useCatalogCategories() {
+  return useQuery<CatalogCategory[]>({ queryKey: ["dealer", "catalogCategories"], staleTime: 10 * 60_000, queryFn: () => api("/dealer/catalog/categories") });
+}
+
+/** Add, edit, show/hide a product and set its photo. Each refreshes the stock list. */
+export function useProductActions() {
+  const qc = useQueryClient();
+  const done = () => Promise.all([qc.invalidateQueries({ queryKey: ["dealer", "stock"] }), qc.invalidateQueries({ queryKey: ["dealer", "catalog"] })]);
+  const mode = (d: { shopPrice: number; sellingPrice: number }) => (d.sellingPrice === d.shopPrice ? "same" : "custom");
+  return {
+    create: async (d: ProductDetails) => {
+      const r = await api<{ product: { id: string } }>("/dealer/catalog/custom", { method: "POST", body: { ...d, priceMode: mode(d) } });
+      return r.product.id;
+    },
+    updateOwn: (id: string, d: ProductDetails) => api(`/dealer/catalog/${id}/product`, { method: "PATCH", body: d }),
+    /** A catalogue product: the shop sets its prices only. */
+    setPrices: (id: string, d: { shopPrice: number; sellingPrice?: number }) =>
+      api(`/dealer/catalog/${id}`, { method: "PATCH", body: d.sellingPrice === undefined ? { shopPrice: d.shopPrice } : { ...d, priceMode: mode({ shopPrice: d.shopPrice, sellingPrice: d.sellingPrice }) } }),
+    setActive: (id: string, isActive: boolean) => api(`/dealer/catalog/${id}`, { method: "PATCH", body: { isActive } }),
+    setPhoto: (id: string, file: { uri: string; name: string; type: string }) => apiUpload(`/dealer/catalog/${id}/image`, file),
+    removePhoto: (id: string) => api(`/dealer/catalog/${id}/image`, { method: "DELETE" }),
+    done,
+  };
 }

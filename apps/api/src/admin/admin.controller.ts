@@ -1,6 +1,6 @@
 import { BadRequestException, Body, Controller, Delete, Get, Headers, Param, Patch, Post, Query, UploadedFile, UseInterceptors } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
-import { adminHeadlineSchema, adminOfferSchema, ticketResolveSchema, ticketReplySchema, adminInviteSchema, adminProfileSchema, adminCancelSchema, adminCashVerifySchema, adminReassignShopSchema, adminRiderSchema, adminShopSchema, adminBroadcastSchema, adminSellPriceSchema, adminShopPriceSchema, adminMarginSchema, deliveryRuleSchema, deliveryFirstFreeSchema, deliveryTestSchema } from "@thanjozmart/shared";
+import { adminHeadlineSchema, adminOfferSchema, ticketResolveSchema, ticketReplySchema, adminInviteSchema, adminProfileSchema, adminCancelSchema, adminCashVerifySchema, adminReassignShopSchema, adminRiderSchema, adminShopSchema, adminBroadcastSchema, adminSellPriceSchema, adminShopPriceSchema, adminMarginSchema, deliveryRuleSchema, deliveryFirstFreeSchema, deliveryTestSchema, appChargeDefaultSchema, appChargeShopSchema } from "@thanjozmart/shared";
 import type { ZodTypeAny, z } from "zod";
 import { AdminOpsService } from "./admin-ops.service";
 import { AdminAccountService } from "./admin-account.service";
@@ -423,6 +423,26 @@ export class AdminController {
     const v = parse(deliveryFirstFreeSchema, body);
     const r = await this.delivery.setFirstOrderFree(v.verticalType, v.on);
     await this.admin.log(a.id, v.on ? "delivery.first_free.on" : "delivery.first_free.off", v.verticalType);
+    return r;
+  }
+
+  /** PATCH /admin/delivery/app-charge — what each shop of a kind gives the app per order (off the shop's amount). */
+  @Patch("delivery/app-charge")
+  async appChargeDefault(@Headers("authorization") auth: string | undefined, @Body() body: unknown) {
+    const a = await this.guard(auth);
+    const v = parse(appChargeDefaultSchema, body);
+    const r = await this.delivery.setAppChargeDefault(v);
+    await this.admin.log(a.id, "app_charge.default", v.verticalType, { mode: r.mode, value: r.value });
+    return r;
+  }
+
+  /** PATCH /admin/delivery/app-charge/shops/:id — one shop's own app charge (mode null = use the default). */
+  @Patch("delivery/app-charge/shops/:id")
+  async appChargeShop(@Headers("authorization") auth: string | undefined, @Param("id") id: string, @Body() body: unknown) {
+    const a = await this.guard(auth);
+    const v = parse(appChargeShopSchema, body);
+    const r = await this.delivery.setShopAppCharge(id, v);
+    await this.admin.log(a.id, "app_charge.shop", id, { shop: r.name, mode: r.mode ?? "default", value: r.value });
     return r;
   }
 
