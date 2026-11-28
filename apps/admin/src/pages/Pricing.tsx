@@ -200,7 +200,7 @@ export function PricingPage() {
   return (
     <div className="pb-6">
       <PageHeader
-        title="Pricing"
+        title="Meat prices"
         sub="Selling price is what customers pay; cost is what you owe the shop. Profit is the difference, before delivery costs. Market is the shop's own counter price, which the shop keeps up to date from its app."
       />
       <div className="px-4 pt-3 md:px-6">

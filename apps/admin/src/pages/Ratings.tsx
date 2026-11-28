@@ -71,7 +71,7 @@ export function RatingsPage() {
 
   return (
     <div className="pb-6">
-      <PageHeader title="Ratings" sub="What customers say after delivery: the app, the riders and each product." />
+      <PageHeader title="Customer ratings" sub="What customers say after delivery: the app, the riders and each product." />
       <div className="px-4 pt-3 md:px-6">
         <ErrorBox error={q.error} />
       </div>

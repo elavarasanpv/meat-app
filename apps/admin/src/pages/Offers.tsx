@@ -76,7 +76,7 @@ export function Offers() {
   return (
     <div className="pb-6">
       <PageHeader
-        title="Offers & coupons"
+        title="App offers & coupons"
         sub="Banner offers apply by themselves; coupons need their code. Only the best single discount applies to an order."
         actions={
           <div className="flex w-full gap-2 sm:w-auto">

@@ -23,6 +23,7 @@ import {
   IconRider,
   IconSearch,
   IconSettings,
+  IconSliders,
   IconShop,
   IconTag,
   IconStar,
@@ -30,38 +31,55 @@ import {
   IconUser,
 } from "../ui/icons";
 
-const SECTIONS: { title: string; items: { to: string; label: string; Icon: typeof IconGrid }[] }[] = [
-  { title: "Dashboard", items: [{ to: "/", label: "Overview", Icon: IconGrid }] },
+type NavItem = { to: string; label: string; /** Short name for the phone's bottom bar. */ short?: string; /** What the screen is for; shown on hover and in the phone menu. */ hint: string; Icon: typeof IconGrid };
+const SECTIONS: { title: string; items: NavItem[] }[] = [
+  { title: "Today", items: [{ to: "/", label: "Overview", hint: "Today's orders and money at a glance", Icon: IconGrid }] },
   {
-    title: "Operations",
+    title: "Daily work",
     items: [
-      { to: "/orders", label: "Orders", Icon: IconOrders },
-      { to: "/shops", label: "Shops", Icon: IconShop },
-      { to: "/riders", label: "Riders", Icon: IconRider },
-      { to: "/cash", label: "Cash", Icon: IconCash },
-      { to: "/support", label: "Support", Icon: IconChat },
-      { to: "/offers", label: "Offers", Icon: IconTag },
-      { to: "/shop-offers", label: "Shop offers", Icon: IconTag },
-      { to: "/pricing", label: "Pricing", Icon: IconCash },
-      { to: "/pnl", label: "Profit & loss", Icon: IconArrowUp },
-      { to: "/delivery", label: "Delivery & charges", Icon: IconDeliveryFee },
-      { to: "/catalog", label: "Catalog", Icon: IconPackage },
-      { to: "/ratings", label: "Ratings", Icon: IconStar },
+      { to: "/orders", label: "Orders", hint: "Follow, assign and fix customer orders", Icon: IconOrders },
+      { to: "/support", label: "Customer support", short: "Support", hint: "Answer complaints and give credits", Icon: IconChat },
+      { to: "/cash", label: "Cash from riders", short: "Cash", hint: "Cash riders collected and handed over", Icon: IconCash },
     ],
   },
   {
+    title: "Shops & riders",
+    items: [
+      { to: "/shops", label: "Shops", hint: "Every shop, its details and its products", Icon: IconShop },
+      { to: "/riders", label: "Riders", hint: "Every rider and the work they did", Icon: IconRider },
+      { to: "/ratings", label: "Customer ratings", short: "Ratings", hint: "What customers say after delivery", Icon: IconStar },
+    ],
+  },
+  {
+    title: "Products & prices",
+    items: [
+      { to: "/pricing", label: "Meat prices", short: "Meat prices", hint: "Selling price, shop cost and stock for meat", Icon: IconSliders },
+      { to: "/catalog", label: "Grocery products", short: "Grocery", hint: "Grocery items, approvals and shop imports", Icon: IconPackage },
+      { to: "/delivery", label: "Delivery & charges", short: "Delivery", hint: "Delivery fee, smallest order and app charges", Icon: IconDeliveryFee },
+    ],
+  },
+  {
+    title: "Offers",
+    items: [
+      { to: "/offers", label: "App offers & coupons", short: "App offers", hint: "Banner offers and coupon codes you run", Icon: IconTag },
+      { to: "/shop-offers", label: "Grocery shop offers", short: "Shop offers", hint: "Approve offers made by grocery shops", Icon: IconShop },
+    ],
+  },
+  { title: "Money", items: [{ to: "/pnl", label: "Profit & loss", short: "Profit", hint: "What came in, what went out, what is left", Icon: IconArrowUp }] },
+  {
     title: "Account",
     items: [
-      { to: "/notifications", label: "Notifications", Icon: IconBell },
-      { to: "/settings", label: "Settings", Icon: IconSettings },
+      { to: "/notifications", label: "Notifications", short: "Alerts", hint: "News from orders, shops and riders", Icon: IconBell },
+      { to: "/settings", label: "Settings", hint: "Your account, the admin team and app rules", Icon: IconSettings },
     ],
   },
 ];
 const ALL = SECTIONS.flatMap((s) => s.items);
-/** Phone: the four busiest screens sit in the bottom bar; everything else opens from More. */
-const TABS = ALL.slice(0, 3);
+/** Phone: the three busiest screens sit in the bottom bar; everything else opens from More. */
+const TAB_PATHS = ["/", "/orders", "/shops"];
+const TABS = TAB_PATHS.map((to) => ALL.find((i) => i.to === to)!);
 /** The fourth slot holds whichever of these was opened last; the rest sit in More. */
-const REST = ALL.slice(3);
+const REST = ALL.filter((i) => !TAB_PATHS.includes(i.to));
 const SLOT_KEY = "tm.nav.slot";
 const onPath = (to: string, pathname: string) => pathname === to || pathname.startsWith(`${to}/`);
 function savedSlot(): string {
@@ -85,7 +103,7 @@ export function Shell() {
   const { unread } = useAlerts();
   return (
     <div className="min-h-screen md:flex">
-      <aside className="sticky top-0 hidden h-screen w-56 shrink-0 flex-col bg-ink text-white md:flex">
+      <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col bg-ink text-white md:flex">
         <div className="flex items-center gap-2 px-5 py-5">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary"><BrandMark size={22} /></div>
           <span className="text-[17px] font-extrabold tracking-tight">Thanjoz Mart</span>
@@ -94,17 +112,18 @@ export function Shell() {
           {SECTIONS.map((s) => (
             <div key={s.title} className="mb-4">
               <div className="px-3 pb-1.5 text-[10px] font-extrabold uppercase tracking-[0.12em] text-white/40">{s.title}</div>
-              {s.items.map(({ to, label, Icon }) => (
+              {s.items.map(({ to, label, hint, Icon }) => (
                 <NavLink
                   key={to}
                   to={to}
+                  title={hint}
                   end={to === "/"}
                   className={({ isActive }) =>
                     `mb-0.5 flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-bold transition ${isActive ? "bg-white text-ink shadow-sm" : "text-white/70 hover:bg-white/10 hover:text-white"}`
                   }
                 >
                   <Icon size={17} />
-                  <span className="flex-1">{label}</span>
+                  <span className="flex-1 whitespace-nowrap">{label}</span>
                   {to === "/notifications" && unread > 0 && <span className="rounded-full bg-primary px-1.5 text-[10.5px] font-extrabold text-white">{unread}</span>}
                 </NavLink>
               ))}
@@ -156,22 +175,34 @@ function PhoneNav({ unread }: { unread: number }) {
           <div className="relative max-h-[80vh] overflow-y-auto rounded-t-3xl bg-surface px-4 pt-3 shadow-2xl" style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 16px)" }}>
             <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-line" />
             <div className="px-1 pb-3 text-[15px] font-extrabold">More</div>
-            <div className="grid grid-cols-3 gap-2.5">
-              {more.map(({ to, label, Icon }) => (
-                <NavLink
-                  key={to}
-                  to={to}
-                  onClick={() => setOpen(false)}
-                  className={({ isActive }) =>
-                    `relative flex min-h-[86px] flex-col items-center justify-center gap-2 rounded-2xl border px-2 py-3 text-center text-[12px] font-bold leading-tight ${isActive ? "border-primary bg-primary/10 text-primary" : "border-line bg-surface-2 text-ink"}`
-                  }
-                >
-                  <Icon size={22} />
-                  <span>{label}</span>
-                  {to === "/notifications" && unread > 0 && <span className="absolute right-2 top-2 rounded-full bg-primary px-1.5 text-[10.5px] font-extrabold text-white">{unread}</span>}
-                </NavLink>
-              ))}
-            </div>
+            {SECTIONS.map((sec) => {
+              const items = sec.items.filter((i) => more.includes(i));
+              if (!items.length) return null;
+              return (
+                <div key={sec.title} className="mb-3">
+                  <div className="px-1 pb-1.5 text-[10.5px] font-extrabold uppercase tracking-[0.12em] text-muted">{sec.title}</div>
+                  <div className="space-y-1.5">
+                    {items.map(({ to, label, hint, Icon }) => (
+                      <NavLink
+                        key={to}
+                        to={to}
+                        onClick={() => setOpen(false)}
+                        className={({ isActive }) =>
+                          `flex items-center gap-3 rounded-2xl border px-3 py-2.5 ${isActive ? "border-primary bg-primary/10 text-primary" : "border-line bg-surface-2 text-ink"}`
+                        }
+                      >
+                        <Icon size={21} />
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-[13.5px] font-extrabold leading-tight">{label}</span>
+                          <span className="block text-[11.5px] font-semibold leading-snug text-muted">{hint}</span>
+                        </span>
+                        {to === "/notifications" && unread > 0 && <span className="rounded-full bg-primary px-1.5 text-[10.5px] font-extrabold text-white">{unread}</span>}
+                      </NavLink>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
             <button onClick={() => void supabase.auth.signOut()} className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl border border-line py-3 text-[13px] font-bold text-muted">
               <IconLogout size={16} /> Sign out
             </button>
@@ -179,13 +210,13 @@ function PhoneNav({ unread }: { unread: number }) {
         </div>
       )}
       <nav className="fixed inset-x-0 bottom-0 z-30 flex border-t border-line bg-surface" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
-        {tabs.map(({ to, label, Icon }) => (
+        {tabs.map(({ to, label, short, Icon }) => (
           <NavLink key={to} to={to} end={to === "/"} className={({ isActive }) => tab(isActive && !open)}>
             {({ isActive }) => (
               <>
                 {bar(isActive && !open)}
                 <Icon size={21} />
-                <span className="w-full truncate text-center">{label}</span>
+                <span className="w-full text-center leading-tight">{short ?? label}</span>
               </>
             )}
           </NavLink>

@@ -93,7 +93,7 @@ export function CatalogPage() {
 
   return (
     <div className="pb-6">
-      <PageHeader title="Catalog" sub="Grocery products, the approval queue and shop imports." />
+      <PageHeader title="Grocery products" sub="Grocery products, the approval queue and shop imports." />
       <div className="px-4 pt-4 md:px-6">
         {grocery && (
           <div className={`mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border p-4 ${grocery.is_active ? "border-ok/40 bg-ok/5" : "border-line bg-surface"}`}>

@@ -122,7 +122,7 @@ export function ShopOffers() {
   return (
     <div className="pb-6">
       <PageHeader
-        title="Shop offers"
+        title="Grocery shop offers"
         sub="Offers grocery shops make for their own customers. The shop pays for its own offers; for an offer you make, you choose who pays. An offer goes live only after you approve it; customers near the shop then get one notification (one per shop per day)."
         actions={
           <Btn kind="primary" onClick={() => setEditing("new")}>

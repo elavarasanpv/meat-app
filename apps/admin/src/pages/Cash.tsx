@@ -21,7 +21,7 @@ export function Cash() {
 
   return (
     <div className="pb-6">
-      <PageHeader title="Cash" sub="Cash riders collected at the door, and their day-end hand-overs." />
+      <PageHeader title="Cash from riders" sub="Cash riders collected at the door, and their day-end hand-overs." />
       <div className="grid gap-3 px-4 pt-4 sm:grid-cols-3 md:px-6">
         <Tile label="With riders now" value={d ? inr(d.totalInHand) : "—"} cls="bg-[#FDE6DF] text-primary" />
         <Tile label="Handed over, not counted" value={d ? inr(pending) : "—"} cls="bg-[#FBF3D6] text-warn" />

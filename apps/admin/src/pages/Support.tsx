@@ -67,7 +67,7 @@ export function Support() {
 
   return (
     <div className="pb-6">
-      <PageHeader title="Support" sub="Customer complaints and questions. Reply fast; resolve with a credit when we owe them." />
+      <PageHeader title="Customer support" sub="Customer complaints and questions. Reply fast; resolve with a credit when we owe them." />
       <div className="px-4 pt-4 md:px-6">
         <Segments
           value={filter}
